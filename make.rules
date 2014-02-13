@@ -1,0 +1,27 @@
+INCLUDEDIRS ?= .
+CC ?= gcc
+
+bin/%.o: %.cpp
+	$(CPP) $(INCLUDEDIRS) $(CPPOPTS) -c $<  -o $@
+
+bin/%.o: %.c
+	$(CPP) $(INCLUDEDIRS) $(CPPOPTS) -c $<  -o $@
+
+bin:
+				-mkdir -p bin
+
+init:
+				@( [[ ! -e bin ]] && mkdir -p bin ) || true
+
+#.PHONY : make.dep
+
+make.dep:
+				@ -rm -f make.dep
+				$(CC) -MM *.cpp  $(INCLUDEDIRS) > make.dep 
+				$(PBCPP_DIR)/MoveODependenciesToBin.pl make.dep make.dep2
+				mv make.dep2 make.dep							 
+
+clean:	
+				-rm -f bin/*
+				-rm -f make.dep
+				exit 0
