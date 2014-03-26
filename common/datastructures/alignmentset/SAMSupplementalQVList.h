@@ -6,6 +6,7 @@
 class SupplementalQVList {
  public:
 	enum QVList {Insertion=0x1, Deletion=0x2, Substitution=0x4, Merge=0x8, SubstitutionTag=0x10, DeletionTag=0x20};
+	enum QVIndex {I_Insertion=1,I_Deletion=2,I_Substitution=3,I_Merge=4,I_SubstitutionTag=5,I_DeletionTag=6};
 	unsigned int useqv;
 	void SetDefaultQV() {
 		useqv = Insertion | Deletion | Substitution | Merge | SubstitutionTag | DeletionTag;
@@ -57,13 +58,6 @@ class SupplementalQVList {
 			}
 		}
 
-		if (alignedSubsequence.deletionTag == NULL) {
-			useqv = useqv & ~DeletionTag;
-		}
-
-		if (alignedSubsequence.substitutionTag == NULL) {
-			useqv = useqv & ~SubstitutionTag;
-		}
 
 		for (i = 0; i < nTags; i++) {
 			if (alignedSubsequence.GetQVPointerByIndex(i) != NULL and (useqv & (1 << i)) ) {
@@ -71,6 +65,17 @@ class SupplementalQVList {
 				alignedSubsequence.PrintAsciiRichQuality(out, i + 1, 0);
 			}
 		}
+
+		if (alignedSubsequence.substitutionTag != NULL and (useqv & SubstitutionTag)) {
+			out << "\t" << qvTags[I_SubstitutionTag-1] << ":Z:";
+			alignedSubsequence.PrintAsciiRichQuality(out, I_SubstitutionTag, 0);
+		}
+
+		if (alignedSubsequence.deletionTag != NULL and (useqv & DeletionTag)) {
+			out << "\t" << qvTags[I_DeletionTag-1] << ":Z:";
+			alignedSubsequence.PrintAsciiRichQuality(out, I_DeletionTag, 0);
+		}
+		
 	}
 };
 
