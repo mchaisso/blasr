@@ -1024,7 +1024,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
             int alignScore;
 
 						alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
-																	params.sdpIns, params.sdpDel, params.indelRate*2, 
+																	params.sdpIns, params.sdpDel, 0.25, 
 																	alignmentInGap, mappingBuffers, Local,
 																	params.detailedSDPAlignment, 
 																	params.extendFrontAlignment, params.recurseOver);
@@ -3866,7 +3866,7 @@ int main(int argc, char* argv[]) {
   clp.RegisterFlagOption("allowAdjacentIndels", &params.forPicard, "");
   clp.RegisterFlagOption("onegap", &params.separateGaps, "");
   clp.RegisterFlagOption("allowAdjacentIndels", &params.forPicard, "");
-  clp.RegisterFlagOption("placeRandomly", &params.placeRandomly, "");
+  clp.RegisterFlagOption("placeRepeatsRandomly", &params.placeRandomly, "");
   clp.RegisterIntOption("randomSeed", &params.randomSeed, "", CommandLineParser::Integer);
 	clp.RegisterFlagOption("extend", &params.extendAlignments, "");
   clp.RegisterIntOption("branchExpand", &params.anchorParameters.branchExpand, "", CommandLineParser::NonNegativeInteger);
