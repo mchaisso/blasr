@@ -16,7 +16,7 @@ class AlignmentSet {
   vector<T_ReferenceSequence> references;
   vector<T_ReadGroup> readGroups;
   vector<T_Alignment> alignments;
-
+  map<string, int> refNameToIndex;
   //
   //  Rearrange references such that they are placed in the same order
   //  as fastaReferences

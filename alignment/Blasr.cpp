@@ -1635,6 +1635,8 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
   DistanceMatrixScoreFunction<DNASequence, FASTQSequence> distScoreFn;
   distScoreFn.del = params.deletion;
   distScoreFn.ins = params.insertion;
+	distScoreFn.affineOpen = params.affineOpen;
+	distScoreFn.affineExtend = params.affineExtend;
   distScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
   QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
   IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
@@ -1964,6 +1966,8 @@ void AssignGenericRefContigName(vector<T_AlignmentCandidate*> &alignmentPtrs, T_
   }
 }
 
+int basesAligned = 0;
+int nReads = 0;
 
 template<typename T_Sequence, typename T_RefSequence, typename T_SuffixArray, typename T_TupleCountTable>
 void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome, 
@@ -1977,6 +1981,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
              vector<T_AlignmentCandidate*> &alignmentPtrs, 
              MappingBuffers &mappingBuffers,
              MappingIPC *mapData) {
+
 
   bool matchFound;
   WeightedIntervalSet topIntervals(params.nCandidates);

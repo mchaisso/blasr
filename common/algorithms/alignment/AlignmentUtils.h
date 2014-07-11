@@ -271,10 +271,10 @@ inline void PrintCompareSequencesAlignmentStats(T_Alignment &alignment, ostream 
       << " " << alignmentQStart + qLength;
 
   if (alignment.qStrand == 0) {
-    out << " + ";
+    out << " +";
   }
   else {
-    out << " - ";
+    out << " -";
   }
 	
   int alignmentTStart;

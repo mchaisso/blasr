@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls pls2 testAdvance computeRefCoverage toAfg cmpView cmpInformation printmsa printvariants cmpH5Diff samtoh5 samtom4 samFilter samtobas
+all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls pls2 testAdvance computeRefCoverage toAfg cmpView cmpInformation printmsa printvariants cmpH5Diff samtoh5 samtom4 samFilter samtobas bash5ls
 
 include ../make.rules
 
@@ -49,6 +49,7 @@ INSTALL_EXECS = $(addsuffix -install, $(DISTRIB_SET))
 build-secondary: init $(DISTRIB_EXECS)
 install-secondary: $(INSTALL_EXECS)
 
+
 writeHDFSubset: bin/writeHDFSubset
 pls2: bin/pls2
 pls2fasta: bin/pls2fasta
@@ -68,6 +69,10 @@ samtoh5: bin/samtoh5
 samtom4: bin/samtom4
 samtobas: bin/samtobas
 samFilter: bin/samFilter
+bash5ls: bin/bash5ls
+
+bin/bash5ls: bin/BaseH5ls.o
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
 
 bin/cmpView: bin/CmpH5View.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread

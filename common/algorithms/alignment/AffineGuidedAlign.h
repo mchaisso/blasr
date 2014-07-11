@@ -107,9 +107,9 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
   vector<int>    affineInsScoreMat, affineDelScoreMat;
   vector<Arrow>  affineInsPathMat, affineDelPathMat;
   affineInsScoreMat.resize(matrixNElem);
-  fill(affineInsScoreMat.begin(), affineInsScoreMat.end(), 0);
+  fill(affineInsScoreMat.begin(), affineInsScoreMat.end(), scoreFn.affineOpen);
   affineDelScoreMat.resize(matrixNElem);
-  fill(affineDelScoreMat.begin(), affineDelScoreMat.end(), 0);
+  fill(affineDelScoreMat.begin(), affineDelScoreMat.end(), scoreFn.affineOpen);
   affineInsPathMat.resize(matrixNElem);
   fill(affineInsPathMat.begin(), affineInsPathMat.end(), NoArrow);
   affineDelPathMat.resize(matrixNElem);
@@ -194,10 +194,10 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
 			else if (alignType == Local) {
 				scoreMat[curIndex] = 0;
 			}
-      affineDelScoreMat[curIndex] = scoreFn.del;
-      affineDelPathMat[curIndex] = AffineDelOpen;
-      affineInsPathMat[curIndex] = AffineInsOpen;
-      affineInsScoreMat[curIndex] = scoreFn.ins;
+      affineDelScoreMat[curIndex] = scoreFn.affineOpen;
+      affineDelPathMat[curIndex]  = AffineDelOpen;
+      affineInsScoreMat[curIndex] = scoreFn.affineOpen;
+      affineInsPathMat[curIndex]  = AffineInsOpen;
 			pathMat[curIndex] = Left;
       if (computeProb) {
         if (qSeq.qual.Empty() == false) {
@@ -226,9 +226,9 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
 			else {
 				scoreMat[curIndex] = 0;
 			}
-      affineInsScoreMat[curIndex] = scoreFn.ins;
+      affineInsScoreMat[curIndex] = scoreFn.affineOpen;
       affineInsPathMat[curIndex]  = AffineInsOpen;
-      affineDelScoreMat[curIndex] = scoreFn.del;
+      affineDelScoreMat[curIndex] = scoreFn.affineOpen;
       affineDelPathMat[curIndex] = AffineDelOpen;
 			pathMat[curIndex] = Up;
 		}
@@ -311,7 +311,7 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
 				delScore = INF_INT;
         affineDelExtScore = INF_INT;
 			}
-			
+			//			cout << q << " " <<t << " " << matchScore << " " << insScore << " " << affineInsExtScore << " " << delScore << " " <<affineDelExtScore << endl;
 			int minScore = MIN(matchScore, MIN(insScore, MIN(delScore, MIN(affineInsExtScore, affineDelExtScore))));
 			int result   = GetBufferIndex(guide, q, t, curIndex);
 			// This should only loop over valid cells.
@@ -379,6 +379,8 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
 	vector<Arrow>  optAlignment;
 	int bufferIndexIsValid;
   int curMatrix = Match;
+	int nIns = 0;
+	int nDel = 0;
 	while(q >= qStart or t >= tStart) {
     bufferIndex = -1;
     //    cout << "backtrace: " << q << " "<< t << endl;
@@ -413,18 +415,22 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
       else if (arrow == Up) {
         optAlignment.push_back(arrow);
         q--;
+				nIns++;
       }
       else if (arrow == Left) {
         optAlignment.push_back(arrow);
         t--;
+				nDel++;
       }
       else if (arrow == AffineInsClose) {
         optAlignment.push_back(Up);
         curMatrix = AffineIns;
         q--;
+				nIns++;
       }
       else if (arrow == AffineDelClose) {
         t--;
+				nDel++;
         optAlignment.push_back(Left);
         curMatrix = AffineDel;
       }
@@ -436,6 +442,7 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
       }
       else if (arrow == AffineInsUp) {
         q--;
+				nIns++;
         optAlignment.push_back(Up);
       }
       else {

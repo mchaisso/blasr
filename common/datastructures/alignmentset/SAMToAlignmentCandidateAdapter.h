@@ -440,19 +440,19 @@ void SAMAlignmentsToCandidates(SAMAlignment &sam,
         // proper printing.
         //
         alignment.tAlignedSeqPos = samTStart + (samTEnd - tAlignStart - alignment.tAlignedSeqLength);
-		if (alignment.tAlignedSeqLength > referenceSequences[refIndex].length ||
-			alignment.tAlignedSeqPos    > referenceSequences[refIndex].length ||
-			alignment.tAlignedSeqLength + alignment.tAlignedSeqPos > referenceSequences[refIndex].length + 2) {
-            //alignment.tAlignedSeqPos is 1 based and unsigned.
-			cout << "WARNING. The mapping of read " << alignment.qName  
-				 << " to reference "      << alignment.tName 
-                 << " is out of bounds."  << endl
-                 << "         StartPos (" << alignment.tAlignedSeqPos  
-                 << ") + AlnLength (" << alignment.tAlignedSeqLength 
-                 << ") > RefLength (" << referenceSequences[refIndex].length
-                 << ") + 2 "          << endl;
-            continue;
-		}
+				if (alignment.tAlignedSeqLength > referenceSequences[refIndex].length ||
+						alignment.tAlignedSeqPos    > referenceSequences[refIndex].length ||
+						alignment.tAlignedSeqLength + alignment.tAlignedSeqPos > referenceSequences[refIndex].length + 2) {
+					//alignment.tAlignedSeqPos is 1 based and unsigned.
+					cout << "WARNING. The mapping of read " << alignment.qName  
+							 << " to reference "      << alignment.tName 
+							 << " is out of bounds."  << endl
+							 << "         StartPos (" << alignment.tAlignedSeqPos  
+							 << ") + AlnLength (" << alignment.tAlignedSeqLength 
+							 << ") > RefLength (" << referenceSequences[refIndex].length
+							 << ") + 2 "          << endl;
+					continue;
+				}
         ((DNASequence*)&alignment.tAlignedSeq)->Copy(referenceSequences[refIndex], alignment.tAlignedSeqPos, alignment.tAlignedSeqLength);             
         alignment.tAlignedSeq.ReverseComplementSelf();
         // either ref or read is defined as being in the forward
@@ -466,18 +466,18 @@ void SAMAlignmentsToCandidates(SAMAlignment &sam,
       }
       else {
         if (alignment.tAlignedSeqLength > referenceSequences[refIndex].length ||
-			alignment.tAlignedSeqPos    > referenceSequences[refIndex].length ||
-			alignment.tAlignedSeqLength + alignment.tAlignedSeqPos > referenceSequences[refIndex].length + 2) {
-            //alignment.tAlignedSeqPos is 1 based and unsigned. 
-			cout << "WARNING. The mapping of read " << alignment.qName  
-				 << " to reference "      << alignment.tName 
-                 << " is out of bounds."  << endl
-                 << "         StartPos (" << alignment.tAlignedSeqPos  
-                 << ") + AlnLength (" << alignment.tAlignedSeqLength 
-                 << ") > RefLength (" << referenceSequences[refIndex].length
-                 << ") + 2 "          << endl;
-            continue;
-		}
+						alignment.tAlignedSeqPos    > referenceSequences[refIndex].length ||
+						alignment.tAlignedSeqLength + alignment.tAlignedSeqPos > referenceSequences[refIndex].length + 2) {
+					//alignment.tAlignedSeqPos is 1 based and unsigned. 
+					cout << "WARNING. The mapping of read " << alignment.qName  
+							 << " to reference "      << alignment.tName 
+							 << " is out of bounds."  << endl
+							 << "         StartPos (" << alignment.tAlignedSeqPos  
+							 << ") + AlnLength (" << alignment.tAlignedSeqLength 
+							 << ") > RefLength (" << referenceSequences[refIndex].length
+							 << ") + 2 "          << endl;
+					continue;
+				}
         ((DNASequence*)&alignment.tAlignedSeq)->Copy(referenceSequences[refIndex], 
                                                      alignment.tAlignedSeqPos, 
                                                      alignment.tAlignedSeqLength);

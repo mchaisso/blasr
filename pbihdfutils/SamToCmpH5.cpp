@@ -157,14 +157,15 @@ int main(int argc, char* argv[]) {
   // Start setting up the cmp.h5 file.
   //
   AlignmentSetToCmpH5Adapter<HDFCmpFile<AlignmentCandidate<FASTASequence, FASTASequence> > > alignmentSetAdapter;
-  alignmentSetAdapter.Initialize();
-  alignmentSetAdapter.StoreReferenceInfo(alignmentSet.references, cmpFile);
+  alignmentSetAdapter.Initialize(references);
+	
   
   //
   // Store the alignments.
   //
   SAMAlignment samAlignment;
   int alignIndex = 0;
+	
   while (samReader.GetNextAlignment(samAlignment)) {
     if (samAlignment.rName == "*") {
       continue;
@@ -182,8 +183,13 @@ int main(int argc, char* argv[]) {
     if (verbosity > 0) {
       cout << "Storing alignment for " << samAlignment.qName << endl;
     }
+		
+		if (alignmentSetAdapter.ReferenceIsStored(samAlignment.rName) == false) {
+			int refIndex = alignmentSet.refNameToIndex[samAlignment.rName];
+			alignmentSetAdapter.StoreReferenceInfo(alignmentSet.references[refIndex], cmpFile);			
+		}
     SAMAlignmentsToCandidates(samAlignment, 
-                              references, alignmentSetAdapter.refNameToIndex,
+                              references, alignmentSetAdapter.refNameToAllRefIndex,
                               convertedAlignments, parseSmrtTitle, false);
 
     alignmentSetAdapter.StoreAlignmentCandidateList(convertedAlignments, cmpFile, alignIndex);

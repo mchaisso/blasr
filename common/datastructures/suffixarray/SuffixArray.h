@@ -80,6 +80,10 @@ template<typename T,
  enum Component { CompArray, CompLookupTable, CompLCPTable};
  static const int ComponentListLength = 2;
  static const int FullSearch = -1;
+
+ SAIndex operator[](SAIndex i) {
+	 return index[i];
+ }
  int componentList[ComponentListLength];
 
  // vector<SAIndex> leftBound, rightBound;

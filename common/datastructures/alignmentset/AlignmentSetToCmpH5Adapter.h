@@ -35,25 +35,47 @@ class AlignmentSetToCmpH5Adapter {
   map<string, int> knownMovies;
   map<string, int> knownPaths;
   unsigned int numAlignments;
-  map<string, int> refNameToIndex;
- 
-  void Initialize() {
-      numAlignments = 0;
+  map<string, int> refNameToCmpH5RefIndex;
+  map<string, int> refNameToAllRefIndex;
+	set<int> initialzedReferences;
+  template<typename T_Reference>
+	void Initialize(vector<T_Reference> &references) {
+		numAlignments = 0;
+		StoreReferenceIndexMap(references);
   }
+
+  template<typename T_Reference>
+  void StoreReferenceInfo(T_Reference &reference, T_CmpFile &cmpFile) {
+		string sequenceName, md5;
+		unsigned int id, length;
+		sequenceName = reference.GetSequenceName();
+		md5 = reference.GetMD5();
+		length = reference.GetLength();
+		string name;
+		id = cmpFile.AddReference(sequenceName, length, md5, name);
+		refToId[sequenceName] = RefIndex(name, id);
+		refNameToCmpH5RefIndex[sequenceName] = refNameToCmpH5RefIndex.size() - 1;
+  }
+
+	bool ReferenceIsStored(string tId) {
+    map<string, RefIndex>::iterator refToIdIt;
+    refToIdIt = refToId.find(tId);
+		return (refToIdIt != refToId.end());
+	}
+
+	template<typename T_Reference>
+		void StoreReferenceIndexMap(vector<T_Reference> &references) {
+		int r;
+    for (r = 0; r < references.size(); r++) {
+			refNameToAllRefIndex[references[r].GetName()] = r;
+    }
+	}
 
   template<typename T_Reference>
   void StoreReferenceInfo(vector<T_Reference> &references, T_CmpFile &cmpFile) {
     int r;
     for (r = 0; r < references.size(); r++) {
-      string sequenceName, md5;
-      unsigned int id, length;
-      sequenceName = references[r].GetSequenceName();
-      md5 = references[r].GetMD5();
-      length = references[r].GetLength();
-      string name;
-      id = cmpFile.AddReference(sequenceName, length, md5, name);
-      refToId[sequenceName] = RefIndex(name, id);
-      refNameToIndex[sequenceName] = r;
+			StoreReferenceInfo(references[r], cmpFile);
     }
   }
 

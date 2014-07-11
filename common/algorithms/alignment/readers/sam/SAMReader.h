@@ -85,6 +85,7 @@ class SAMReader {
     alignments.references.push_back(T_ReferenceSequence());
     int lastRefIndex = alignments.references.size() - 1;
     alignments.references[lastRefIndex].StoreValues(kvPairs, lineNumber);
+		alignments.refNameToIndex[alignments.references[lastRefIndex].sequenceName] = lastRefIndex;
   }
 
   void StoreReadGroup(vector<SAMKeywordValuePair> &kvPairs,

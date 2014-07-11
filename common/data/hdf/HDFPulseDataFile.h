@@ -20,6 +20,8 @@ class HDFPulseDataFile {
 	int nReads;
   bool preparedForRandomAccess;
   map<unsigned int,int> holeNumberToIndex;
+	vector<unsigned int> holeNumbers;
+	vector<unsigned int> readLengths;
 
 	int GetAllReadLengths(vector<DNALength> &readLengths) {
 		nReads = zmwReader.numEventArray.arrayLength;
@@ -53,15 +55,14 @@ class HDFPulseDataFile {
 	}
 
   void PrepareForRandomAccess() {
-    GetAllReadLengths(eventOffset);
-		vector<unsigned int> holeNumbers;
+    GetAllReadLengths(readLengths);
 		GetAllHoleNumbers(holeNumbers);
     int i;
     int curOffset = 0;
-    for (i = 0; i < eventOffset.size(); i++) {
-      int curLength = eventOffset[i];
+		eventOffset.resize(readLengths.size());
+    for (i = 0; i < readLengths.size(); i++) {
       eventOffset[i] = curOffset;
-      curOffset = curOffset + curLength;
+      curOffset = curOffset + readLengths[i];
     }
 		for (i = 0; i < holeNumbers.size(); i++) {
 			holeNumberToIndex[holeNumbers[i]] = i;
