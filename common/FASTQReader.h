@@ -80,6 +80,7 @@ class FASTQReader : public FASTAReader {
           seq.qual.data = NULL;
         }
         curPos = p2;
+				seq.deleteOnExit = true;
 				return true;
     }
 

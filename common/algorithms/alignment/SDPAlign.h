@@ -233,7 +233,9 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   FlatMatrix2D<int> graphScoreMat;
   FlatMatrix2D<Arrow> graphPathMat;
   FlatMatrix2D<int> graphBins;
-  int nOnOpt = fragmentSet.size();
+
+	int nOnOpt = fragmentSet.size();
+ 
   if (fragmentSet.size() > 100000) {
 		int nCol = 50;
 		vector<bool> onOptPath(fragmentSet.size(), false);
@@ -243,6 +245,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 		int prev = fragmentSet.size();
 		RemoveOffOpt(fragmentSet, onOptPath);
   }    
+	
 	graphScoreMat.Clear();
 	graphPathMat.Clear();
 	graphBins.Clear();

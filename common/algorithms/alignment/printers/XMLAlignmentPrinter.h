@@ -36,14 +36,15 @@ void	CompareXMLPrintAlignment(T_Alignment &alignment,
       alignment.nMismatch = 0;
       alignment.nMatch = 0;
     }
+    int lastBlock = alignment.blocks.size()-1;
 		out << BeginDataEntry(string("hit"),
 													CreateKeywordValuePair(string("name"), alignment.qName) +
 													CreateKeywordValuePair(string("unalignedLength"), alignment.qLength) +
-													CreateKeywordValuePair(string("start"), alignment.qPos) + 
-													CreateKeywordValuePair(string("end"), alignment.qPos + alignment.qAlignLength) +
+													CreateKeywordValuePair(string("start"), alignment.qAlignedSeqPos + alignment.blocks[0].qPos) + 
+													CreateKeywordValuePair(string("end"),  alignment.qAlignedSeqPos + alignment.blocks[lastBlock].qPos + alignment.blocks[lastBlock].length) +
 													CreateKeywordValuePair(string("strand"), strand[alignment.qStrand]) + 
-													CreateKeywordValuePair(string("targetStart"), alignment.tPos) +													 
-													CreateKeywordValuePair(string("targetEnd"), alignment.tPos + alignment.tAlignLength) +
+													CreateKeywordValuePair(string("targetStart"), alignment.tAlignedSeqPos + alignment.blocks[0].tPos ) +													 
+													CreateKeywordValuePair(string("targetEnd"), alignment.tAlignedSeqPos + alignment.blocks[lastBlock].tPos  + alignment.blocks[lastBlock].length) + 
 													CreateKeywordValuePair(string("targetStrand"), strand[alignment.tStrand])) << endl;
 		out << CreateDataEntry(string("zScore"),
 													 CreateKeywordValuePair(string("value"), alignment.zScore)) << endl;

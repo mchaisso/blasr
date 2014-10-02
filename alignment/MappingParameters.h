@@ -73,6 +73,7 @@ class MappingParameters {
 	float subsample;
 	int sortRefinedAlignments;
 	int verbosity;
+	int progress;
   bool printSAM;
   bool storeMapQV;
   bool useRandomSeed;
@@ -233,6 +234,7 @@ class MappingParameters {
 		listTupleSize = 6;
 		sortRefinedAlignments = 1;
 		anchorParameters.verbosity = verbosity = 0;
+		progress = 0;
 		saTupleMetrics.Initialize(listTupleSize);
 		sdpTupleMetrics.Initialize(sdpTupleSize);
 		qualityLowerCaseThreshold = 0;
@@ -429,10 +431,17 @@ class MappingParameters {
     if (randomSeed != 0) {
       useRandomSeed = true;
     }
+
+
     if (printSAM) {
       printFormat = SAM;
       forPicard = true;
     }
+
+		if (printFormat > SAM) {
+			cout << "ERROR. Output format must be between 0 and " << SAM << endl;
+			exit(1);
+		}
     //
     // Parse the clipping.
     //
@@ -480,6 +489,7 @@ class MappingParameters {
     anchorParameters.minMatchLength        = 30;
     useGuidedAlign                         = true;
     refineAlignments                       = false;
+		refineBetweenAnchorsOnly               = true;
   }
 
   void SetForSensitivity() {

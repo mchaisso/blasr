@@ -97,7 +97,7 @@ int GraphPaper(vector<T_Point> &points,
   for (r = 1; r < nRows + 1; r++) {
     for (c = 1; c < nCols + 1; c++) {
       int diagScore, leftScore, upScore;
-      diagScore = scoreMat[r-1][c-1];
+      diagScore = scoreMat[r-1][c-1] + bins[r-1][c-1];
       leftScore = scoreMat[r][c-1];
       upScore   = scoreMat[r-1][c];
       
@@ -105,7 +105,7 @@ int GraphPaper(vector<T_Point> &points,
       Arrow optDir;
       if (diagScore >= leftScore and
           diagScore >= upScore) {
-        optScore = diagScore;
+        optScore = diagScore ;
         optDir   = Diagonal;
       }
       else if (leftScore >= diagScore and 
@@ -118,7 +118,7 @@ int GraphPaper(vector<T_Point> &points,
         optDir   = Up;
       }
       
-      scoreMat[r][c] = optScore + bins[r-1][c-1];
+      scoreMat[r][c] = optScore ;
       pathMat[r][c]   = optDir;
     }
   }

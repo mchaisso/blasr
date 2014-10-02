@@ -55,6 +55,7 @@
 #include "datastructures/alignment/AlignmentCandidate.h"
 #include "datastructures/alignment/AlignmentBlock.h"
 #include "datastructures/alignment/AlignmentContext.h"
+
 #include "datastructures/mapping/MappingMetrics.h"
 #include "datastructures/reads/ReadInterval.h"
 #include "utils/FileOfFileNames.h"
@@ -106,7 +107,7 @@ ReaderAgglomerate *reader;
 
 typedef MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> MappingIPC;
 
-
+long totalBases = 0;
 
 
 class ClusterInformation {
@@ -728,7 +729,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
   WeightedIntervalSet::iterator intvIt = weightedIntervals.begin();
   int alignmentIndex = 0;
   
-
+	if (params.progress) {
+		cout << "Mapping intervals " << endl;
+	}
   do {
 
     T_AlignmentCandidate *alignment = alignments[alignmentIndex];
@@ -783,7 +786,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       subreadEnd   = read.MakeRCCoordinate(read.subreadStart) + 1;
       subreadStart = read.MakeRCCoordinate(read.subreadEnd-1);
     }
-
+		/*
     DNALength lengthBeforeFirstMatch = ((*intvIt).qStart - subreadStart) * params.approximateMaxInsertionRate ;
     DNALength lengthAfterLastMatch   = (subreadEnd - (*intvIt).qEnd) * params.approximateMaxInsertionRate;
     if (matchIntervalStart < lengthBeforeFirstMatch  or params.doGlobalAlignment) {
@@ -799,7 +802,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     else {
       matchIntervalEnd += lengthAfterLastMatch;
     }
-
+		*/
     DNALength intervalContigStartPos, intervalContigEndPos;
     if (useSeqDB) {
       //
@@ -836,30 +839,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       intervalContigEndPos   = genome.length;
     }
     alignment->qName = read.title;
-    //
-    // Look to see if a read overhangs the beginning of a contig.
-    //
-    if (params.verbosity > 2) {
-      cout << "Check for prefix/suffix overlap on interval: " << (*intvIt).qStart << " ?> " << (*intvIt).start - intervalContigStartPos <<endl;
-    }
-    if ( (*intvIt).qStart > (*intvIt).start - intervalContigStartPos) {
-      readOverlapsContigStart = true;
-      startOverlappedContigIndex = seqDBIndex;
-    }
     
-    // 
-    // Look to see if the read overhangs the end of a contig.
-    //
-    if (params.verbosity > 2) {
-      cout << "Check for suffix/prefix overlap on interval, read overhang: " << read.length - (*intvIt).qEnd << " ?> " << matchIntervalEnd - (*intvIt).end  <<endl;
-    }
-    if (read.length - (*intvIt).qEnd > matchIntervalEnd - (*intvIt).end) {
-      if (params.verbosity > 2) {
-        cout << "read overlaps genome end." << endl;
-      }
-      readOverlapsContigEnd = true;
-      endOverlappedContigIndex = seqDBIndex;
-    }
     int alignScore;
     alignScore = 0;
 
@@ -960,7 +940,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				matches = (vector<ChainedMatchPos>*) &(*intvIt).matches;
 				tAlignedSeq = alignment->tAlignedSeq;
 				qAlignedSeq = alignment->qAlignedSeq;
-
+				
 				if (alignment->tStrand == 0) {
 					for (m = 0; m < matches->size(); m++) {
 						(*matches)[m].t -= alignment->tAlignedSeqPos;
@@ -977,7 +957,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						(*matches)[m].q -= alignment->qAlignedSeqPos;
 					}
 
-					alignment->tAlignedSeq.CopyAsRC(tAlignedSeq);
+					//					alignment->tAlignedSeq.CopyAsRC(tAlignedSeq);
           rcMatches.resize((*intvIt).matches.size());
           //
           // Make the reverse complement of the match list.
@@ -998,7 +978,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 				//				tSubSeq.ReferenceSubstring(tAlignedSeq, tPos, tGap);
 				//				qSubSeq.ReferenceSubstring(alignment->qAlignedSeq, qPos, qGap);
-
+				MappingBuffers refinementBuffers;
         for (m = 0; matches->size() > 0 and m < matches->size() - 1; m++) {
           Block block;
           block.qPos = (*matches)[m].q;
@@ -1018,16 +998,46 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
             DNALength tPos, qPos;
             tPos = block.tPos + block.length;
             qPos = block.qPos + block.length;
-            tSubSeq.ReferenceSubstring(tAlignedSeq, tPos, tGap);
+            tSubSeq.ReferenceSubstring(alignment->tAlignedSeq, tPos, tGap);
             qSubSeq.ReferenceSubstring(alignment->qAlignedSeq, qPos, qGap);
-            Alignment alignmentInGap;
+            T_AlignmentCandidate alignmentInGap;
             int alignScore;
+						if (tGap > 100 and qGap > 100) {
+							alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
+																		params.sdpIns, params.sdpDel, 0.25, 
+																		alignmentInGap, mappingBuffers, Local,
+																		params.detailedSDPAlignment, 
+																		params.extendFrontAlignment, params.recurseOver);
+							
+							vector<FASTQSequence*> bothQueryStrands;
+							bothQueryStrands.resize(2);
+							bothQueryStrands[Forward] = &qSubSeq;
+							T_QuerySequence qSubSeqRC;
+							qSubSeq.MakeRC(qSubSeqRC);
+							bothQueryStrands[Reverse] = &qSubSeqRC;
+							
+							alignmentInGap.qAlignedSeq.ReferenceSubstring(qSubSeq);
+							alignmentInGap.tAlignedSeq.ReferenceSubstring(tSubSeq);
 
-						alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
-																	params.sdpIns, params.sdpDel, 0.25, 
-																	alignmentInGap, mappingBuffers, Local,
-																	params.detailedSDPAlignment, 
-																	params.extendFrontAlignment, params.recurseOver);
+						
+							RefineAlignment(bothQueryStrands,
+															tSubSeq, 
+															alignmentInGap, params, refinementBuffers);
+							qSubSeqRC.Free();
+						}
+						else {
+
+							int kbandScore = AffineKBandAlign(qSubSeq, tSubSeq, SMRTDistanceMatrix, 
+																						params.indel+2, params.indel - 3, // homopolymer insertion open and extend
+																						params.indel+2, params.indel - 1, // any insertion open and extend
+																						params.indel, // deletion
+																								params.bandSize,
+																						refinementBuffers.scoreMat, refinementBuffers.pathMat, 
+																						refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
+																						refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
+																						alignmentInGap, Global);
+
+						}
 
             //
             // Now, splice the fragment alignment into the current
@@ -1040,8 +1050,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
               // of the aligned substring.  
               //
               for (b = 0; b < alignmentInGap.size(); b++) {
-                alignmentInGap.blocks[b].tPos += tPos + alignmentInGap.tPos;
-                alignmentInGap.blocks[b].qPos += qPos + alignmentInGap.qPos;
+                alignmentInGap.blocks[b].tPos += tPos + alignmentInGap.tPos + alignmentInGap.tAlignedSeqPos;
+                alignmentInGap.blocks[b].qPos += qPos + alignmentInGap.qPos + alignmentInGap.qAlignedSeqPos;
                 assert(alignmentInGap.blocks[b].tPos < alignment->tAlignedSeq.length);
                 assert(alignmentInGap.blocks[b].qPos < alignment->qAlignedSeq.length);
               }
@@ -1341,6 +1351,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 
     intvIt++;
+		if (params.progress) {
+			cout << "done with interval " << alignmentIndex << endl;
+		}
   } while (intvIt != weightedIntervals.end());
 }
 
@@ -2112,6 +2125,11 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 
     RemoveOverlappingAnchors(mappingBuffers.matchPosList);
     RemoveOverlappingAnchors(mappingBuffers.rcMatchPosList);
+		//		cerr << read.title << endl;
+		//		cerr << "# intervals: " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
+		if (params.progress != 0) {
+			cout << "anchors " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
+		}
 
     if (params.pValueType == 0) {
       int original = mappingBuffers.matchPosList.size();
@@ -2229,6 +2247,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     //
     // Print verbose output.
     //
+		//		cerr << "done finding max increasing interval." << endl;
     WeightedIntervalSet::iterator topIntIt, topIntEnd;
     topIntEnd = topIntervals.end();
     if (params.verbosity > 0) {
@@ -2931,6 +2950,12 @@ void PrintAlignments(vector<T_AlignmentCandidate*> alignmentPtrs,
     sem_wait(semaphores.writer);
 #else
     sem_wait(&semaphores.writer);
+		int prev=totalBases / 1000000;
+		totalBases += read.length;
+		if (totalBases / 1000000 > prev) {
+			cerr << "Processed " << totalBases << endl;
+		}
+
 #endif
   }
 
@@ -3926,6 +3951,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("nproc", &params.nProc, "", CommandLineParser::PositiveInteger);
 	clp.RegisterFlagOption("sortRefinedAlignments",(bool*) &params.sortRefinedAlignments, "");
 	clp.RegisterIntOption("quallc", &params.qualityLowerCaseThreshold, "", CommandLineParser::Integer);
+	clp.RegisterFlagOption("p", (bool*) &params.progress, "");
 	clp.RegisterFlagOption("v", (bool*) &params.verbosity, "");
 	clp.RegisterIntOption("V", &params.verbosity, "Specify a level of verbosity.", CommandLineParser::NonNegativeInteger);
 	clp.RegisterIntOption("contextAlignLength", &params.anchorParameters.contextAlignLength, "", CommandLineParser::PositiveInteger);
@@ -4212,8 +4238,39 @@ int main(int argc, char* argv[]) {
   outFile.exceptions(ostream::failbit);
 	ofstream unalignedOutFile;
 	BWT bwt;
+
+	//
+	// Look to see if:
+	//  1. no indices have been specified on the command line
+	//  2. If so, if a .bwt exitsts
+	//     2. If not, if a .sa exists
+	
+	
+	
+	if (params.useBwt == false and params.useSuffixArray == false) {
+		params.bwtFileName = params.genomeFileName + ".bwt";
+		ifstream in(params.bwtFileName.c_str());
+
+		if (in.good()) {
+			params.useBwt = true;
+		}
+		else {
+			params.bwtFileName = "";
+			params.suffixArrayFileName = params.genomeFileName + ".sa";
+			ifstream saIn(params.suffixArrayFileName.c_str());
+			if (saIn) {
+				params.useSuffixArray = true;
+			}
+			else {
+				params.suffixArrayFileName = "";
+			}
+		}
+		in.close();
+	}
+	
 	
 	if (params.useBwt) {
+
 		if (bwt.Read(params.bwtFileName) == 0) {
 			cout << "ERROR! Could not read the BWT file. " << params.bwtFileName << endl;
 			exit(1);
@@ -4276,6 +4333,18 @@ int main(int argc, char* argv[]) {
 	//
   long l;
   TupleMetrics saLookupTupleMetrics;
+
+	if (params.useCountTable == false) {
+		params.countTableName = params.genomeFileName + ".ctab";
+		ifstream ctab(params.countTableName.c_str());
+		if (ctab.good() == true) {
+			params.useCountTable = true;
+		}
+		else {
+			params.countTableName = "";
+		}
+	}
+
 	if (params.useCountTable) {
 		ifstream ctIn;
 		CrucialOpen(params.countTableName, ctIn, std::ios::in | std::ios::binary);

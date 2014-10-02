@@ -8,16 +8,16 @@
 #include <vector>
 #include <map>
 #include "LCPTable.h"
-#include "../../defs.h"
-#include "../../tuples/DNATuple.h"
-#include "../../tuples/CompressedDNATuple.h"
-#include "../../algorithms/compare/CompareStrings.h"
-#include "../../algorithms/sorting/qsufsort.h"
-#include "../../algorithms/sorting/LightweightSuffixArray.h"
-#include "../../qvs/QualityValue.h"
-#include "../../DNASequence.h"
-#include "../../NucConversion.h"
-#include "../../utils/ProtectedNew.h"
+#include "defs.h"
+#include "tuples/DNATuple.h"
+#include "tuples/CompressedDNATuple.h"
+#include "algorithms/compare/CompareStrings.h"
+#include "algorithms/sorting/qsufsort.h"
+#include "algorithms/sorting/LightweightSuffixArray.h"
+#include "qvs/QualityValue.h"
+#include "DNASequence.h"
+#include "NucConversion.h"
+#include "utils/ProtectedNew.h"
 /*
  * Suffix array implementation, with a Manber and Meyers sort, but
  * that is typically not used.
