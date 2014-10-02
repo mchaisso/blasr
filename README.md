@@ -130,7 +130,7 @@ Reverse strand alignments are reported starting at the 3' end of the reverse str
 
 +		 -m 5
 
-This alignment format contains the 
+This alignment format contains the full representation of the pairwise alignment of the two sequences in a verbose (easily parsed) stick format. 
 
 
 <table>
@@ -155,7 +155,7 @@ This alignment format contains the
 <tr> <td> 19. </td> <td> stick string </td> </tr>
 <tr> <td> 20. </td> <td> ref align string </td> </tr>
 </table>
-strand
+
 For reverse strand alignments, the coordinates are reported starting at the 3' end of the forward strand. 
 
 
