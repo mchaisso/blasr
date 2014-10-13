@@ -1,6 +1,0 @@
-BLASR
-=====
-
-
-Output formats
---------------

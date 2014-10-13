@@ -108,7 +108,7 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
       }
       matchLow[m]  = lowMatchBound[lcpSearchLength - 1];
       matchHigh[m] = highMatchBound[lcpSearchLength - 1];
-      matchLength[m] = minPrefixMatchLength + lcpSearchLength;
+      matchLength[m] = minPrefixMatchLength + lcpSearchLength - 1;
 
       //
       // Next, apply some heuristics to the anchor generation.
@@ -132,13 +132,14 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
         //
         // If the match is unique, extend for as long as possible.
         //
-        lcpLength = minPrefixMatchLength + lcpSearchLength;
-        long refPos    = sa.index[matchLow[m]] + lcpLength;
-        long queryPos  = p + lcpLength;
+        lcpLength = minPrefixMatchLength + lcpSearchLength - 1;
+        long refPos    = sa.index[matchLow[m]] + lcpLength - 1;
+        long queryPos  = p + lcpLength - 1;
         bool extensionWasPossible = false;
 
         while (refPos + 1 < reference.length and
                queryPos + 1 < read.length and
+							 reference.seq[refPos + 1] != 'N' and 
                reference.seq[refPos + 1] == read.seq[queryPos + 1] and 
                (params.maxLCPLength == 0 or lcpLength < params.maxLCPLength)) {
           refPos++;
@@ -164,7 +165,7 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
           }
           matchLow[m]  = lowMatchBound[lcpSearchLength-1];
           matchHigh[m] = highMatchBound[lcpSearchLength-1];
-          matchLength[m] = minPrefixMatchLength + lcpSearchLength;
+          matchLength[m] = minPrefixMatchLength + lcpSearchLength - 1;
         }
       }
       else {
@@ -185,7 +186,7 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
         //
         matchLow[m]    = lowMatchBound[lcpSearchLength - 1];
         matchHigh[m]   = highMatchBound[lcpSearchLength - 1];
-        matchLength[m] = minPrefixMatchLength + lcpSearchLength;
+        matchLength[m] = minPrefixMatchLength + lcpSearchLength - 1;
       }
     }
     else {
@@ -299,6 +300,7 @@ int MapReadToGenome(T_RefSequence &reference,
 					matchLength[matchIndex] = read.length - pos;
 				}
         assert(sa.index[mp] + matchLength[matchIndex] <= reference.length);
+				assert(reference.seq[sa.index[mp] + matchLength[matchIndex] - 1] != 'N');
 				matchPosList.push_back(ChainedMatchPos(sa.index[mp], pos, matchLength[matchIndex], matchHigh[matchIndex] - matchLow[matchIndex]));
 			}
 		}

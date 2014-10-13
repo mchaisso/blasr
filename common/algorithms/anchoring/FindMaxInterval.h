@@ -123,7 +123,7 @@ template<typename T_MatchList,
  template<typename T_MatchList,
       	 typename T_SequenceBoundaryDB>
   void AdvanceIndexToPastInterval(T_MatchList &pos, DNALength nPos,
-                                  DNALength intervalLength, DNALength contigLength,
+                                  DNALength intervalLength,
                                   T_SequenceBoundaryDB &SeqBoundary,
                                   DNALength startIndex, DNALength startIntervalBoundary,
                                   DNALength &index, DNALength &indexIntervalBoundary
@@ -222,7 +222,7 @@ template<typename T_MatchList,
 													 DNALength intervalLength
 													 ) {
 
-
+	
 				 }
 
 template<typename T_MatchList,
@@ -252,8 +252,6 @@ template<typename T_MatchList,
 	VectorIndex nPos = pos.size();
 	VectorIndex next = cur + 1;
 	DNALength curBoundary = 0, nextBoundary = 0;
-  DNALength contigLength = ContigStartPos.Length(pos[cur].t);
-  DNALength endOfCurrentInterval = curBoundary + contigLength;
 
 	curBoundary = ContigStartPos(pos[cur].t);
 	nextBoundary = ContigStartPos(pos[next].t);  
@@ -266,7 +264,7 @@ template<typename T_MatchList,
 
   DNALength curIntervalLength = NumRemainingBases(pos[cur].q, intervalLength);
 
-  AdvanceIndexToPastInterval(pos, nPos, intervalLength, contigLength, ContigStartPos,
+  AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
                              cur, curBoundary, next, nextBoundary);
 
 
@@ -276,6 +274,8 @@ template<typename T_MatchList,
 	int maxSize = SumAnchors(pos, cur, next);
 	int curSize = maxSize;
 	bool onFirst = true;
+	bool recountInterval = false;
+
 	if (curSize > minSize) {
 		start.push_back(cur);
 		end.push_back(next);
@@ -347,7 +347,6 @@ template<typename T_MatchList,
 		// advance the current to the next since it is impossible to find
 		// any more intervals in the current pos.
 		//
-		bool recountInterval = false;
 		if (curBoundary != nextBoundary) {
 			cur = next;
 			curBoundary = nextBoundary;
@@ -358,7 +357,11 @@ template<typename T_MatchList,
       //
       if (next < nPos) {
         next = cur + 1;
+				AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
+																	 cur, curBoundary, next, nextBoundary);
+				maxSize = 0;
       }
+			recountInterval = true;
 		}
     else {
 
@@ -379,69 +382,56 @@ template<typename T_MatchList,
       //
       // Advance the next to outside this interval.
 			//
-			curSize += pos[next].l;
-
-			while (cur < next and pos[next].t - pos[cur].t > intervalLength) {
-				curSize -= pos[cur].l;
-				cur += 1;
+			if (pos[cur].t + intervalLength >= pos[next].t) {
+				curSize += pos[next].l;
+				next++;
 			}
 
-			/*				if (maxSize > minSize) {
-					cout << "(2) adding start " << pos[maxStart].t << " " << pos[maxEnd].t << " " << maxSize << " " << pos[maxEnd-1].t - pos[maxStart].t << endl;
-					start.push_back(maxStart);
-					end.push_back(maxEnd);
-				}
+			recountInterval = false;
+		}
 
-				cur = next;
-				recountInterval = true;
-				maxSize = 0;
-			}
-			*/
-      next++;
-    }
-
-    if (next > nPos) {
-      //
-      // Searched last interval, done.
-      //
-      break;
-    }
-
-    //
-    // Next has advanced.  Check what contig it is in.
-    //
+		if (next > nPos) {
+			//
+			// Searched last interval, done.
+			//
+			break;
+		}
+	
+		//
+		// Next has advanced.  Check what contig it is in.
+		//
 		if ( next < nPos) {
-		  nextBoundary = ContigStartPos(pos[next].t);
-      //
-      // Advance next to the maximum position within this contig that is
-      // just after where the interval starting at cur is, or the first
-      // position in the next contig.
-      //
+			nextBoundary = ContigStartPos(pos[next].t);
+			//
+			// Advance next to the maximum position within this contig that is
+			// just after where the interval starting at cur is, or the first
+			// position in the next contig.
+			//
 			int prevNext = next;
-      AdvanceIndexToPastInterval(pos, nPos, intervalLength, contigLength, ContigStartPos,
-                                 cur, curBoundary, next, nextBoundary);
+			AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
+																 cur, curBoundary, next, nextBoundary);
 			if (prevNext != next or recountInterval) {
 				curSize = SumAnchors(pos, cur, next);
 			}
 		}
 
-    // if next >= nPos, the boundary stays the same.
+		// if next >= nPos, the boundary stays the same.
 
-    //
-    //  When searching multiple contigs, it is important to know the
-    //  boundary of the contig that this anchor is in so that clusters
-    //  do not span multiple contigs.  Find the (right hand side)
-    //  boundary of the current contig.
-    //
+		//
+		//  When searching multiple contigs, it is important to know the
+		//  boundary of the contig that this anchor is in so that clusters
+		//  do not span multiple contigs.  Find the (right hand side)
+		//  boundary of the current contig.
+		//
 
 		curBoundary = ContigStartPos(pos[cur].t);
-    contigLength  = ContigStartPos.Length(pos[cur].t);
     
-    //
-    // Previously tried to advance half.  This is being removed since
-    // proper heuristics are making it not necessary to use.
-    //
+		//
+		// Previously tried to advance half.  This is being removed since
+		// proper heuristics are making it not necessary to use.
+		//
 	}
+
 	if (curSize > minSize) {
 		start.push_back(maxStart);
 		end.push_back(maxEnd);
@@ -523,8 +513,6 @@ template<typename T_MatchList,
 
 	VectorIndex next = cur + 1;
 	DNALength curBoundary = 0, nextBoundary = 0;
-  DNALength contigLength = ContigStartPos.Length(pos[cur].t);
-  DNALength endOfCurrentInterval = curBoundary + contigLength;
 	vector<UInt> scores, prevOpt;
 
 	vector<DNALength> start, end;
@@ -610,6 +598,7 @@ template<typename T_MatchList,
                                         lis);
 			intervalQueue.insert(weightedInterval);
       if (weightedInterval.isOverlapping == false) {
+				assert(ContigStartPos.Length(lis[0].t) == ContigStartPos.Length(lis[lis.size()-1].t));
         clusterList.Store((float)noOvpLisNBases, lis[0].t, lis[lis.size()-1].t, noOvpLisSize);
       }
 		}

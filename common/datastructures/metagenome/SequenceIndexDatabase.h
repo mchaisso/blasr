@@ -316,7 +316,7 @@ class SeqBoundaryFtr {
   DNALength Length(DNALength pos) {
     DNALength start, end;
     seqDB->SearchForStartAndEnd(pos, start, end);
-    return end - start;
+    return end - start - 1;
   }
 };
 
