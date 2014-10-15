@@ -173,6 +173,7 @@ class MappingParameters {
 	string findex;
 	vector<string> samqv;
 	SupplementalQVList samQVList;
+	bool alignContigs;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -327,8 +328,8 @@ class MappingParameters {
     limsAlign = 0;
 		minAlignLength = 0;
 		findex = "";
-
-		
+		alignContigs = false;
+	
 	}
 
 	MappingParameters() {
@@ -418,11 +419,23 @@ class MappingParameters {
 			cout << "ERROR, subsample and stride must be used independently." << endl;
 			exit(1);
 		}
-    
+
     if (subreadMapType < 0 or subreadMapType > 1) {
       cout << "Error, subreadImplType must be 0 or 1" << endl;
       exit(1);
     }
+
+		if (alignContigs) {
+			refineAlignments = false;
+			refineBetweenAnchorsOnly = true;
+			minMatchLength = anchorParameters.minMatchLength = 25;
+			anchorParameters.advanceExactMatches = advanceExactMatches = 25;
+			anchorParameters.maxLCPLength = 50;
+			affineAlign = true;
+			affineExtend = 0;
+			affineOpen   = 100;
+			anchorParameters.maxAnchorsPerPosition = 30;
+		}
 
 		if (emulateNucmer) {
       SetEmulateNucmer();

@@ -139,7 +139,7 @@ template<typename T_MatchList,
          //
          // Stop when the index goes too far ahead.
          //
-         pos[index].t - pos[startIndex].t <= intervalLength and
+         pos[index].t - pos[startIndex].t < intervalLength and
          //
          // Still searching in the current contig.
          //
@@ -285,7 +285,7 @@ template<typename T_MatchList,
 		// This interval overlaps with a possible max start
 		//
 
-		if (pos[cur].t >= pos[maxStart].t and maxEnd > 0 and pos[cur].t < pos[maxEnd-1].t) {
+		if (pos[cur].t >= pos[maxStart].t and maxEnd > 0 and pos[cur].t < pos[maxEnd].t and curBoundary == nextBoundary) {
 			if (curSize > maxSize) {
 				maxSize = curSize;
 				maxStart = cur;
@@ -294,7 +294,7 @@ template<typename T_MatchList,
 		}
 		else {
 			if (maxSize > minSize) {
-				//				cout << "adding start " << pos[maxStart].t << " " << pos[maxEnd].t << " " << maxSize << " " << pos[maxEnd-1].t - pos[maxStart].t << endl;
+				//				cout << "adding " << pos[maxStart].t << " - " << pos[maxEnd].t << " " << maxSize <<endl;
 				start.push_back(maxStart);
 				end.push_back(maxEnd);
 			}
@@ -356,12 +356,14 @@ template<typename T_MatchList,
       // just after the current position.
       //
       if (next < nPos) {
-        next = cur + 1;
+        next++;
 				AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
 																	 cur, curBoundary, next, nextBoundary);
 				maxSize = 0;
+				maxStart = cur;
+				maxEnd = next;
       }
-			recountInterval = true;
+			curSize = SumAnchors(pos, cur, next);
 		}
     else {
 
@@ -372,22 +374,25 @@ template<typename T_MatchList,
 			//
 			// Make sure not to couble count the current interval.
 			//
-
-			curSize -= pos[cur].l;
-
-      cur++;
+			int prevCur = cur;
+			while (cur < next and 
+						 pos[cur].t + intervalLength < pos[next].t) {
+				curSize -= pos[cur].l;
+				cur++;
+			}
       if (cur >= nPos)
         break;
 
       //
       // Advance the next to outside this interval.
 			//
-			if (pos[cur].t + intervalLength >= pos[next].t) {
-				curSize += pos[next].l;
-				next++;
-			}
+			//pos[cur].t + intervalLength >= pos[next].t) {
+			curSize += pos[next].l;
+			next++;
+			/*			cout << ContigStartPos.seqDB->GetSpaceDelimitedName(ContigStartPos.seqDB->SearchForIndex(pos[cur].t)) << " " 
+					 <<  pos[cur].t - curBoundary << " " << prevCur << " " << cur << " " << next << " " << intervalLength - (pos[next].t - pos[cur].t) << " " << pos[cur].t << " " << pos[next].t << " " << curSize << " " << maxSize << endl;
+			*/
 
-			recountInterval = false;
 		}
 
 		if (next > nPos) {
@@ -400,6 +405,7 @@ template<typename T_MatchList,
 		//
 		// Next has advanced.  Check what contig it is in.
 		//
+		/*
 		if ( next < nPos) {
 			nextBoundary = ContigStartPos(pos[next].t);
 			//
@@ -414,7 +420,7 @@ template<typename T_MatchList,
 				curSize = SumAnchors(pos, cur, next);
 			}
 		}
-
+		*/
 		// if next >= nPos, the boundary stays the same.
 
 		//
@@ -425,6 +431,7 @@ template<typename T_MatchList,
 		//
 
 		curBoundary = ContigStartPos(pos[cur].t);
+		nextBoundary = ContigStartPos(pos[next].t);  
     
 		//
 		// Previously tried to advance half.  This is being removed since
@@ -517,7 +524,7 @@ template<typename T_MatchList,
 
 	vector<DNALength> start, end;
 	
-	StoreLargestIntervals(pos, ContigStartPos, intervalLength, 30, start, end);
+	StoreLargestIntervals(pos, ContigStartPos, intervalLength, 100, start, end);
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;

@@ -461,12 +461,6 @@ void SetHelp(string &str) {
              << "   -minMatch m (10) " << endl
              << "               Minimum seed length.  Higher minMatch will speed up alignment, " << endl
              << "               but decrease sensitivity." << endl
-//             << "   -maxExpand M (1)" << endl
-//             << "               Perform no more than M iterations of searches through the suffix " << endl
-//             << "               array for matches. At each iteration, all matches of length LCPi-M" << endl
-//             << "               are found, where LCPi is the length of the longest common prefix " << endl
-//             << "               between the string at i and anywhere in the genome."<<endl
-//             << "               The number of matches grows as M increases, and can become very large with M > 3." << endl
              << "   -maxMatch l (inf)" << endl
              << "               Stop mapping a read to the genome when the lcp length reaches l.  " << endl
              << "               This is useful when the query is part of the reference, for example when " <<endl
@@ -475,11 +469,6 @@ void SetHelp(string &str) {
              << "               The same as -maxMatch." << endl
              << "   -maxAnchorsPerPosition m (inf) " << endl
              << "               Do not add anchors from a position if it matches to more than 'm' locations in the target." << endl
-//             << "   -advanceHalf (false) " << endl
-//             << "               A trick for speeding up alignments at the cost of sensitivity.  If " << endl
-//             << "               a cluster of anchors of size n, (a1,...,an) is found, normally anchors " << endl
-//             << "               (a2,...an) of size n-1 is also clustered to make sure a1 did not decrease the " << endl
-//             << "               cluster score.  When advanceHalf is specified, clustering begins at a_(n/2)."<<endl<< endl
              << "   -advanceExactMatches E (0)" << endl
              << "               Another trick for speeding up alignments with match - E fewer anchors.  Rather than" << endl 
              << "               finding anchors between the read and the genome at every position in the read, " <<endl
@@ -490,13 +479,8 @@ void SetHelp(string &str) {
              << "               Keep up to 'n' candidates for the best alignment.  A large value of n will slow mapping" << endl
              << "               because the slower dynamic programming steps are applied to more clusters of anchors" <<endl
              << "               which can be a rate limiting step when reads are very long."<<endl
-//			 << "   -placeRandomly (false)" << endl
-//           << "               When there are multiple positions to map a read with equal alignment scores, place the" << endl
-//			 << "               read randomly at one of them.  The default is to place the read at the first." <<endl
              << endl
              << "  Options for Refining Hits." << endl
-//             << "   -indelRate i (0.30)" << endl
-//             << "               The approximate maximum rate to allow drifting from the diagonal." <<endl << endl
              << "   -sdpTupleSize K (11)" << endl
              << "               Use matches of length K to speed dynamic programming alignments.  This controls" <<endl
              << "               accuracy of assigning gaps in pairwise alignments once a mapping has been found,"<<endl
@@ -515,7 +499,9 @@ void SetHelp(string &str) {
              << "   -affineOpen value (10) " << endl
              << "               Set the penalty for opening an affine alignment." << endl
              << "   -affineExtend value (0)" << endl
-             << "               Change affine (extension) gap penalty. Lower value allows more gaps." << endl << endl
+             << "               Change affine (extension) gap penalty. Lower value allows more gaps." << endl
+		         << "   -alignContigs" << endl
+						 << "               Configure mapping parameters to map very long (10s of Mbp) contigs against a reference." << endl << endl
              << " Options for overlap/dynamic programming alignments and pairwise overlap for de novo assembly. " << endl
              << "   -useQuality (false)" << endl
              << "               Use substitution/insertion/deletion/merge quality values to score gap and " << endl
@@ -719,6 +705,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
   // since all alignments are rerun using GuidedAlignment later on.
   //
   DistanceMatrixScoreFunction<DNASequence, FASTQSequence> distScoreFn(SMRTDistanceMatrix, params.insertion, params.deletion);
+	distScoreFn.affineOpen = params.affineOpen;
+	distScoreFn.affineExtend = params.affineExtend;
   
   //
   // Assume there is at least one interval.
@@ -978,6 +966,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 				//				tSubSeq.ReferenceSubstring(tAlignedSeq, tPos, tGap);
 				//				qSubSeq.ReferenceSubstring(alignment->qAlignedSeq, qPos, qGap);
+
+				//
+				// Try and align the 
+				
+
 				MappingBuffers refinementBuffers;
         for (m = 0; matches->size() > 0 and m < matches->size() - 1; m++) {
           Block block;
@@ -1105,7 +1098,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         anchorsOnly.tPos = alignment->tPos;
         anchorsOnly.qPos = alignment->qPos;
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
-                              distScoreFn);
+                              distScoreFn, params.affineAlign);
 			}
       else {
         alignScore = SDPAlign(alignment->qAlignedSeq, alignment->tAlignedSeq, distScoreFn, 
@@ -1115,7 +1108,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               params.detailedSDPAlignment, 
                               params.extendFrontAlignment);
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
-                              distScoreFn);
+                              distScoreFn, params.affineAlign);
       }
     }
 
@@ -1347,7 +1340,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     }
     ComputeAlignmentStats(*alignment, 
                           alignment->qAlignedSeq.seq,
-                          alignment->tAlignedSeq.seq, distScoreFn);
+                          alignment->tAlignedSeq.seq, distScoreFn, params.affineAlign);
 
 
     intvIt++;
@@ -4013,6 +4006,7 @@ int main(int argc, char* argv[]) {
   clp.RegisterFlagOption("affineAlign", &params.affineAlign, "");
   clp.RegisterIntOption("affineOpen", &params.affineOpen, "", CommandLineParser::NonNegativeInteger);
   clp.RegisterIntOption("affineExtend", &params.affineExtend, "", CommandLineParser::NonNegativeInteger);
+	clp.RegisterFlagOption("alignContigs", &params.alignContigs, "", false);
 	clp.RegisterStringOption("findex", &params.findex, "", false);
   clp.RegisterFlagOption("scaleMapQVByNClusters", &params.scaleMapQVByNumSignificantClusters, "", false);
 	clp.RegisterStringListOption("samqv", &params.samqv, "", false);
