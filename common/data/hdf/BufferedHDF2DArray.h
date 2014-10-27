@@ -83,27 +83,6 @@ class BufferedHDF2DArray : public HDFData, public HDFWriteBuffer<T> {
 	~BufferedHDF2DArray() {
     Close();
 	}
-  /*
-  int Initialize(HDFGroup &hdfGroup,string _datasetName, int _rowLength, int _bufferSize=0) {
-    return  Initialize(&hdfGroup.group, _datasetName, _rowLength, _bufferSize);
-  }
-
-  int Initialize(HDFFile &hdfFile, string _datasetName, int _rowLength, int _bufferSize=0) {
-    return Initialize(hdfFile.rootGroup, _datasetName, _rowLength, _bufferSize);
-  }
-  */
-  /*	
-	int Initialize(CommonFG *_container, string _datasetName, int pRowLength, int pBufferSize=0) {
-		container   = _container;
-		datasetName = _datasetName;
-		nDims       = 2;
-		dimSize     = NULL;
-		rowLength   = pRowLength;
-		this->InitializeBuffer(pBufferSize);
-		return 1;
-	}
-  */
-  
 	/*
 	 * Initialize HDF2D for reading.  No write buffer initialization is
 	 * required.  The assumption is that the dataspace is in two

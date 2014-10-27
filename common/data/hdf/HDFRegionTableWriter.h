@@ -118,7 +118,7 @@ class HDFRegionTableWriter {
       ++curRow;
     }
     else {
-
+      regions.WriteRow(annotation.row, annotation.NCOLS, at);
     }
 		return 1;
 	}	
