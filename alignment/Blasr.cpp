@@ -962,14 +962,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         }
 
 				DNASequence tSubSeq;
-				FASTQSequence qSubSeq;
-
-				//				tSubSeq.ReferenceSubstring(tAlignedSeq, tPos, tGap);
-				//				qSubSeq.ReferenceSubstring(alignment->qAlignedSeq, qPos, qGap);
-
-				//
-				// Try and align the 
+				FASTQSequence qSubSeq, mSubSeq;
 				
+				//
+				// Refine alignments between matches.
+				//
 
 				MappingBuffers refinementBuffers;
         for (m = 0; matches->size() > 0 and m < matches->size() - 1; m++) {
@@ -985,7 +982,13 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
           tGap = (*matches)[m+1].t - ((*matches)[m].t + (*matches)[m].l);
           qGap = (*matches)[m+1].q - ((*matches)[m].q + (*matches)[m].l);
           float gapRatio = (1.0*tGap)/qGap;
-					
+
+					//
+					// Add the original block
+					//
+					alignment->blocks.push_back(block);
+					anchorsOnly.blocks.push_back(block);
+						
           if (tGap > 0 and qGap > 0) {
 
             DNALength tPos, qPos;
@@ -1019,7 +1022,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							qSubSeqRC.Free();
 						}
 						else {
-
+							
 							int kbandScore = AffineKBandAlign(qSubSeq, tSubSeq, SMRTDistanceMatrix, 
 																						params.indel+2, params.indel - 3, // homopolymer insertion open and extend
 																						params.indel+2, params.indel - 1, // any insertion open and extend
@@ -1029,7 +1032,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																						refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
 																						refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
 																						alignmentInGap, Global);
-
+							
 						}
 
             //
@@ -1049,11 +1052,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                 assert(alignmentInGap.blocks[b].qPos < alignment->qAlignedSeq.length);
               }
             }
-						//
-						// Add the original block
-						//
-            alignment->blocks.push_back(block);
-            anchorsOnly.blocks.push_back(block);
 						// Add the blocks for the refined aignment.
             alignment->blocks.insert(alignment->blocks.end(),
                                      alignmentInGap.blocks.begin(),
@@ -1107,6 +1105,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               Local, 
                               params.detailedSDPAlignment, 
                               params.extendFrontAlignment);
+
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);
       }
@@ -2078,8 +2077,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     
     IntervalSearchParameters intervalSearchParameters;
     intervalSearchParameters.globalChainType = params.globalChainType;
-    intervalSearchParameters.advanceHalf = params.advanceHalf;
-    intervalSearchParameters.warp        = params.warp;
+		intervalSearchParameters.overlap         = params.overlap;
 
     //
     // If specified, only align a band from the anchors.
@@ -2103,7 +2101,6 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     // the size.
     //
     intervalSearchParameters.maxPValue = log(0.5); 
-    intervalSearchParameters.aboveCategoryPValue = -300;
     VarianceAccumulator<float> accumPValue;
     VarianceAccumulator<float> accumWeight;
     VarianceAccumulator<float> accumNBases;
@@ -2118,8 +2115,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 
     RemoveOverlappingAnchors(mappingBuffers.matchPosList);
     RemoveOverlappingAnchors(mappingBuffers.rcMatchPosList);
-		//		cerr << read.title << endl;
-		//		cerr << "# intervals: " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
+
 		if (params.progress != 0) {
 			cout << "anchors " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
 		}
@@ -3888,6 +3884,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterFlagOption("rbao", &params.refineBetweenAnchorsOnly, "");
   clp.RegisterFlagOption("allowAdjacentIndels", &params.forPicard, "");
   clp.RegisterFlagOption("onegap", &params.separateGaps, "");
+	clp.RegisterFlagOption("overlap", &params.overlap, "");
   clp.RegisterFlagOption("allowAdjacentIndels", &params.forPicard, "");
   clp.RegisterFlagOption("placeRepeatsRandomly", &params.placeRandomly, "");
   clp.RegisterIntOption("randomSeed", &params.randomSeed, "", CommandLineParser::Integer);
@@ -3902,7 +3899,6 @@ int main(int argc, char* argv[]) {
   clp.RegisterStringOption("clusters", &params.clusterFileName, "");
   clp.RegisterFlagOption("samplePaths", (bool*) &params.samplePaths, "");
   clp.RegisterFlagOption("noStoreMapQV", &params.storeMapQV, "");
-  clp.RegisterFlagOption("nowarp", (bool*) &params.nowarp, "");
 	clp.RegisterFlagOption("noRefineAlign", (bool*) &params.refineAlign, "");
 	clp.RegisterFlagOption("guidedAlign", (bool*)&params.useGuidedAlign, "");
   clp.RegisterFlagOption("useGuidedAlign", (bool*)&trashbinBool, "");
