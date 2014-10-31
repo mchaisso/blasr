@@ -81,7 +81,6 @@ class MappingParameters {
   bool placeRandomly;
   bool printHeader;
   bool samplePaths;
-  bool warp, nowarp;
 	bool usePrefixLookupTable;
 	bool doSensitiveSearch;
 	bool emulateNucmer;
@@ -246,9 +245,7 @@ class MappingParameters {
     randomSeed = 0;
     placeRandomly = false;
     samplePaths = false;
-    nowarp = false;
     storeMapQV = true;
-    warp = true;
     extendDenovoCCSSubreads = false;
 		storeMetrics = false;
 		ignoreQualities = true;
@@ -341,10 +338,6 @@ class MappingParameters {
 		// Fix all logical incompatibilities with parameters.
 		//
 		
-    if (nowarp) {
-      warp = false;
-    }
-
 		if (nCandidates < nBest) {
       nCandidates = nBest;
 		}
