@@ -252,7 +252,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.3.1";
+  return "1.3.2";
 }
 
 void GetVersion(string &version) {
@@ -969,7 +969,38 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 
 				MappingBuffers refinementBuffers;
-        for (m = 0; matches->size() > 0 and m < matches->size() - 1; m++) {
+				int f = 0, r = matches->size();
+				int tGap, qGap;				
+
+				// 
+				// The accuracy of the very first and very last anchors tends
+				// to be very noisy -- very large gaps between the main
+				// alignment and the first or last anchor may exist.  To get
+				// around this, for now be very sloppy but remove these
+				// anchors if there is too large of a gap.
+				//
+        for (f = 0; f < matches->size() - 1; f++) {
+          //
+          // Find the lengths of the gaps between anchors.
+          //
+          int tGap, qGap;
+          tGap = (*matches)[f+1].t - ((*matches)[f].t + (*matches)[f].l);
+          qGap = (*matches)[f+1].q - ((*matches)[f].q + (*matches)[f].l);
+
+					if (max(tGap, qGap) < 10 * (*matches)[f].l) {
+						break;
+					}						
+				}
+		
+				for (r = matches->size()-1 ; r > f; r--) {
+          tGap = (*matches)[r].t - ((*matches)[r-1].t + (*matches)[r-1].l);
+          qGap = (*matches)[r].q - ((*matches)[r-1].q + (*matches)[r-1].l);
+					if (max(tGap, qGap) < 10*(*matches)[r].l) {
+						break;
+					}
+				}
+				
+        for (m = f; matches->size() > 0 and m < r; m++) {
           Block block;
           block.qPos = (*matches)[m].q;
           block.tPos = (*matches)[m].t;
@@ -978,9 +1009,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
           //
           // Find the lengths of the gaps between anchors.
           //
-          int tGap, qGap;
+
           tGap = (*matches)[m+1].t - ((*matches)[m].t + (*matches)[m].l);
           qGap = (*matches)[m+1].q - ((*matches)[m].q + (*matches)[m].l);
+
           float gapRatio = (1.0*tGap)/qGap;
 
 					//
@@ -1062,10 +1094,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 				// Add the last block.
 				//
-        m = (*matches).size() - 1;
+ 
         Block block;
-        block.qPos = (*matches)[m].q;
-        block.tPos = (*matches)[m].t;
+        block.qPos = (*matches)[r].q;
+        block.tPos = (*matches)[r].t;
 
         assert(block.tPos <= alignment->tAlignedSeq.length);
         assert(block.qPos <= alignment->qAlignedSeq.length);
@@ -2067,7 +2099,6 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     SortMatchPosList(mappingBuffers.matchPosList);
     SortMatchPosList(mappingBuffers.rcMatchPosList);
     metrics.clocks.sortMatchPosList.Tock();
-		//		cerr << "done sorting match pos list." << endl;
     PValueWeightor lisPValue(read, genome, ct.tm, &ct);
     MultiplicityPValueWeightor lisPValueByWeight(genome);
 
@@ -2236,7 +2267,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     //
     // Print verbose output.
     //
-		//		cerr << "done finding max increasing interval." << endl;
+
     WeightedIntervalSet::iterator topIntIt, topIntEnd;
     topIntEnd = topIntervals.end();
     if (params.verbosity > 0) {
@@ -2280,11 +2311,6 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                     mappingBuffers,
                     params.startRead );
 
-    /*    cout << read.title << endl;
-    for (i = 0; i < alignmentPtrs.size(); i++) {
-      cout << alignmentPtrs[i]->clusterScore << " " << alignmentPtrs[i]->score << endl;
-    }
-    */
     StoreRankingStats(alignmentPtrs, accumPValue, accumWeight);
 
     std::sort(alignmentPtrs.begin(), alignmentPtrs.end(), SortAlignmentPointersByScore());
@@ -2436,7 +2462,6 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
         for (clusterIndex = 0; clusterIndex < mappingBuffers.clusterList.numBases.size(); clusterIndex++) {
           bool isSignificant = false;
           if (mappingBuffers.clusterList.numBases[clusterIndex] >= scaledExpectedClusterSize) {
-            //          cout << mappingBuffers.clusterList.numBases[clusterIndex] << " " << scaledExpectedClusterSize << " " << meanAnchorBasesPerRead << " " << sdAnchorBasesPerRead << endl;
             ++numSignificantClusters;
             totalSignificantClusterSize += meanAnchorBasesPerRead;
             isSignificant = true;
@@ -2514,6 +2539,7 @@ void SumMismatches(SMRTSequence &read,
   alignment.GetQIntervalOnForwardStrand(alnStart, alnEnd);
   int p;
   sum = 0;
+
   if (read.substitutionQV.Empty() == false) {
     for (p = fullIntvStart; p < alnStart; p++) {
       sum += read.substitutionQV[p];
@@ -2678,15 +2704,15 @@ void StoreMapQVs(SMRTSequence &read,
   // For each partition, store where on the read it begins, and where
   // it ends. 
   //
-  vector<int> partitionBeginPos, partitionEndPos;
-  partitionBeginPos.resize(partitions.size());
-  partitionEndPos.resize(partitions.size());
-  fill(partitionBeginPos.begin(), partitionBeginPos.end(), -1);
-  fill(partitionEndPos.begin(), partitionEndPos.end(), -1);
+  vector<int> partitionBeginPos, partitionEndPos, partitionScore;
+	
+  partitionBeginPos.resize(partitions.size(), -1);
+  partitionEndPos.resize(partitions.size(), -1);
+	partitionScore.resize(partitions.size(), 0);
   vector<char> assigned;
   assigned.resize( alignmentPtrs.size());
   fill(assigned.begin(), assigned.end(), false);
-                   
+	
   for (p = 0; p < partitions.size(); p++) {
     partEnd = partitions[p].end();
     int alnStart, alnEnd;
@@ -2696,15 +2722,17 @@ void StoreMapQVs(SMRTSequence &read,
       alignmentPtrs[*partIt]->GetQInterval(alnStart, alnEnd);
       partitionBeginPos[p] = alnStart; 
       partitionEndPos[p]   = alnEnd;
+			partitionScore[p] = alignmentPtrs[*partIt]->nMatch;
+			
       ++partIt;
       partEnd = partitions[p].end();
       for (; partIt != partEnd; ++partIt) {
-        //  Comment out because all reads are now in the forward strand.
-        //  alignmentPtrs[*partIt]->GetQInterval(alnStart, alnEnd, convertToForwardStrand);
         alignmentPtrs[*partIt]->GetQInterval(alnStart, alnEnd);
-        if (alnEnd - alnStart > partitionEndPos[p] - partitionBeginPos[p]) {
+				// 
+        if (alnEnd - alnStart > partitionEndPos[p] - partitionBeginPos[p] and alignmentPtrs[*partIt]->nMatch *1.20 >= partitionScore[p]) {
           partitionBeginPos[p] = alnStart;
           partitionEndPos[p]   = alnEnd;
+					partitionScore[p]    = alignmentPtrs[*partIt]->nMatch;
         }
       }
     }
@@ -2739,6 +2767,7 @@ void StoreMapQVs(SMRTSequence &read,
       int alnStart, alnEnd;
       int mismatchSum = 0;
       alignmentPtrs[*partIt]->GetQInterval(alnStart, alnEnd, convertToForwardStrand);
+
       if (alnStart - partitionBeginPos[p] > MAPQV_END_ALIGN_WIGGLE or
           partitionEndPos[p] - alnEnd > MAPQV_END_ALIGN_WIGGLE) {
         SumMismatches(read, *alignmentPtrs[*partIt], 15,
@@ -2764,7 +2793,8 @@ void StoreMapQVs(SMRTSequence &read,
     int index = *partitions[p].begin();
 
     mapQVDenominator = alignmentPtrs[index]->probScore;
-
+		int maxNMatch = alignmentPtrs[index]->nMatch;
+		
     if (partitions[p].size() > 1) {
       partIt  = partitions[p].begin();
       partEnd = partitions[p].end();
@@ -2772,7 +2802,12 @@ void StoreMapQVs(SMRTSequence &read,
 
       for (; partIt != partEnd; ++partIt) {
         index = *partIt;
-        mapQVDenominator = LogSumOfTwo(mapQVDenominator, alignmentPtrs[index]->probScore);
+				if (alignmentPtrs[index]->nMatch > maxNMatch) {
+					maxNMatch = alignmentPtrs[index]->nMatch;
+				}
+				if (alignmentPtrs[index]->nMatch * 1.2 >= maxNMatch) {
+					mapQVDenominator = LogSumOfTwo(mapQVDenominator, alignmentPtrs[index]->probScore);
+				}
       }
     }
     
@@ -2812,7 +2847,9 @@ void StoreMapQVs(SMRTSequence &read,
         if (phredValue > MAX_PHRED_SCORE) {
           phredValue = MAX_PHRED_SCORE;
         }
-        
+        if (phredValue < 0) {
+						phredValue = 0;
+				}
         alignmentPtrs[*partIt]->mapQV = phredValue;
         assigned[*partIt]=true;
       }
@@ -2822,7 +2859,6 @@ void StoreMapQVs(SMRTSequence &read,
       }
 
     }
-    //    cout << endl;
   }
 
   for (i = 0; i < assigned.size(); i++) {
@@ -2941,9 +2977,11 @@ void PrintAlignments(vector<T_AlignmentCandidate*> alignmentPtrs,
     sem_wait(&semaphores.writer);
 		int prev=totalBases / 1000000;
 		totalBases += read.length;
+		/*
 		if (totalBases / 1000000 > prev) {
 			cerr << "Processed " << totalBases << endl;
 		}
+		*/
 
 #endif
   }
@@ -4004,7 +4042,6 @@ int main(int argc, char* argv[]) {
   clp.RegisterIntOption("affineExtend", &params.affineExtend, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterFlagOption("alignContigs", &params.alignContigs, "", false);
 	clp.RegisterStringOption("findex", &params.findex, "", false);
-  clp.RegisterFlagOption("scaleMapQVByNClusters", &params.scaleMapQVByNumSignificantClusters, "", false);
 	clp.RegisterStringListOption("samqv", &params.samqv, "", false);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
