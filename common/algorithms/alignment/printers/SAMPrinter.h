@@ -191,15 +191,16 @@ namespace SAMOutput {
           matchLength += commonGap;
           opSize.push_back(matchLength);
           opChar.push_back('M');
-          assert((qGap > 0 and tGap == 0) or (qGap == 0 and tGap > 0));
-          if (qGap > 0) {
-            opSize.push_back(qGap);
-            opChar.push_back('I');
-          }
-          if (tGap > 0) {
-            opSize.push_back(tGap);
-            opChar.push_back('D'); 
-          }
+					if (qGap > 0 or tGap > 0) {
+						if (qGap > 0) {
+							opSize.push_back(qGap);
+							opChar.push_back('I');
+						}
+						if (tGap > 0) {
+							opSize.push_back(tGap);
+							opChar.push_back('D'); 
+						}
+					}
         }
       }
       else {
