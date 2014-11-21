@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include "datastructures/alignmentset/ReadGroup.h"
 #include "datastructures/alignmentset/ReferenceSequence.h"
 #include "datastructures/alignmentset/SAMAlignment.h"
@@ -25,6 +26,11 @@ class AlignmentSet {
       int i = 0;
       map<string, int> fastaRefToIndex;
       map<string, int>::iterator it;
+			set<string> refNames;
+			for (i = 0; i < references.size(); i++) {
+				refNames.insert(references[i].GetSequenceName());
+			}
+			int rank = 0;
       for (i = 0; i<fastaReferences.size(); i++) {
           it = fastaRefToIndex.find(fastaReferences[i].GetName());
           if (it != fastaRefToIndex.end()) {
@@ -32,12 +38,12 @@ class AlignmentSet {
 				  <<"\" in the reference genome is not unique"<<endl;
               exit(1);
           }
-          fastaRefToIndex[fastaReferences[i].GetName()] = i;
+					if (refNames.find(fastaReferences[i].GetName()) != refNames.end()) {
+						fastaRefToIndex[fastaReferences[i].GetName()] = rank;
+						++rank;
+					}
       }
-      vector<T_ReferenceSequence> newreferences;
-      for (i = 0; i < references.size(); i++) {
-          newreferences.push_back(T_ReferenceSequence());
-      }
+      vector<T_ReferenceSequence> newreferences(references.size());
       for (i = 0; i < references.size(); i++) {
           it = fastaRefToIndex.find(references[i].sequenceName);
           if (it == fastaRefToIndex.end()) {
@@ -46,8 +52,10 @@ class AlignmentSet {
               exit(1);
           }
           newreferences[(*it).second] = references[i];
+					refNameToIndex[references[i].sequenceName] = (*it).second;
       }
       references = newreferences;
+
   }
 
 };

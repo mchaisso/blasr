@@ -16,7 +16,9 @@ class FASTASequence : public DNASequence {
   char *title;
   int titleLength;
 	void PrintSeq(ostream &out, int lineLength = 50, char delim='>') {
-		out << delim << title <<endl;
+		if (title != 0) {
+			out << delim << title <<endl;
+		}
 		((DNASequence*)this)->PrintSeq(out, lineLength);
 	}
 	int GetStorageSize() {

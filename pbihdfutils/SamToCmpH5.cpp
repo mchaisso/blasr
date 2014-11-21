@@ -139,18 +139,25 @@ int main(int argc, char* argv[]) {
   //
   map<string, string> shortRefNameToFull;
   map<string, string>::iterator it;
-  assert(references.size() == alignmentSet.references.size());
+  if (references.size() != alignmentSet.references.size()) {
+		cout<< "WARNING. The references in the sam file header do not match those in the supplied reference." << endl;
+		
+	}
   if (!useShortRefName) {
-      for (int i = 0; i < references.size(); i++) {
-          string shortRefName = alignmentSet.references[i].GetSequenceName();
-          string fullRefName(references[i].title); 
-          if (shortRefNameToFull.find(shortRefName) != shortRefNameToFull.end()) {
-              cout << "ERROR, Found more than one reference " << shortRefName << "in sam header" << endl;
-              exit(1);
-          } 
-          shortRefNameToFull[shortRefName] = fullRefName;
-          alignmentSet.references[i].sequenceName = fullRefName;
-      }
+		map<string, int> referenceNameToIndex;
+		for (int i = 0; i < references.size(); i++) {
+			referenceNameToIndex[references[i].GetName()] = i;
+		}
+		for (int i = 0; i < alignmentSet.references.size(); i++) {
+			string shortRefName = alignmentSet.references[i].GetSequenceName();
+			string fullRefName(references[referenceNameToIndex[shortRefName]].title); 
+			if (shortRefNameToFull.find(shortRefName) != shortRefNameToFull.end()) {
+				cout << "ERROR, Found more than one reference " << shortRefName << "in sam header" << endl;
+				exit(1);
+			} 
+			shortRefNameToFull[shortRefName] = fullRefName;
+			alignmentSet.references[i].sequenceName = fullRefName;
+		}
   }
 
   //

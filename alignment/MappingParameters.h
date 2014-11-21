@@ -80,7 +80,6 @@ class MappingParameters {
   int  randomSeed;
   bool placeRandomly;
   bool printHeader;
-  bool samplePaths;
 	bool usePrefixLookupTable;
 	bool doSensitiveSearch;
 	bool emulateNucmer;
@@ -244,7 +243,6 @@ class MappingParameters {
     useRandomSeed = false;
     randomSeed = 0;
     placeRandomly = false;
-    samplePaths = false;
     storeMapQV = true;
     extendDenovoCCSSubreads = false;
 		storeMetrics = false;
@@ -338,6 +336,7 @@ class MappingParameters {
 		// Fix all logical incompatibilities with parameters.
 		//
 		
+    
 		if (nCandidates < nBest) {
       nCandidates = nBest;
 		}

@@ -1105,7 +1105,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         block.length = (*matches)[m].l;
         alignment->blocks.push_back(block);        
         anchorsOnly.blocks.push_back(block);
-				
+
 				//
 				// By convention, blocks start at 0, and the
 				// alignment->tPos,qPos give the start of the alignment.
@@ -1127,6 +1127,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         }
         anchorsOnly.tPos = alignment->tPos;
         anchorsOnly.qPos = alignment->qPos;
+				alignment->gaps.clear();
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);
 			}
@@ -2975,13 +2976,12 @@ void PrintAlignments(vector<T_AlignmentCandidate*> alignmentPtrs,
     sem_wait(semaphores.writer);
 #else
     sem_wait(&semaphores.writer);
-		int prev=totalBases / 1000000;
+		int prev=totalBases / 10000000;
 		totalBases += read.length;
-		/*
-		if (totalBases / 1000000 > prev) {
+		if (totalBases / 10000000 > prev) {
 			cerr << "Processed " << totalBases << endl;
 		}
-		*/
+
 
 #endif
   }
@@ -3935,7 +3935,6 @@ int main(int argc, char* argv[]) {
 	clp.RegisterStringOption("seqdb",  &params.seqDBName, "");
 	clp.RegisterStringOption("anchors",  &params.anchorFileName, "");
   clp.RegisterStringOption("clusters", &params.clusterFileName, "");
-  clp.RegisterFlagOption("samplePaths", (bool*) &params.samplePaths, "");
   clp.RegisterFlagOption("noStoreMapQV", &params.storeMapQV, "");
 	clp.RegisterFlagOption("noRefineAlign", (bool*) &params.refineAlign, "");
 	clp.RegisterFlagOption("guidedAlign", (bool*)&params.useGuidedAlign, "");

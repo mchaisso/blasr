@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls pls2 testAdvance computeRefCoverage toAfg cmpView cmpInformation printmsa printvariants cmpH5Diff samtoh5 samtom4 samFilter samtobas bash5ls
+all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls pls2 testAdvance computeRefCoverage toAfg cmpView cmpInformation printmsa printvariants cmpH5Diff samtoh5 samtom4 samFilter samtobas writeTrimmedRegionTable
 
 include ../make.rules
 
@@ -34,7 +34,7 @@ ifneq ($(wildcard make.dep),)
 endif
 
 #
-# List of executables to deploy in the secondary analysis build
+# List of executables to deploy in the secondary analysis bunild
 #
 DISTRIB_SET   = loadPulses writeHDFSubset pls2fasta toAfg samtoh5 samtom4 samFilter samtobas
 DISTRIB_EXECS = $(addprefix bin/, $(DISTRIB_SET))
@@ -69,9 +69,9 @@ samtoh5: bin/samtoh5
 samtom4: bin/samtom4
 samtobas: bin/samtobas
 samFilter: bin/samFilter
-bash5ls: bin/bash5ls
+writeTrimmedRegionTable: bin/writeTrimmedRegionTable
 
-bin/bash5ls: bin/BaseH5ls.o
+bin/writeTrimmedRegionTable: bin/WriteTrimmedRegionTable.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
 
 bin/cmpView: bin/CmpH5View.o

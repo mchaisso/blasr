@@ -184,11 +184,13 @@ namespace SAMOutput {
         if (b + 1 < nBlocks) {
           qGap = alignment.blocks[b+1].qPos - alignment.blocks[b].qPos - alignment.blocks[b].length;
           tGap = alignment.blocks[b+1].tPos - alignment.blocks[b].tPos - alignment.blocks[b].length;
-          int commonGap;
-          commonGap = abs(qGap - tGap);
-          qGap -= commonGap;
-          tGap -= commonGap;
-          matchLength += commonGap;
+					if (qGap > 0 and tGap > 0) {
+						int commonGap;
+						commonGap = min(qGap, tGap);
+						qGap -= commonGap;
+						tGap -= commonGap;
+						matchLength += commonGap;
+					}
           opSize.push_back(matchLength);
           opChar.push_back('M');
 					if (qGap > 0 or tGap > 0) {
