@@ -678,7 +678,373 @@ void StoreRankingStats( vector<T_AlignmentCandidate*> &alignments,
   }
 
 }
+template<typename T_RefSequence, typename T_Sequence>
+void PairwiseLocalAlign(T_Sequence &qSeq, T_RefSequence &tSeq, 
+                        int k, 
+                        MappingParameters &params, T_AlignmentCandidate &alignment, 
+                        MappingBuffers &mappingBuffers,
+                        AlignmentType alignType=Global) {
+  //
+  // Perform a pairwise alignment between qSeq and tSeq, but choose
+  // the pairwise alignment method based on the parameters.  The
+  // options for pairwise alignment are:
+  //  - Affine KBanded alignment: usually used for sequences with no
+  //                              quality information.
+  //  - KBanded alignment: For sequences with quality information.
+  //                       Gaps are scored with quality values.
+  //  
+  QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
+  IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
+  scoreFn.del = params.indel;
+  scoreFn.ins = params.indel;
+  idsScoreFn.ins = params.insertion;
+  idsScoreFn.del = params.deletion;
+  idsScoreFn.substitutionPrior = params.substitutionPrior;
+  idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
 
+  idsScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
+  int kbandScore;
+  int qvAwareScore;
+  if (params.ignoreQualities || qSeq.qual.Empty() || !ReadHasMeaningfulQualityValues(qSeq) ) {
+
+    kbandScore = AffineKBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
+                                  params.indel+2, params.indel - 3, // homopolymer insertion open and extend
+                                  params.indel+2, params.indel - 1, // any insertion open and extend
+                                  params.indel, // deletion
+                                  k*1.2,
+                                  mappingBuffers.scoreMat, mappingBuffers.pathMat, 
+                                  mappingBuffers.hpInsScoreMat, mappingBuffers.hpInsPathMat,
+                                  mappingBuffers.insScoreMat, mappingBuffers.insPathMat,
+                                  alignment, Global);
+
+    alignment.score = kbandScore;
+    if (params.verbosity >= 2) {
+      cout << "align score: " << kbandScore << endl;
+    }
+  }
+  else {
+
+        
+    if (qSeq.insertionQV.Empty() == false) {
+      qvAwareScore = KBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
+                                params.indel+2, // ins
+                                params.indel+2, // del
+                                k,
+                                mappingBuffers.scoreMat, mappingBuffers.pathMat,
+                                alignment, idsScoreFn, alignType);
+      if (params.verbosity >= 2) {
+        cout << "ids score fn score: " << qvAwareScore << endl;
+      }
+    }
+    else {
+      qvAwareScore = KBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
+                                params.indel+2, // ins
+                                params.indel+2, // del
+                                k,
+                                mappingBuffers.scoreMat, mappingBuffers.pathMat,
+                                alignment, scoreFn, alignType);
+      if (params.verbosity >= 2) {
+        cout << "qv score fn score: " << qvAwareScore << endl;
+      }
+    }
+    alignment.sumQVScore = qvAwareScore;
+    alignment.score = qvAwareScore;
+    alignment.probScore = 0;
+  }
+  // Compute stats and assign a default alignment score using an edit distance.
+  ComputeAlignmentStats(alignment, qSeq.seq, tSeq.seq, idsScoreFn); //SMRTDistanceMatrix, params.indel, params.indel );
+
+  if (params.scoreType == 1) {
+    alignment.score = alignment.sumQVScore;
+  }
+  
+}
+
+template<typename T_RefSequence, typename T_Sequence>
+void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
+                     T_RefSequence &genome,
+                     T_AlignmentCandidate  &alignmentCandidate, MappingParameters &params,
+                     MappingBuffers &mappingBuffers) {
+
+
+  FASTQSequence qSeq;
+  DNASequence   tSeq;
+  DistanceMatrixScoreFunction<DNASequence, FASTQSequence> distScoreFn;
+  distScoreFn.del = params.deletion;
+  distScoreFn.ins = params.insertion;
+	distScoreFn.affineOpen = params.affineOpen;
+	distScoreFn.affineExtend = params.affineExtend;
+  distScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
+  QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
+  IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
+  idsScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
+  scoreFn.del = params.indel;
+  scoreFn.ins = params.indel;
+  idsScoreFn.ins = params.insertion;
+  idsScoreFn.del = params.deletion;
+  idsScoreFn.affineExtend = params.affineExtend;
+  idsScoreFn.affineOpen = params.affineOpen;
+  idsScoreFn.substitutionPrior = params.substitutionPrior;
+  idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
+  if (params.doGlobalAlignment) {
+    SMRTSequence subread;
+    subread.ReferenceSubstring(*bothQueryStrands[0], 
+                               bothQueryStrands[0]->subreadStart,
+                               (bothQueryStrands[0]->subreadEnd - 
+                                bothQueryStrands[0]->subreadStart));
+
+    int drift = ComputeDrift(alignmentCandidate);
+    T_AlignmentCandidate refinedAlignment;
+
+    KBandAlign(subread, alignmentCandidate.tAlignedSeq, SMRTDistanceMatrix, 
+               params.insertion, params.deletion,
+                              drift,
+                              mappingBuffers.scoreMat, mappingBuffers.pathMat,
+                              refinedAlignment, idsScoreFn, Global);
+    refinedAlignment.RemoveEndGaps();
+    ComputeAlignmentStats(refinedAlignment, 
+                          subread.seq, 
+                          alignmentCandidate.tAlignedSeq.seq, 
+                          idsScoreFn);
+
+    
+    alignmentCandidate.blocks = refinedAlignment.blocks;
+    alignmentCandidate.gaps   = refinedAlignment.gaps;
+    alignmentCandidate.tPos   = refinedAlignment.tPos;
+    alignmentCandidate.qPos   = refinedAlignment.qPos + bothQueryStrands[0]->subreadStart;
+    alignmentCandidate.score  = refinedAlignment.score;
+  }
+  else if (params.useGuidedAlign) {
+    T_AlignmentCandidate refinedAlignment;
+    int lastBlock = alignmentCandidate.blocks.size() - 1;
+    
+
+    if (alignmentCandidate.blocks.size() > 0) {
+
+      /*
+       * Refine the alignment without expanding past the current
+       * boundaries of the sequences that are already aligned.
+       */
+
+      //
+      // NOTE** this only makes sense when 
+      // alignmentCandidate.blocks[0].tPos == 0. Otherwise the length
+      // of the sequence is not correct.
+      //
+      tSeq.Copy(alignmentCandidate.tAlignedSeq, 
+                alignmentCandidate.tPos,
+                (alignmentCandidate.blocks[lastBlock].tPos + 
+                 alignmentCandidate.blocks[lastBlock].length -
+                 alignmentCandidate.blocks[0].tPos));
+    
+      //      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq,
+      qSeq.ReferenceSubstring(*bothQueryStrands[0],
+                              alignmentCandidate.qAlignedSeqPos + alignmentCandidate.qPos, 
+                              (alignmentCandidate.blocks[lastBlock].qPos +
+                               alignmentCandidate.blocks[lastBlock].length));
+
+
+      if (!params.ignoreQualities && ReadHasMeaningfulQualityValues(alignmentCandidate.qAlignedSeq)) {
+        if (params.affineAlign) {
+            AffineGuidedAlign(qSeq, tSeq, alignmentCandidate, 
+                            idsScoreFn, params.bandSize,
+                            mappingBuffers, 
+                            refinedAlignment, Global, false);
+        }
+        else {
+            GuidedAlign(qSeq, tSeq, alignmentCandidate, 
+                        idsScoreFn, params.bandSize,
+                        mappingBuffers, 
+                        refinedAlignment, Global, false);
+        }
+      }
+      else {
+        if (params.affineAlign) {
+            AffineGuidedAlign(qSeq, tSeq, alignmentCandidate, 
+                              distScoreFn, params.bandSize,
+                            mappingBuffers, 
+                            refinedAlignment, Global, false);
+        }
+        else {
+        GuidedAlign(qSeq, tSeq, alignmentCandidate, 
+                    distScoreFn, params.guidedAlignBandSize,
+                    mappingBuffers,
+                    refinedAlignment, Global, false);
+        }
+      }
+      ComputeAlignmentStats(refinedAlignment, 
+                            qSeq.seq,
+                            tSeq.seq, 
+                            idsScoreFn, params.affineAlign);
+
+      //
+      // Copy the refine alignment, which may be a subsequence of the
+      // alignmentCandidate into the alignment candidate.  
+      //
+
+      // First copy the alignment block and gap (the description of
+      // the base by base alignment).
+
+      alignmentCandidate.blocks.clear();
+      alignmentCandidate.blocks = refinedAlignment.blocks;
+
+      alignmentCandidate.CopyStats(refinedAlignment);
+
+      alignmentCandidate.gaps   = refinedAlignment.gaps;
+      alignmentCandidate.score  = refinedAlignment.score;
+      alignmentCandidate.nCells = refinedAlignment.nCells;
+
+      // Next copy the information that describes what interval was
+      // aligned.  Since the reference sequences of the alignment
+      // candidate have been modified, they are reassigned.
+      alignmentCandidate.tAlignedSeq.TakeOwnership(tSeq);
+      alignmentCandidate.ReassignQSequence(qSeq);
+      alignmentCandidate.tAlignedSeqPos    += alignmentCandidate.tPos; 
+      alignmentCandidate.qAlignedSeqPos    += alignmentCandidate.qPos;
+
+      //
+      // tPos and qPos are the positions within the interval where the
+      // alignment begins. The refined alignment has adifferent tPos
+      // and qPos from the alignment candidate.
+      alignmentCandidate.tPos = refinedAlignment.tPos;
+      alignmentCandidate.qPos = refinedAlignment.qPos;
+
+      // The lengths of the newly aligned sequences may differ, update those.
+      alignmentCandidate.tAlignedSeqLength = tSeq.length;
+      alignmentCandidate.qAlignedSeqLength = qSeq.length;
+    }
+  }
+  else {
+
+
+    //
+    // This assumes an SDP alignment has been performed to create 'alignmentCandidate'. 
+  
+    //
+    // Recompute the alignment using a banded smith waterman to
+    // get rid of any spurious effects of usign the seeded gaps.
+    //
+
+    //
+    // The k-banded alignment is over a subsequence of the first
+    // (sparse dynamic programming, SDP) alignment.  The SDP
+    // alignment is over a large window that may contain the
+    // candidate sequence.  The k-band alignment is over a tighter
+    // region.  
+
+    int drift = ComputeDrift(alignmentCandidate);
+          
+    //
+    // Rescore the alignment with a banded alignment that has a
+    // better model of sequencing error.
+    //
+
+    if (alignmentCandidate.blocks.size() == 0 ){ 
+      alignmentCandidate.score = 0;
+      return;
+    }
+    int lastBlock = alignmentCandidate.blocks.size() - 1;
+
+    //
+    // Assign the sequences that are going to be realigned using
+    // banded alignment.  The SDP alignment does not give that great
+    // of a score, but it does do a good job at finding a backbone
+    // alignment that closely defines the sequence that is aligned.
+    // Reassign the subsequences for alignment with a tight bound
+    // around the beginning and ending of each sequence, so that
+    // global banded alignment may be performed.
+    //
+  
+    //
+    // This section needs to be cleaned up substantially.  Right now it
+    // copies a substring from the ref to a temp, then from the temp
+    // back to the ref.  It may be possible to just keep one pointer per
+    // read to the memory that was allocated, then allow the seq
+    // parameter to float around.  The reason for all the copying is
+    // that in case there is a compressed version of the genome the
+    // seqences must be transformed before alignment.
+    //
+
+    if (alignmentCandidate.qIsSubstring) {
+      qSeq.ReferenceSubstring(*bothQueryStrands[0],  // the original sequence
+                              alignmentCandidate.qPos + alignmentCandidate.qAlignedSeqPos, 
+                              alignmentCandidate.blocks[lastBlock].qPos + alignmentCandidate.blocks[lastBlock].length);
+    }
+    else {
+      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq, // the subsequence that the alignment points to
+                              alignmentCandidate.qPos  + alignmentCandidate.qAlignedSeqPos, 
+                              alignmentCandidate.blocks[lastBlock].qPos + alignmentCandidate.blocks[lastBlock].length - alignmentCandidate.blocks[0].qPos);
+    }
+      
+    tSeq.Copy(alignmentCandidate.tAlignedSeq, // the subsequence the alignment points to
+              alignmentCandidate.tPos, // ofset into the subsequence
+              alignmentCandidate.blocks[lastBlock].tPos + alignmentCandidate.blocks[lastBlock].length - alignmentCandidate.blocks[0].tPos);
+
+    T_AlignmentCandidate refinedAlignment;
+
+    //
+    // When the parameter bandSize is 0, set the alignment band size
+    // to the drift off the diagonal, plus a little more for wiggle
+    // room.  When the parameteris nonzero, use that as a fixed band.
+    //
+    int k;
+    if (params.bandSize == 0) {
+      k = abs(drift) * 1.5;
+    }
+    else {
+      k = params.bandSize;
+    }
+    if (params.verbosity > 0) {
+      cout << "drift: " << drift << " qlen: " << alignmentCandidate.qAlignedSeq.length << " tlen: " << alignmentCandidate.tAlignedSeq.length << " k: " << k << endl;
+      cout << "aligning in " << k << " * " << alignmentCandidate.tAlignedSeq.length << " " << k * alignmentCandidate.tAlignedSeq.length << endl;
+    }
+    if (k < 10) {
+      k = 10;
+    }
+
+    alignmentCandidate.tAlignedSeqPos    += alignmentCandidate.tPos; 
+    
+    VectorIndex lastSDPBlock = alignmentCandidate.blocks.size() - 1;
+
+    if (alignmentCandidate.blocks.size() > 0) {
+      DNALength prevLength =  alignmentCandidate.tAlignedSeqLength -= alignmentCandidate.tPos;
+      alignmentCandidate.tAlignedSeqLength = (alignmentCandidate.blocks[lastSDPBlock].tPos 
+                                              + alignmentCandidate.blocks[lastSDPBlock].length 
+                                              - alignmentCandidate.blocks[0].tPos);
+    }
+    else {
+      alignmentCandidate.tAlignedSeqLength = 0;
+    }
+
+    alignmentCandidate.tPos              = 0;
+    alignmentCandidate.qAlignedSeqPos    += alignmentCandidate.qPos;
+
+    if (alignmentCandidate.blocks.size() > 0) {
+      DNALength prevLength =  alignmentCandidate.qAlignedSeqLength -= alignmentCandidate.qPos; 
+      alignmentCandidate.qAlignedSeqLength = (alignmentCandidate.blocks[lastSDPBlock].qPos 
+                                              + alignmentCandidate.blocks[lastSDPBlock].length
+                                              - alignmentCandidate.blocks[0].qPos);
+    }
+    else {
+      alignmentCandidate.qAlignedSeqLength = 0;
+    }
+    alignmentCandidate.qPos                = 0;
+
+    alignmentCandidate.blocks.clear();
+    alignmentCandidate.tAlignedSeq.Free();
+    alignmentCandidate.tAlignedSeq.TakeOwnership(tSeq);
+    alignmentCandidate.ReassignQSequence(qSeq);
+
+    if (params.verbosity >= 2) {
+      cout << "refining target: " << endl;
+      alignmentCandidate.tAlignedSeq.PrintSeq(cout);
+      cout << "refining query: " << endl;
+      ((DNASequence*)&alignmentCandidate.qAlignedSeq)->PrintSeq(cout);
+      cout << endl;
+    }
+    PairwiseLocalAlign(qSeq, tSeq, k, params, alignmentCandidate, mappingBuffers, Fit);
+  }
+}
 
 
 template<typename T_TargetSequence, typename T_QuerySequence, typename TDBSequence>
@@ -1047,7 +1413,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							alignmentInGap.qAlignedSeq.ReferenceSubstring(qSubSeq);
 							alignmentInGap.tAlignedSeq.ReferenceSubstring(tSubSeq);
 
-						
 							RefineAlignment(bothQueryStrands,
 															tSubSeq, 
 															alignmentInGap, params, refinementBuffers);
@@ -1579,373 +1944,7 @@ void RefineAlignments(vector<T_Sequence*> &bothQueryStrands,
 }
     
 
-template<typename T_RefSequence, typename T_Sequence>
-void PairwiseLocalAlign(T_Sequence &qSeq, T_RefSequence &tSeq, 
-                        int k, 
-                        MappingParameters &params, T_AlignmentCandidate &alignment, 
-                        MappingBuffers &mappingBuffers,
-                        AlignmentType alignType=Global) {
-  //
-  // Perform a pairwise alignment between qSeq and tSeq, but choose
-  // the pairwise alignment method based on the parameters.  The
-  // options for pairwise alignment are:
-  //  - Affine KBanded alignment: usually used for sequences with no
-  //                              quality information.
-  //  - KBanded alignment: For sequences with quality information.
-  //                       Gaps are scored with quality values.
-  //  
-  QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
-  IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
-  scoreFn.del = params.indel;
-  scoreFn.ins = params.indel;
-  idsScoreFn.ins = params.insertion;
-  idsScoreFn.del = params.deletion;
-  idsScoreFn.substitutionPrior = params.substitutionPrior;
-  idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
 
-  idsScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
-  int kbandScore;
-  int qvAwareScore;
-  if (params.ignoreQualities || qSeq.qual.Empty() || !ReadHasMeaningfulQualityValues(qSeq) ) {
-
-    kbandScore = AffineKBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
-                                  params.indel+2, params.indel - 3, // homopolymer insertion open and extend
-                                  params.indel+2, params.indel - 1, // any insertion open and extend
-                                  params.indel, // deletion
-                                  k*1.2,
-                                  mappingBuffers.scoreMat, mappingBuffers.pathMat, 
-                                  mappingBuffers.hpInsScoreMat, mappingBuffers.hpInsPathMat,
-                                  mappingBuffers.insScoreMat, mappingBuffers.insPathMat,
-                                  alignment, Global);
-
-    alignment.score = kbandScore;
-    if (params.verbosity >= 2) {
-      cout << "align score: " << kbandScore << endl;
-    }
-  }
-  else {
-
-        
-    if (qSeq.insertionQV.Empty() == false) {
-      qvAwareScore = KBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
-                                params.indel+2, // ins
-                                params.indel+2, // del
-                                k,
-                                mappingBuffers.scoreMat, mappingBuffers.pathMat,
-                                alignment, idsScoreFn, alignType);
-      if (params.verbosity >= 2) {
-        cout << "ids score fn score: " << qvAwareScore << endl;
-      }
-    }
-    else {
-      qvAwareScore = KBandAlign(qSeq, tSeq, SMRTDistanceMatrix, 
-                                params.indel+2, // ins
-                                params.indel+2, // del
-                                k,
-                                mappingBuffers.scoreMat, mappingBuffers.pathMat,
-                                alignment, scoreFn, alignType);
-      if (params.verbosity >= 2) {
-        cout << "qv score fn score: " << qvAwareScore << endl;
-      }
-    }
-    alignment.sumQVScore = qvAwareScore;
-    alignment.score = qvAwareScore;
-    alignment.probScore = 0;
-  }
-  // Compute stats and assign a default alignment score using an edit distance.
-  ComputeAlignmentStats(alignment, qSeq.seq, tSeq.seq, idsScoreFn); //SMRTDistanceMatrix, params.indel, params.indel );
-
-  if (params.scoreType == 1) {
-    alignment.score = alignment.sumQVScore;
-  }
-  
-}
-
-template<typename T_RefSequence, typename T_Sequence>
-void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
-                     T_RefSequence &genome,
-                     T_AlignmentCandidate  &alignmentCandidate, MappingParameters &params,
-                     MappingBuffers &mappingBuffers) {
-
-
-  FASTQSequence qSeq;
-  DNASequence   tSeq;
-  DistanceMatrixScoreFunction<DNASequence, FASTQSequence> distScoreFn;
-  distScoreFn.del = params.deletion;
-  distScoreFn.ins = params.insertion;
-	distScoreFn.affineOpen = params.affineOpen;
-	distScoreFn.affineExtend = params.affineExtend;
-  distScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
-  QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
-  IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
-  idsScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
-  scoreFn.del = params.indel;
-  scoreFn.ins = params.indel;
-  idsScoreFn.ins = params.insertion;
-  idsScoreFn.del = params.deletion;
-  idsScoreFn.affineExtend = params.affineExtend;
-  idsScoreFn.affineOpen = params.affineOpen;
-  idsScoreFn.substitutionPrior = params.substitutionPrior;
-  idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
-  if (params.doGlobalAlignment) {
-    SMRTSequence subread;
-    subread.ReferenceSubstring(*bothQueryStrands[0], 
-                               bothQueryStrands[0]->subreadStart,
-                               (bothQueryStrands[0]->subreadEnd - 
-                                bothQueryStrands[0]->subreadStart));
-
-    int drift = ComputeDrift(alignmentCandidate);
-    T_AlignmentCandidate refinedAlignment;
-
-    KBandAlign(subread, alignmentCandidate.tAlignedSeq, SMRTDistanceMatrix, 
-               params.insertion, params.deletion,
-                              drift,
-                              mappingBuffers.scoreMat, mappingBuffers.pathMat,
-                              refinedAlignment, idsScoreFn, Global);
-    refinedAlignment.RemoveEndGaps();
-    ComputeAlignmentStats(refinedAlignment, 
-                          subread.seq, 
-                          alignmentCandidate.tAlignedSeq.seq, 
-                          idsScoreFn);
-
-    
-    alignmentCandidate.blocks = refinedAlignment.blocks;
-    alignmentCandidate.gaps   = refinedAlignment.gaps;
-    alignmentCandidate.tPos   = refinedAlignment.tPos;
-    alignmentCandidate.qPos   = refinedAlignment.qPos + bothQueryStrands[0]->subreadStart;
-    alignmentCandidate.score  = refinedAlignment.score;
-  }
-  else if (params.useGuidedAlign) {
-    T_AlignmentCandidate refinedAlignment;
-    int lastBlock = alignmentCandidate.blocks.size() - 1;
-    
-
-    if (alignmentCandidate.blocks.size() > 0) {
-
-      /*
-       * Refine the alignment without expanding past the current
-       * boundaries of the sequences that are already aligned.
-       */
-
-      //
-      // NOTE** this only makes sense when 
-      // alignmentCandidate.blocks[0].tPos == 0. Otherwise the length
-      // of the sequence is not correct.
-      //
-      tSeq.Copy(alignmentCandidate.tAlignedSeq, 
-                alignmentCandidate.tPos,
-                (alignmentCandidate.blocks[lastBlock].tPos + 
-                 alignmentCandidate.blocks[lastBlock].length -
-                 alignmentCandidate.blocks[0].tPos));
-    
-      //      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq,
-      qSeq.ReferenceSubstring(*bothQueryStrands[0],
-                              alignmentCandidate.qAlignedSeqPos + alignmentCandidate.qPos, 
-                              (alignmentCandidate.blocks[lastBlock].qPos +
-                               alignmentCandidate.blocks[lastBlock].length));
-
-
-      if (!params.ignoreQualities && ReadHasMeaningfulQualityValues(alignmentCandidate.qAlignedSeq)) {
-        if (params.affineAlign) {
-            AffineGuidedAlign(qSeq, tSeq, alignmentCandidate, 
-                            idsScoreFn, params.bandSize,
-                            mappingBuffers, 
-                            refinedAlignment, Global, false);
-        }
-        else {
-            GuidedAlign(qSeq, tSeq, alignmentCandidate, 
-                        idsScoreFn, params.bandSize,
-                        mappingBuffers, 
-                        refinedAlignment, Global, false);
-        }
-      }
-      else {
-        if (params.affineAlign) {
-            AffineGuidedAlign(qSeq, tSeq, alignmentCandidate, 
-                              distScoreFn, params.bandSize,
-                            mappingBuffers, 
-                            refinedAlignment, Global, false);
-        }
-        else {
-        GuidedAlign(qSeq, tSeq, alignmentCandidate, 
-                    distScoreFn, params.guidedAlignBandSize,
-                    mappingBuffers,
-                    refinedAlignment, Global, false);
-        }
-      }
-      ComputeAlignmentStats(refinedAlignment, 
-                            qSeq.seq,
-                            tSeq.seq, 
-                            idsScoreFn, params.affineAlign);
-
-      //
-      // Copy the refine alignment, which may be a subsequence of the
-      // alignmentCandidate into the alignment candidate.  
-      //
-
-      // First copy the alignment block and gap (the description of
-      // the base by base alignment).
-
-      alignmentCandidate.blocks.clear();
-      alignmentCandidate.blocks = refinedAlignment.blocks;
-
-      alignmentCandidate.CopyStats(refinedAlignment);
-
-      alignmentCandidate.gaps   = refinedAlignment.gaps;
-      alignmentCandidate.score  = refinedAlignment.score;
-      alignmentCandidate.nCells = refinedAlignment.nCells;
-
-      // Next copy the information that describes what interval was
-      // aligned.  Since the reference sequences of the alignment
-      // candidate have been modified, they are reassigned.
-      alignmentCandidate.tAlignedSeq.TakeOwnership(tSeq);
-      alignmentCandidate.ReassignQSequence(qSeq);
-      alignmentCandidate.tAlignedSeqPos    += alignmentCandidate.tPos; 
-      alignmentCandidate.qAlignedSeqPos    += alignmentCandidate.qPos;
-
-      //
-      // tPos and qPos are the positions within the interval where the
-      // alignment begins. The refined alignment has adifferent tPos
-      // and qPos from the alignment candidate.
-      alignmentCandidate.tPos = refinedAlignment.tPos;
-      alignmentCandidate.qPos = refinedAlignment.qPos;
-
-      // The lengths of the newly aligned sequences may differ, update those.
-      alignmentCandidate.tAlignedSeqLength = tSeq.length;
-      alignmentCandidate.qAlignedSeqLength = qSeq.length;
-    }
-  }
-  else {
-
-
-    //
-    // This assumes an SDP alignment has been performed to create 'alignmentCandidate'. 
-  
-    //
-    // Recompute the alignment using a banded smith waterman to
-    // get rid of any spurious effects of usign the seeded gaps.
-    //
-
-    //
-    // The k-banded alignment is over a subsequence of the first
-    // (sparse dynamic programming, SDP) alignment.  The SDP
-    // alignment is over a large window that may contain the
-    // candidate sequence.  The k-band alignment is over a tighter
-    // region.  
-
-    int drift = ComputeDrift(alignmentCandidate);
-          
-    //
-    // Rescore the alignment with a banded alignment that has a
-    // better model of sequencing error.
-    //
-
-    if (alignmentCandidate.blocks.size() == 0 ){ 
-      alignmentCandidate.score = 0;
-      return;
-    }
-    int lastBlock = alignmentCandidate.blocks.size() - 1;
-
-    //
-    // Assign the sequences that are going to be realigned using
-    // banded alignment.  The SDP alignment does not give that great
-    // of a score, but it does do a good job at finding a backbone
-    // alignment that closely defines the sequence that is aligned.
-    // Reassign the subsequences for alignment with a tight bound
-    // around the beginning and ending of each sequence, so that
-    // global banded alignment may be performed.
-    //
-  
-    //
-    // This section needs to be cleaned up substantially.  Right now it
-    // copies a substring from the ref to a temp, then from the temp
-    // back to the ref.  It may be possible to just keep one pointer per
-    // read to the memory that was allocated, then allow the seq
-    // parameter to float around.  The reason for all the copying is
-    // that in case there is a compressed version of the genome the
-    // seqences must be transformed before alignment.
-    //
-
-    if (alignmentCandidate.qIsSubstring) {
-      qSeq.ReferenceSubstring(*bothQueryStrands[0],  // the original sequence
-                              alignmentCandidate.qPos + alignmentCandidate.qAlignedSeqPos, 
-                              alignmentCandidate.blocks[lastBlock].qPos + alignmentCandidate.blocks[lastBlock].length);
-    }
-    else {
-      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq, // the subsequence that the alignment points to
-                              alignmentCandidate.qPos  + alignmentCandidate.qAlignedSeqPos, 
-                              alignmentCandidate.blocks[lastBlock].qPos + alignmentCandidate.blocks[lastBlock].length - alignmentCandidate.blocks[0].qPos);
-    }
-      
-    tSeq.Copy(alignmentCandidate.tAlignedSeq, // the subsequence the alignment points to
-              alignmentCandidate.tPos, // ofset into the subsequence
-              alignmentCandidate.blocks[lastBlock].tPos + alignmentCandidate.blocks[lastBlock].length - alignmentCandidate.blocks[0].tPos);
-
-    T_AlignmentCandidate refinedAlignment;
-
-    //
-    // When the parameter bandSize is 0, set the alignment band size
-    // to the drift off the diagonal, plus a little more for wiggle
-    // room.  When the parameteris nonzero, use that as a fixed band.
-    //
-    int k;
-    if (params.bandSize == 0) {
-      k = abs(drift) * 1.5;
-    }
-    else {
-      k = params.bandSize;
-    }
-    if (params.verbosity > 0) {
-      cout << "drift: " << drift << " qlen: " << alignmentCandidate.qAlignedSeq.length << " tlen: " << alignmentCandidate.tAlignedSeq.length << " k: " << k << endl;
-      cout << "aligning in " << k << " * " << alignmentCandidate.tAlignedSeq.length << " " << k * alignmentCandidate.tAlignedSeq.length << endl;
-    }
-    if (k < 10) {
-      k = 10;
-    }
-
-    alignmentCandidate.tAlignedSeqPos    += alignmentCandidate.tPos; 
-    
-    VectorIndex lastSDPBlock = alignmentCandidate.blocks.size() - 1;
-
-    if (alignmentCandidate.blocks.size() > 0) {
-      DNALength prevLength =  alignmentCandidate.tAlignedSeqLength -= alignmentCandidate.tPos;
-      alignmentCandidate.tAlignedSeqLength = (alignmentCandidate.blocks[lastSDPBlock].tPos 
-                                              + alignmentCandidate.blocks[lastSDPBlock].length 
-                                              - alignmentCandidate.blocks[0].tPos);
-    }
-    else {
-      alignmentCandidate.tAlignedSeqLength = 0;
-    }
-
-    alignmentCandidate.tPos              = 0;
-    alignmentCandidate.qAlignedSeqPos    += alignmentCandidate.qPos;
-
-    if (alignmentCandidate.blocks.size() > 0) {
-      DNALength prevLength =  alignmentCandidate.qAlignedSeqLength -= alignmentCandidate.qPos; 
-      alignmentCandidate.qAlignedSeqLength = (alignmentCandidate.blocks[lastSDPBlock].qPos 
-                                              + alignmentCandidate.blocks[lastSDPBlock].length
-                                              - alignmentCandidate.blocks[0].qPos);
-    }
-    else {
-      alignmentCandidate.qAlignedSeqLength = 0;
-    }
-    alignmentCandidate.qPos                = 0;
-
-    alignmentCandidate.blocks.clear();
-    alignmentCandidate.tAlignedSeq.Free();
-    alignmentCandidate.tAlignedSeq.TakeOwnership(tSeq);
-    alignmentCandidate.ReassignQSequence(qSeq);
-
-    if (params.verbosity >= 2) {
-      cout << "refining target: " << endl;
-      alignmentCandidate.tAlignedSeq.PrintSeq(cout);
-      cout << "refining query: " << endl;
-      ((DNASequence*)&alignmentCandidate.qAlignedSeq)->PrintSeq(cout);
-      cout << endl;
-    }
-    PairwiseLocalAlign(qSeq, tSeq, k, params, alignmentCandidate, mappingBuffers, Fit);
-  }
-}
 
 void AssignRefContigLocation(T_AlignmentCandidate &alignment, SequenceIndexDatabase<FASTQSequence> &seqdb, DNASequence &genome) {
     //

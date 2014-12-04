@@ -19,7 +19,9 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters tabulateAlignment samatcher saprinter buildQualityValueProfile guidedalign extendAlign sals pbmask findLongestRepeat
+EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter buildQualityValueProfile sals pbmask findLongestRepeat
+
+EXTENDED = guidedalign extendAlign
 
 # DISABLE for now
 #cmpMatcher
@@ -43,7 +45,6 @@ endif
 wordCounter:        bin/wordCounter
 printReadWordCount: bin/printReadWordCount
 blasr:        bin/blasr
-cmpMatcher:         bin/cmpMatcher
 sdpMatcher:         bin/sdpMatcher
 samatcher:          bin/samatcher
 saprinter:          bin/saprinter
@@ -71,13 +72,13 @@ bin/sawriter: bin/SAWriter.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/pbmask: bin/Mask.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
 
 bin/guidedalign: bin/GuidedAlign.o
-	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl 
 
 bin/extendAlign: bin/ExtendAlign.o
-	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
 
 bin/saquery: bin/SAQuery.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
@@ -97,9 +98,6 @@ bin/printReadWordCount: bin/PrintReadWordCount.o
 
 bin/CmpReadMatcher.o: ReadMatcher.cpp
 	$(CPP) -c $(CPPOPTS) -DCOMPRESSED $< $(STATIC) -o $@
-
-bin/cmpMatcher: bin/CmpReadMatcher.o bin/PositionTable.o
-	$(CPP) $(CPPOPTS) $< bin/PositionTable.o $(STATIC) -o $@ -lpthread -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
 
 bin/CmpPrintTupleCountTable.o: PrintTupleCountTable.cpp
 	$(CPP) -c $(CPPOPTS) -DCOMPRESSED $^ $(STATIC) -o $@
