@@ -55,19 +55,19 @@ printCoverage: bin/printCoverage
 
 
 bin/printCoverage: bin/PrintCoverage.o
-	$(CPP) $(CPPOPTS) $< -o $@  -lz -lpthread
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 bin/printMaxAlignedRead: bin/PrintMaxAlignedRead.o
-	$(CPP) $(CPPOPTS) $< -o $@  -lz -lpthread
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 bin/printGappyRegions: bin/PrintGappyRegions.o
-	$(CPP) $(CPPOPTS) $< -o $@  -lz -lpthread
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 bin/printConsensus: bin/PrintConsensus.o
-	$(CPP) $(CPPOPTS) $< -o $@  -lz -lpthread
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 bin/printGaps: bin/PrintGaps.o
-	$(CPP) $(CPPOPTS) $< -o $@  -lz -lpthread
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 INSTALL_DIR ?= $(ANALYSIS_HOME)/bin
 install:

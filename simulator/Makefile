@@ -69,16 +69,16 @@ INSTALL_TARGETS := $(addsuffix -install, $(INSTALL_EXES))
 install-secondary: $(INSTALL_TARGETS)
 
 bin/printLengthHistogram: bin/PrintLengthHistogramFromCmph5.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/cmpH5StoreQualityByContext: bin/StoreQualityByContextFromCmpH5.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/storeQualityByContext: bin/StoreQualityByContext.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/alchemy: bin/BasH5Simulator.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/loadContextOut: bin/LoadContextOut.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@

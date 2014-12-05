@@ -72,13 +72,13 @@ bin/sawriter: bin/SAWriter.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/pbmask: bin/Mask.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/guidedalign: bin/GuidedAlign.o
-	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl 
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/extendAlign: bin/ExtendAlign.o
-	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/saquery: bin/SAQuery.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
@@ -110,7 +110,7 @@ ifneq ($(shell uname -s),Darwin)
 endif
 
 bin/blasr: bin/Blasr.o
-	$(CPP) $(CPPOPTS) $< -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(LINK_PROFILER) -lpthread -lz $(LRT) -ldl $(STATIC) -o $@
+	$(CPP) $(CPPOPTS) $< -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(LINK_PROFILER) $(HDF_REQ_LIBS)
 
 bin/samatcher: bin/SAMatcher.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@

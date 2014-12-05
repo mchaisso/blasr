@@ -47,23 +47,22 @@ INSTALL_TARGETS := $(addsuffix -install, $(INSTALL_EXES))
 install-secondary: $(INSTALL_TARGETS)
 
 bin/sa2bwt: bin/SuffixArrayToBWT.o
-	#Mark, I added HDFLIBDIR b/c libz now gets compiled to that dir. Otherwise, -lz fails if libz is not installed. -johann
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 bin/bwt2sa: bin/BwtToSuffixArray.o
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 bin/bwtLocateList: bin/BWTLocateList.o
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 bin/bwtswPrint: bin/PrintBWTSWBWT.o
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 bin/bwtpbPrint: bin/PrintPBBWT.o
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 bin/bwtquery: bin/BWTQuery.o
-	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -lz -lpthread
+	$(CPP) $(STATIC) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR)  $(HDF_REQ_LIBS)
 
 INSTALL_DIR ?= $(ANALYSIS_HOME)/bin
 
