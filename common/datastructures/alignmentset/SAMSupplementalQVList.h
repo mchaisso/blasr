@@ -5,11 +5,11 @@
 
 class SupplementalQVList {
  public:
-	enum QVList {Insertion=0x1, Deletion=0x2, Substitution=0x4, Merge=0x8, SubstitutionTag=0x10, DeletionTag=0x20};
-	enum QVIndex {I_Insertion=1,I_Deletion=2,I_Substitution=3,I_Merge=4,I_SubstitutionTag=5,I_DeletionTag=6};
+	enum QVList {Insertion=0x1, Deletion=0x2, Substitution=0x4, Merge=0x8, SubstitutionTag=0x10, DeletionTag=0x20, IPD=0x40};
+	enum QVIndex {I_Insertion=1,I_Deletion=2,I_Substitution=3,I_Merge=4,I_SubstitutionTag=5,I_DeletionTag=6,I_IPD=7};
 	unsigned int useqv;
 	void SetDefaultQV() {
-		useqv = Insertion | Deletion | Substitution | Merge | SubstitutionTag | DeletionTag;
+		useqv = Insertion | Deletion | Substitution | Merge | SubstitutionTag | DeletionTag | IPD;
 	}
 	static const char* qvTags[];
 	static const char* qvNames[];
@@ -75,16 +75,22 @@ class SupplementalQVList {
 			out << "\t" << qvTags[I_DeletionTag-1] << ":Z:";
 			alignedSubsequence.PrintAsciiRichQuality(out, I_DeletionTag, 0);
 		}
+
+		if (alignedSubsequence.IPD != NULL and (useqv & IPD)) {
+			out << "\t" << qvTags[I_IPD-1] << ":Z:";
+			out << "S";
+			alignedSubsequence.PrintCSVPulseMetric(out, I_IPD, 0);
+		}
 		
 	}
 };
 
-const char* SupplementalQVList::qvNames[] = {"Insertion", "Deletion", "Substitution", "Merge", "SubstitutionTag", "DeletionTag"};
-const char* SupplementalQVList::qvTags[] = {"qi", "qd", "qs", "qm", "ts", "td"};
+const char* SupplementalQVList::qvNames[] = {"Insertion", "Deletion", "Substitution", "Merge", "SubstitutionTag", "DeletionTag", "IPD"};
+const char* SupplementalQVList::qvTags[] = {"qi", "qd", "qs", "qm", "ts", "td", "ip"};
 
 // Only the first 4 tags are quality values.
 int SupplementalQVList::nqvTags = 4;
-int SupplementalQVList::nTags = 6;
+int SupplementalQVList::nTags = 7;
 
 
 #endif

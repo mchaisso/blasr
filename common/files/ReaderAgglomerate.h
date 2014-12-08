@@ -293,6 +293,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			else {
 				numRecords = hdfBasReader.GetNext(seq);
 			}
+			seq.StoreIPD();
 			break;
     case HDFCCS:
       assert(ignoreCCS == false);

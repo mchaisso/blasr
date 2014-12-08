@@ -38,7 +38,7 @@ public:
   unsigned int *startFrame;
   int *pulseIndex;
   DNALength lowQualityPrefix, lowQualitySuffix;
-
+	unsigned int *IPD;
   void SetNull() {
     pulseIndex    = NULL;
     preBaseFrames = NULL;
@@ -51,6 +51,7 @@ public:
     platform     = NoPlatformType;
     // By default, allow the entire read.
     lowQualityPrefix = lowQualitySuffix = 0;
+		IPD          = NULL;
   }
   
   SMRTSequence() : FASTQSequence() {
@@ -99,6 +100,19 @@ public:
     subread.deleteOnExit = true;
   }
 
+	void ReferenceSubstring(const SMRTSequence &rhs) {
+    ReferenceSubstring(rhs, 0, rhs.length);
+	}
+	void ReferenceSubstring(const SMRTSequence &rhs, DNALength pos) {
+		ReferenceSubstring(rhs, pos, rhs.length - pos);
+	}
+
+	void ReferenceSubstring(const SMRTSequence &rhs, DNALength pos, DNALength substrLength) {
+		((FASTQSequence*)this)->ReferenceSubstring(rhs, pos, substrLength);
+		if (rhs.IPD != NULL) {
+			IPD = &rhs.IPD[pos];
+		}
+	}
 
   void MakeSubreadAsReference(SMRTSequence &subread, DNALength subreadStart = 0, int subreadEnd = -1) {
     //
@@ -136,6 +150,11 @@ public:
         delete[] pulseIndex;
         pulseIndex = NULL;
       }
+			if (IPD != NULL) {
+				delete[] IPD;
+				IPD = NULL;
+			}
+
       ((FASTQSequence*)this)->Copy(subseq);
       //
       // Make sure that no values of length 0 are allocated by returning here.
@@ -160,6 +179,11 @@ public:
         pulseIndex = new int[length];
         memcpy(pulseIndex, rhs.pulseIndex, sizeof(int) * length);
       }
+      if (rhs.IPD != NULL) {
+        IPD = new unsigned int[length];
+        memcpy(IPD, rhs.IPD, sizeof(int) * length);
+      }
+
     }
 		subreadStart = rhs.subreadStart;
 		subreadEnd   = rhs.subreadEnd;
@@ -198,6 +222,10 @@ public:
         delete[] startFrame;
         startFrame = NULL;
       }
+			if (IPD) {
+				delete [] IPD;
+				IPD = NULL;
+			}
       // meanSignal, maxSignal, midSignal and classifierQV
       // need to be handled separatedly.
     }
@@ -206,11 +234,35 @@ public:
     holeNumber = -1;
   }
       
+	bool StoreIPD() {
+		if (length == 0) {
+			return false;
+		}
+		IPD = new unsigned int[length];
+		int i;
+		assert(preBaseFrames);
+		assert(widthInFrames);
+		for (i = 0; i < length; i++) { 
+			IPD[i] = preBaseFrames[i] + widthInFrames[i];
+		}
+		return true;
+	}
   bool StoreXY(int16_t xyP[]) {
     xy[0] = xyP[0];
     xy[1] = xyP[1];
     return true;
   }
+
+	void MakeRC(SMRTSequence &rc) {
+		((FASTQSequence*)this)->MakeRC(rc);
+		if (rc.IPD != NULL and rc.deleteOnExit) {
+			delete[] rc.IPD;
+		}
+		rc.IPD = new unsigned int[length];
+		for (int i = 0; i < length; i++) {
+			rc.IPD[length-i-1] = IPD[i];
+		}
+	}
 
   bool StorePlatformType(PlatformId pid ){
     if (pid == AstroPlatform) {
@@ -251,6 +303,54 @@ public:
     holeNumberP = holeNumber;
     return true;
   }
+
+	void PrintCSVPulseMetric(ostream &out, int whichQuality, int lineLength=50) {
+		unsigned int* dataPtr = NULL;
+		int charOffset = charToQuality;
+		int i;
+		if (whichQuality == 7) {
+			dataPtr = IPD;
+		}
+		else {
+			cout << "ERROR. Invalid quality " << whichQuality << endl;
+			exit(0);
+		}
+    if (lineLength == 0) {
+      for (i = 0; i < length; i++) {
+				if (dataPtr != NULL) {
+					out << (dataPtr[i]);
+				}
+				else {
+					// Fake bad quality
+					out << "5";
+				}
+				if (i < length-1) {
+					out << ",";
+				}
+      }
+    }
+    else {
+      for (i = 0; i < length; i++) {
+				if (dataPtr != NULL) {
+					out << (dataPtr[i]);
+				}
+				else {
+					out << "0";
+				}
+				if (i < length - 1) {
+					out << ",";
+				}
+        assert(lineLength != 0);
+        if (i > 0 and (i+1) % lineLength==0) {
+          out << endl;
+        }
+      }
+      if (i == 0 or i % lineLength != 0) {
+        out << endl;
+      }
+    }
+	}
+
 };
 
 #endif

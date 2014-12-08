@@ -788,10 +788,10 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
   idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
   if (params.doGlobalAlignment) {
     SMRTSequence subread;
-    subread.ReferenceSubstring(*bothQueryStrands[0], 
-                               bothQueryStrands[0]->subreadStart,
-                               (bothQueryStrands[0]->subreadEnd - 
-                                bothQueryStrands[0]->subreadStart));
+    ((FASTQSequence*)&subread)->ReferenceSubstring(*bothQueryStrands[0], 
+																									 bothQueryStrands[0]->subreadStart,
+																									 (bothQueryStrands[0]->subreadEnd - 
+																										bothQueryStrands[0]->subreadStart));
 
     int drift = ComputeDrift(alignmentCandidate);
     T_AlignmentCandidate refinedAlignment;
