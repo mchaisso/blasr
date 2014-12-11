@@ -255,8 +255,13 @@ public:
 
 	void MakeRC(SMRTSequence &rc) {
 		((FASTQSequence*)this)->MakeRC(rc);
+
 		if (rc.IPD != NULL and rc.deleteOnExit) {
 			delete[] rc.IPD;
+			rc.IPD = NULL;
+		}
+		if (IPD == NULL) {
+			return;
 		}
 		rc.IPD = new unsigned int[length];
 		for (int i = 0; i < length; i++) {
