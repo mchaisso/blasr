@@ -16,8 +16,6 @@ include make.dep
 
 PBCPP_DIR=../..
 
-HDF5INCLUDEDIR = ../../../seymour/dist2/common/include
-HDF5LIBDIR = ../../../seymour/dist2/common/lib/
 
 testSAMReader: bin/testSAMReader
 

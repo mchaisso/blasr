@@ -238,6 +238,9 @@ public:
 		if (length == 0) {
 			return false;
 		}
+		if (preBaseFrames == NULL or widthInFrames == NULL) {
+			return false;
+		}
 		IPD = new unsigned int[length];
 		int i;
 		assert(preBaseFrames);

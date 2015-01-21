@@ -53,7 +53,7 @@ int AssignQualityData( unsigned char* &field, string src) {
 }
 
 int main(int argc, char* argv[]) {
-  string program = "samtoh5";
+  string program = "samtobas";
 
 
   string samFileName, basFileName;

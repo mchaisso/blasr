@@ -32,41 +32,41 @@ testHDFCmpWriter: bin/testHDFCmpWriter
 #testHDFCCSReader: bin/testHDFCCSReader
 
 bin/testHDFCmpWriter: bin/TestHDFCmpWriter.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB) -l$(HDF5LIBCPP)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB) -l$(HDF5LIBCPP) $(HDF_REQ_LIBS)
 
 bin/testHDFReading: bin/TestHDFReading.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFArrayWriter: bin/TestHDFArrayWriter.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDF2DArrayWriter: bin/TestHDF2DArrayWriter.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/cpptestHDFReading: bin/TestHDFReadingCPP.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFUtils: bin/TestHDFUtils.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFAtom: bin/TestHDFAtom.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFBasReader: bin/TestHDFBasReader.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFPlsReader: bin/TestHDFPlsReader.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFFile: bin/TestHDFFile.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testHDFRegionReader: bin/TestHDFRegionReader.o
-	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lpthread -lz
+	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/testCmpReader: bin/TestHDFCmpReader.o
-	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lpthread -lz
+	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 
 bin/testHDFCCSReader: bin/TestHDFCCSReader.o
-	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lpthread -lz
+	$(CPP) -static $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)

@@ -27,7 +27,7 @@ bin/readTitleTable: bin/ReadTitleTable.o
 	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/testra: bin/TestReaderAgglomerate.o
-	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB) -l$(HDF5LIBCPP)
+	$(CPP) $(CPPOPTS) $< -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIB) -l$(HDF5LIBCPP) $(HDF_REQ_LIBS)
 
 bin/testCmpSeqAlignmentReader: bin/TestCmpSeqAlignmentReader.o
 	$(CPP) $(CPPOPTS) $< -o $@

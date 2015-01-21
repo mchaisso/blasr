@@ -101,7 +101,7 @@ bin/printTitleTable: bin/PrintTitleTable.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -lz -lpthread
 
 bin/ourmatch: bin/OurMatch.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/evolve: bin/Evolve.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
@@ -182,7 +182,7 @@ bin/tileGenome: bin/TileGenome.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/filterBySubreadAgreement: bin/FilterBySubreadAgreement.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -I $(HDF5INCLUDEDIR) -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -I $(HDF5INCLUDEDIR) -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 install-catseq:
 	/usr/bin/install -m 555 bin/catseq $(INSTALL_DIR)/

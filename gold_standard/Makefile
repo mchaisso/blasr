@@ -32,7 +32,7 @@ endif
 exhalign:        bin/exhalign
 
 bin/exhalign: bin/ExhaustiveAlign.o
-	$(CPP) -O3 $< $(STATIC) -o $@  -L $(HDF5LIBDIR) -l $(HDF5LIBCPP)  -l $(HDF5LIB) -lz -lpthread
+	$(CPP) -O3 $< $(STATIC) -o $@  -L $(HDF5LIBDIR) -l $(HDF5LIBCPP)  -l $(HDF5LIB) $(HDF_REQ_LIBS) 
 
 #
 # Set up a default value for the install dir if one does 
