@@ -3787,7 +3787,12 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
         //
         if (params.printUnaligned == true) {
           if (params.nProc == 1) {
-            allReadAlignments.subreads[subreadIndex].PrintSeq(*mapData->unalignedFilePtr);
+            if (params.printFormat == SAM) {
+              SAMOutput::PrintUnalignedRead(allReadAlignments.subreads[subreadIndex], *mapData->outFilePtr, alignmentContext, params.samQVList, params.clipping);
+            }
+            else {
+              allReadAlignments.subreads[subreadIndex].PrintSeq(*mapData->unalignedFilePtr);
+            }
           }
           else {
 #ifdef __APPLE__
@@ -3795,7 +3800,12 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
 #else
             sem_wait(&semaphores.unaligned);
 #endif
-            allReadAlignments.subreads[subreadIndex].PrintSeq(*mapData->unalignedFilePtr);
+            if (params.printFormat == SAM) {
+              SAMOutput::PrintUnalignedRead(allReadAlignments.subreads[subreadIndex], *mapData->outFilePtr, alignmentContext, params.samQVList, params.clipping);
+            }
+            else {
+              allReadAlignments.subreads[subreadIndex].PrintSeq(*mapData->unalignedFilePtr);
+            }
 #ifdef __APPLE__
             sem_post(semaphores.unaligned);
 #else
