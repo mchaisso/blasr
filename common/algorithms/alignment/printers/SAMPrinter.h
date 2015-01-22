@@ -524,7 +524,7 @@ namespace SAMOutput {
     // "XQ" query sequence length
     // "XT" # of continues reads, always 1 for blasr
     //
-    samFile << "XT:i:1\t"; // reads are allways continuous reads, not
+    samFile << "XT:i:1"; // reads are allways continuous reads, not
                         // referenced based circular consensus when
                         // output by blasr.
     // Add query sequence length
