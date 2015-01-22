@@ -488,6 +488,58 @@ namespace SAMOutput {
 
     alignedSequence.FreeIfControlled();
   }
+  template<typename T_Sequence>
+  void PrintUnalignedRead(T_Sequence &read,
+                      ostream &samFile,
+                      AlignmentContext &context,
+											SupplementalQVList &qvlist,
+                      Clipping clipping = none,
+                      int subreadIndex = 0,
+                      int nSubreads = 0) {
+
+    string cigarString = "*";
+    uint16_t flag = SEGMENT_UNMAPPED;
+
+    // Unmapped reads have fixed defaults for most fields.
+    samFile << read.title << "\t" << flag << "\t*\t0\t0\t*\t*\t0\t0\t";   // RNAME, POS, MAP, CIGAR, RNEXT, PNEXT, TLEN
+
+    ((DNASequence)read).PrintSeq(samFile, 0);  // SEQ
+    samFile << "\t";
+    if (read.qual.data != NULL) {
+      read.PrintAsciiQual(samFile, 0);  // QUAL
+    }
+    else {
+      samFile <<"*";
+    }
+    samFile << "\t";
+
+    //
+    // Add optional fields
+    //
+    samFile << "RG:Z:" << context.readGroupId << "\t";
+
+		// must recompute the
+    //
+    // "RG" read group Id
+    // "XQ" query sequence length
+    // "XT" # of continues reads, always 1 for blasr
+    //
+    samFile << "XT:i:1\t"; // reads are allways continuous reads, not
+                        // referenced based circular consensus when
+                        // output by blasr.
+    // Add query sequence length
+    samFile << "\t" << "XQ:i:" << read.length;
+
+		//
+		// Write out optional quality values.  If qvlist does not
+		// have any qv's signaled to print, this is a no-op.
+		//
+		// First transform characters that are too large to printable ones.
+		qvlist.FormatQVOptionalFields(read);
+		qvlist.PrintQVOptionalFields(read, samFile);
+
+    samFile << endl;
+  }
 };
 
 
