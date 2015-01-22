@@ -492,7 +492,7 @@ namespace SAMOutput {
   void PrintUnalignedRead(T_Sequence &read,
                       ostream &samFile,
                       AlignmentContext &context,
-											SupplementalQVList &qvlist,
+                      SupplementalQVList &qvlist,
                       Clipping clipping = none,
                       int subreadIndex = 0,
                       int nSubreads = 0) {
