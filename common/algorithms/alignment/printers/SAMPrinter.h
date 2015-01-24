@@ -500,13 +500,29 @@ namespace SAMOutput {
     string cigarString = "*";
     uint16_t flag = SEGMENT_UNMAPPED;
 
+    T_Sequence alignedSequence;
+    DNALength clippedReadLength = read.subreadEnd - read.subreadStart;
+    DNALength clippedStartPos = read.subreadStart;
+
+    // Return if subread sequence would be out of bounds.
+    if (!(clippedStartPos >= 0 && clippedStartPos <= read.length && clippedReadLength >= 0 && clippedReadLength <= read.length)) {
+      return;
+    }
+
+    alignedSequence.ReferenceSubstring(read, clippedStartPos, clippedReadLength);
+
+    // Return if the subread has no sequence.
+    if (alignedSequence.length == 0) {
+      return;
+    }
+
     // Unmapped reads have fixed defaults for most fields.
     samFile << read.title << "\t" << flag << "\t*\t0\t0\t*\t*\t0\t0\t";   // RNAME, POS, MAP, CIGAR, RNEXT, PNEXT, TLEN
 
-    ((DNASequence)read).PrintSeq(samFile, 0);  // SEQ
+    ((DNASequence)alignedSequence).PrintSeq(samFile, 0);  // SEQ
     samFile << "\t";
-    if (read.qual.data != NULL) {
-      read.PrintAsciiQual(samFile, 0);  // QUAL
+    if (alignedSequence.qual.data != NULL) {
+      alignedSequence.PrintAsciiQual(samFile, 0);  // QUAL
     }
     else {
       samFile <<"*";
@@ -528,7 +544,7 @@ namespace SAMOutput {
                         // referenced based circular consensus when
                         // output by blasr.
     // Add query sequence length
-    samFile << "\t" << "XQ:i:" << read.length;
+    samFile << "\t" << "XQ:i:" << alignedSequence.length;
 
 		//
 		// Write out optional quality values.  If qvlist does not
@@ -539,6 +555,8 @@ namespace SAMOutput {
 		qvlist.PrintQVOptionalFields(read, samFile);
 
     samFile << endl;
+
+    alignedSequence.FreeIfControlled();
   }
 };
 
