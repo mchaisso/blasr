@@ -496,10 +496,7 @@ namespace SAMOutput {
                       Clipping clipping = none,
                       int subreadIndex = 0,
                       int nSubreads = 0) {
-
-    string cigarString = "*";
     uint16_t flag = SEGMENT_UNMAPPED;
-
     T_Sequence alignedSequence;
     DNALength clippedReadLength = read.subreadEnd - read.subreadStart;
     DNALength clippedStartPos = read.subreadStart;
