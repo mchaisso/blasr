@@ -3785,6 +3785,25 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
         //
         // Print the unaligned sequences.
         //
+        if (params.printFormat == SAM) {
+          if (params.nProc == 1) {
+            SAMOutput::PrintUnalignedRead(allReadAlignments.subreads[subreadIndex], *mapData->outFilePtr, alignmentContext, params.samQVList, params.clipping);
+          }
+          else {
+#ifdef __APPLE__
+            sem_wait(semaphores.writer);
+#else
+            sem_wait(&semaphores.writer);
+#endif
+            SAMOutput::PrintUnalignedRead(allReadAlignments.subreads[subreadIndex], *mapData->outFilePtr, alignmentContext, params.samQVList, params.clipping);
+#ifdef __APPLE__
+            sem_post(semaphores.writer);
+#else
+            sem_post(&semaphores.writer);
+#endif
+          }
+        }
+
         if (params.printUnaligned == true) {
           if (params.nProc == 1) {
             allReadAlignments.subreads[subreadIndex].PrintSeq(*mapData->unalignedFilePtr);
