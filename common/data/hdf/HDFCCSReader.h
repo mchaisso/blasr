@@ -89,86 +89,87 @@ class HDFCCSReader : public T_HDFBasReader<T_Sequence> {
 				//     exit(1);
 		}
 
-		if (this->pulseDataGroup.ContainsObject("ConsensusBaseCalls") and
-				ccsGroup.Initialize(this->hdfBasFile, "PulseData/ConsensusBaseCalls") == 0) {
-			/*
-				cout << "ERROR, attempting to read cicular consensus data from '" << ccsBasFileName 
-				<< "', which does not contain a ConsensusBaseCalls field." << endl;
-				cout << "Check HDF file structure." << endl;
-			*/
-			//				exit(1);
+		if (this->pulseDataGroup.ContainsObject("ConsensusBaseCalls")) {
+			if (ccsGroup.Initialize(this->hdfBasFile, "PulseData/ConsensusBaseCalls") == 1) {
+				/*
+					cout << "ERROR, attempting to read cicular consensus data from '" << ccsBasFileName 
+					<< "', which does not contain a ConsensusBaseCalls field." << endl;
+					cout << "Check HDF file structure." << endl;
+				*/
+				//				exit(1);
 
-			curPassPos = 0;
-			int passesSuccess = 1;
-			if (ccsGroup.ContainsObject("Passes") == 0) { 
-				passesSuccess = 0;
-			}
-			else {
-				if (passesGroup.Initialize(ccsGroup.group,"Passes") == 0) {
+				curPassPos = 0;
+				int passesSuccess = 1;
+				if (ccsGroup.ContainsObject("Passes") == 0) { 
 					passesSuccess = 0;
 				}
-			}
+				else {
+					if (passesGroup.Initialize(ccsGroup.group,"Passes") == 0) {
+						passesSuccess = 0;
+					}
+				}
 			
-			if (passesSuccess == 0) {
-				cout <<"ERROR, attempting to read circular consensus group Passes but it does not exist. " << endl;
-				cout <<"Check HDF file structure."<<endl;
-				exit(1);
-			}
+				if (passesSuccess == 0) {
+					cout <<"ERROR, attempting to read circular consensus group Passes but it does not exist. " << endl;
+					cout <<"Check HDF file structure."<<endl;
+					exit(1);
+				}
 
 		
-			//
-			// Initialize the bas reader to read ccs reads as normal bas reads.
-			//
+				//
+				// Initialize the bas reader to read ccs reads as normal bas reads.
+				//
 		
-			// Next, the location of the bases is in a non-standard group.
-			ccsBasReader.baseCallsGroupName = "ConsensusBaseCalls";
+				// Next, the location of the bases is in a non-standard group.
+				ccsBasReader.baseCallsGroupName = "ConsensusBaseCalls";
 
 
-			//
-			// Read in the CCS fields that are the same as the base fields,
-			// but in a different group.
-			//
+				//
+				// Read in the CCS fields that are the same as the base fields,
+				// but in a different group.
+				//
 
-			//		ccsBasReader.OpenHDFFile(ccsBasFileName);
+				//		ccsBasReader.OpenHDFFile(ccsBasFileName);
 		
-			//
-			// Initialize the fields that are read.
-			//
-			ccsBasReader.IncludeField("Basecall");
-			ccsBasReader.IncludeField("InsertionQV");
-			ccsBasReader.IncludeField("DeletionQV");
-			ccsBasReader.IncludeField("DeletionTag");
-			ccsBasReader.IncludeField("SubstitutionQV");
-			ccsBasReader.IncludeField("SubstitutionTag");
-			ccsBasReader.IncludeField("QualityValue");
-			//
-			// Initialize this without opening a file.
-			//
+				//
+				// Initialize the fields that are read.
+				//
+				ccsBasReader.IncludeField("Basecall");
+				ccsBasReader.IncludeField("InsertionQV");
+				ccsBasReader.IncludeField("DeletionQV");
+				ccsBasReader.IncludeField("DeletionTag");
+				ccsBasReader.IncludeField("SubstitutionQV");
+				ccsBasReader.IncludeField("SubstitutionTag");
+				ccsBasReader.IncludeField("QualityValue");
+				//
+				// Initialize this without opening a file.
+				//
 
-			ccsBasReader.Initialize(&this->rootGroup);
-			//ccsBasReader.InitializeForReadingPulseInformation();
-			//ccsBasReader.LoadRunInfo();
-			/*
-			 * Initialize pass information for reading.
-			 */
-			if (this->InitializeField(passesGroup, "AdapterHitAfter", adapterHitAfterArray, this->includedFields["AdapterHitAfter"]) == 0) return 0;
-			if (this->InitializeField(passesGroup, "AdapterHitBefore", adapterHitBeforeArray, this->includedFields["AdapterHitBefore"]) == 0) return 0;
-			if (this->InitializeField(passesGroup, "NumPasses", numPassesArray, this->includedFields["NumPasses"]) == 0) return 0;
-			if (this->InitializeField(passesGroup, "PassDirection", passDirectionArray, this->includedFields["PassDirection"]) == 0) return 0;
-			if (this->InitializeField(passesGroup, "PassNumBases", passNumBasesArray, this->includedFields["PassNumBases"]) == 0) return 0;
-			if (this->InitializeField(passesGroup, "PassStartBase", passStartBaseArray, this->includedFields["PassStartBase"]) == 0) return 0;
-			//
-			// The following two fields are not critical.
-			//
-			this->InitializeField(passesGroup, "PassStartPulse", passStartPulseArray, this->includedFields["PassStartPulse"]);
-			this->InitializeField(passesGroup, "PassNumPulses", passNumPulsesArray, this->includedFields["PassNumPulses"]);
+				ccsBasReader.Initialize(&this->rootGroup);
+				//ccsBasReader.InitializeForReadingPulseInformation();
+				//ccsBasReader.LoadRunInfo();
+				/*
+				 * Initialize pass information for reading.
+				 */
+				if (this->InitializeField(passesGroup, "AdapterHitAfter", adapterHitAfterArray, this->includedFields["AdapterHitAfter"]) == 0) return 0;
+				if (this->InitializeField(passesGroup, "AdapterHitBefore", adapterHitBeforeArray, this->includedFields["AdapterHitBefore"]) == 0) return 0;
+				if (this->InitializeField(passesGroup, "NumPasses", numPassesArray, this->includedFields["NumPasses"]) == 0) return 0;
+				if (this->InitializeField(passesGroup, "PassDirection", passDirectionArray, this->includedFields["PassDirection"]) == 0) return 0;
+				if (this->InitializeField(passesGroup, "PassNumBases", passNumBasesArray, this->includedFields["PassNumBases"]) == 0) return 0;
+				if (this->InitializeField(passesGroup, "PassStartBase", passStartBaseArray, this->includedFields["PassStartBase"]) == 0) return 0;
+				//
+				// The following two fields are not critical.
+				//
+				this->InitializeField(passesGroup, "PassStartPulse", passStartPulseArray, this->includedFields["PassStartPulse"]);
+				this->InitializeField(passesGroup, "PassNumPulses", passNumPulsesArray, this->includedFields["PassNumPulses"]);
 	
-			//
-			// The zmw reader contains the group that hols all pass information
-			//
+				//
+				// The zmw reader contains the group that hols all pass information
+				//
 
-			zmwReader.Initialize(&ccsBasReader.baseCallsGroup);
-		}			
+				zmwReader.Initialize(&ccsBasReader.baseCallsGroup);
+			}			
+		}
 		return 1;
 	}
 

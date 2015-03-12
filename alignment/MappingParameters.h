@@ -316,9 +316,9 @@ class MappingParameters {
     preserveReadTitle = false;
     forwardOnly = false;
     printOnlyBest = false;
-    affineAlign = false;
-    affineExtend = 0;
-    affineOpen   = 10;
+    affineAlign = true;
+    affineExtend = 30;
+    affineOpen   = 0;
     scaleMapQVByNumSignificantClusters = false;
     limsAlign = 0;
 		minAlignLength = 0;
@@ -483,6 +483,7 @@ class MappingParameters {
 		else {
 			samQVList.UseQV(samqv);
 		}
+		affineAlign = true;
   }
 
   void SetEmulateNucmer() {

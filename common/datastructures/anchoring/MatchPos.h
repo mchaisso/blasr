@@ -104,7 +104,7 @@ class ChainedMatchPos : public MatchPos {
 		return chainPrev;
 	}
 	ChainedMatchPos &operator=(const ChainedMatchPos &rhs) {
-		((MatchPos&)(*this)) = ((MatchPos&)rhs);
+		((MatchPos&)(*this)) = ((const MatchPos&)rhs);
 		return *this;
 	}
   friend ostream& operator<<(ostream & out, ChainedMatchPos &p) {

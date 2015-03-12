@@ -9,10 +9,26 @@ class ScanData {
 	float frameRate;
 	unsigned int numFrames;
 	string movieName, runCode;
+	string bindingKit;
 	string whenStarted;
+	string sequencingChemistry;
+	string sequencingKit;
+	string basecallerVersion;
     map<char, int> baseMap;
 	string GetMovieName() {
 		return movieName;
+	}
+	void Clear() {
+		frameRate = 0;
+		numFrames = 0;
+		movieName = 
+			runCode = 
+			bindingKit = 
+			sequencingChemistry =
+			sequencingKit =
+			basecallerVersion = 
+			whenStarted = "";
+
 	}
 
 };

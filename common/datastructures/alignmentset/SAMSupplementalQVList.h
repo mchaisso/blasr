@@ -13,6 +13,7 @@ class SupplementalQVList {
 	}
 	static const char* qvTags[];
 	static const char* qvNames[];
+	static const QVList qvFlagIndex[];
 	static int nqvTags;
 	static int nTags;
 
@@ -59,7 +60,7 @@ class SupplementalQVList {
 		}
 
 
-		for (i = 0; i < nTags; i++) {
+		for (i = 0; i < nqvTags; i++) {
 			if (alignedSubsequence.GetQVPointerByIndex(i) != NULL and (useqv & (1 << i)) ) {
 				out << "\t" << qvTags[i] << ":Z:";
 				alignedSubsequence.PrintAsciiRichQuality(out, i + 1, 0);
@@ -85,9 +86,9 @@ class SupplementalQVList {
 	}
 };
 
-const char* SupplementalQVList::qvNames[] = {"Insertion", "Deletion", "Substitution", "Merge", "SubstitutionTag", "DeletionTag", "IPD"};
-const char* SupplementalQVList::qvTags[] = {"qi", "qd", "qs", "qm", "ts", "td", "ip"};
-
+const char* SupplementalQVList::qvNames[] = {"InsertionQV", "DeletionQV", "SubstitutionQV", "MergeQV", "SubstitutionTag", "DeletionTag", "Ipd"};
+const char* SupplementalQVList::qvTags[] = {"iq", "dq", "sq", "mq", "st", "dt", "ip"};
+const SupplementalQVList::QVList SupplementalQVList::qvFlagIndex [] = { SupplementalQVList::Insertion, SupplementalQVList::Deletion, SupplementalQVList::Substitution, SupplementalQVList::Merge, SupplementalQVList::SubstitutionTag, SupplementalQVList::DeletionTag, SupplementalQVList::IPD};
 // Only the first 4 tags are quality values.
 int SupplementalQVList::nqvTags = 4;
 int SupplementalQVList::nTags = 7;

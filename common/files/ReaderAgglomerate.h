@@ -76,6 +76,16 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		stride = _stride;
 	}
 
+	void GetScanData(ScanData &scanData) {
+		if (fileType == Fasta || fileType == Fastq) {
+			scanData.Clear();
+			scanData.movieName = fileName;
+		}
+		else if (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS) {
+			hdfBasReader.scanDataReader.Read(scanData);
+		}
+	}
+
   void GetMovieName(string &movieName) {
     if (fileType == Fasta || fileType == Fastq) {
       movieName = fileName;

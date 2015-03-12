@@ -181,29 +181,34 @@ namespace SAMOutput {
       int qGap=0, tGap=0, commonGap=0;
       int matchLength = alignment.blocks[b].length;
       if (nGaps == 0) {
+				qGap = 0;
+				tGap = 0;
+				//
+				// For blocks in the middle of gaps, add insertion or deletion characters.
+				//
         if (b + 1 < nBlocks) {
           qGap = alignment.blocks[b+1].qPos - alignment.blocks[b].qPos - alignment.blocks[b].length;
           tGap = alignment.blocks[b+1].tPos - alignment.blocks[b].tPos - alignment.blocks[b].length;
-					if (qGap > 0 and tGap > 0) {
-						int commonGap;
-						commonGap = min(qGap, tGap);
-						qGap -= commonGap;
-						tGap -= commonGap;
-						matchLength += commonGap;
+				}
+				if (qGap > 0 and tGap > 0) {
+					int commonGap;
+					commonGap = min(qGap, tGap);
+					qGap -= commonGap;
+					tGap -= commonGap;
+					matchLength += commonGap;
+				}
+				opSize.push_back(matchLength);
+				opChar.push_back('M');
+				if (qGap > 0 or tGap > 0) {
+					if (qGap > 0) {
+						opSize.push_back(qGap);
+						opChar.push_back('I');
 					}
-          opSize.push_back(matchLength);
-          opChar.push_back('M');
-					if (qGap > 0 or tGap > 0) {
-						if (qGap > 0) {
-							opSize.push_back(qGap);
-							opChar.push_back('I');
-						}
-						if (tGap > 0) {
-							opSize.push_back(tGap);
-							opChar.push_back('D'); 
-						}
+					if (tGap > 0) {
+						opSize.push_back(tGap);
+						opChar.push_back('D'); 
 					}
-        }
+				}
       }
       else {
         opSize.push_back(matchLength);
@@ -466,7 +471,12 @@ namespace SAMOutput {
 			samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
 			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
 			samFile << "XE:i:" << xe + 1 << "\t";
+			samFile << "qs:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
+			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
+			samFile << "qe:i:" << xe + 1 << "\t";
+
 		}
+		samFile << "zm:i:" << read.holeNumber << "\t";
     samFile << "XL:i:" << alignment.qAlignedSeq.length << "\t";
     samFile << "XT:i:1\t"; // reads are allways continuous reads, not
                         // referenced based circular consensus when

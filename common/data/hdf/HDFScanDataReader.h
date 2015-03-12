@@ -11,7 +11,14 @@
 
 class HDFScanDataReader {
  public:
-	bool fileHasScanData, useRunCode, fileHasBaseMap, fileHasDyeSet;
+	bool fileHasScanData, 
+		useRunCode, 
+		fileHasBaseMap,
+		fileHasDyeSet,
+		useBindingKit,
+		useSequencingKit,
+		useSequencingChemistry,
+		useBasecallerVersion;
 	HDFGroup scanDataGroup;
 	HDFGroup dyeSetGroup;
 	HDFGroup acqParamsGroup;
@@ -25,6 +32,10 @@ class HDFScanDataReader {
 	HDFAtom<string> movieNameAtom;
 	HDFAtom<string> runCodeAtom;
 	HDFAtom<string> baseMapAtom;
+	HDFAtom<string> bindingKitAtom;
+	HDFAtom<string> sequencingKitAtom;
+	HDFAtom<string> sequencingChemistryAtom;
+	HDFAtom<string> basecallerVersionAtom;
 
 	//
 	// It is useful to cache the movie name in the reader since this is
@@ -44,6 +55,11 @@ class HDFScanDataReader {
 		useRunCode      = false;
 		useWhenStarted  = false;
 		fileHasScanData = false;
+		useBindingKit   = false;
+		useSequencingKit = false;
+		useSequencingChemistry=false;
+		useBasecallerVersion=false;
+
 		movieName = "";
 		runCode   = "";
 		platformId      = NoPlatform;
@@ -126,6 +142,22 @@ class HDFScanDataReader {
 			useRunCode = true;
 		}
 
+		if (runInfoGroup.ContainsAttribute("BindingKit") and
+				bindingKitAtom.Initialize(runInfoGroup, "BindingKit")) {
+			useBindingKit = true;
+		}
+
+		if (runInfoGroup.ContainsAttribute("SequencingKit") and
+				sequencingKitAtom.Initialize(runInfoGroup, "SequencingKit")) {
+			useSequencingKit = true;
+		}
+
+		if (runInfoGroup.ContainsAttribute("SequencingChemistry") and
+				sequencingChemistryAtom.Initialize(runInfoGroup, "SequencingChemistry")) {
+			useSequencingChemistry = true;
+		}
+
+
 		//
 		// Load baseMap which maps bases (ATGC) to channel orders.
 		// This should always be present.
@@ -143,16 +175,23 @@ class HDFScanDataReader {
 
 		return 1;
 	}
-
+	
+	string GetRunCode() {
+		if (useRunCode) {
+			string runCode;
+			runCodeAtom.Read(runCode);
+			return runCode;
+		}
+		else {
+			return "";
+		}
+	}
+	
 	string GetMovieName() {
 		LoadMovieName(movieName);
 		return movieName;
 	}
 	
-	string GetRunCode() {
-		return runCode;
-	}
-
 	int Read(ScanData &scanData) {
 		// All parameters below are required.
 		if (ReadPlatformId(scanData.platformId) == 0) return 0;
@@ -162,6 +201,21 @@ class HDFScanDataReader {
 		if (useRunCode) {
 			runCodeAtom.Read(scanData.runCode);
 		}
+		if (useBindingKit) {
+			bindingKitAtom.Read(scanData.bindingKit);
+		}
+		if (useSequencingChemistry) {
+			bindingKitAtom.Read(scanData.sequencingChemistry);
+		}
+
+		if (useSequencingKit) {
+			sequencingKitAtom.Read(scanData.sequencingKit);
+		}
+
+		if (useBasecallerVersion) {
+			basecallerVersionAtom.Read(scanData.basecallerVersion);
+		}
+
 		frameRateAtom.Read(scanData.frameRate);
 		numFramesAtom.Read(scanData.numFrames);
 		

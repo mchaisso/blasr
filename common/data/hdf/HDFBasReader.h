@@ -139,6 +139,7 @@ class T_HDFBasReader : public DatasetCollection, public HDFPulseDataFile {
     return GetNext(read);
   }
 
+	
 	string GetRunCode() {
 		return scanDataReader.GetRunCode();
 	}
@@ -455,7 +456,7 @@ class T_HDFBasReader : public DatasetCollection, public HDFPulseDataFile {
 		//
 		nReads = zmwReader.numEventArray.arrayLength;
 		
-
+		
 
 		if (scanDataReader.platformId == AstroPlatform) {
 			if (InitializeAstro() == 0) {

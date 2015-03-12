@@ -267,7 +267,7 @@ void GetVersion(string &version) {
 
 void MakeSAMHDString(string &hdString) {
   stringstream out;
-  out << "@HD\t" << "VN:" << GetMajorVersion();
+  out << "@HD\t" << "VN:" << GetMajorVersion() << "\t" << "pb:3.0b4";
   hdString = out.str();
 }
 
@@ -512,7 +512,7 @@ void SetHelp(string &str) {
              << "               used when calling consensus using the Quiver method.  Furthermore, when " << endl
              << "               not using quality values to score alignments, there will be a lower consensus " << endl
              << "               accuracy in homolymer regions." << endl
-             << "   -affineAlign (false)" << endl
+             << "   -affineAlign (true)" << endl
              << "               Refine alignment using affine guided align." << endl << endl
              << " Options for filtering reads." << endl
              << "   -minReadLength l(50)" << endl
@@ -775,6 +775,7 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
 	distScoreFn.affineOpen = params.affineOpen;
 	distScoreFn.affineExtend = params.affineExtend;
   distScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
+
   QualityValueScoreFunction<DNASequence, FASTQSequence> scoreFn;
   IDSScoreFunction<DNASequence, FASTQSequence> idsScoreFn;
   idsScoreFn.InitializeScoreMatrix(SMRTDistanceMatrix);
@@ -786,6 +787,7 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
   idsScoreFn.affineOpen = params.affineOpen;
   idsScoreFn.substitutionPrior = params.substitutionPrior;
   idsScoreFn.globalDeletionPrior = params.globalDeletionPrior;
+
   if (params.doGlobalAlignment) {
     SMRTSequence subread;
     ((FASTQSequence*)&subread)->ReferenceSubstring(*bothQueryStrands[0], 
@@ -1157,6 +1159,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       matchIntervalEnd += lengthAfterLastMatch;
     }
 		*/
+		bool trimMatches = false;
     DNALength intervalContigStartPos, intervalContigEndPos;
     if (useSeqDB) {
       //
@@ -1176,6 +1179,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       intervalContigEndPos = seqDB.seqStartPos[seqDBIndex+1] - 1;
       if (intervalContigEndPos < matchIntervalEnd) {
         matchIntervalEnd = intervalContigEndPos;
+				trimMatches = true;
       }
       alignment->tName    = seqDB.GetSpaceDelimitedName(seqDBIndex);
       alignment->tLength  = intervalContigEndPos - intervalContigStartPos;
@@ -1197,8 +1201,27 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     int alignScore;
     alignScore = 0;
 
+
+
     alignment->tAlignedSeqPos     = matchIntervalStart;
     alignment->tAlignedSeqLength  = matchIntervalEnd - matchIntervalStart;
+
+		//
+		// Below is a hack to get around a bug where a match interval extends past the end of a 
+		// target interval because of an N in the query sequence.  If the match interval is truncated,
+		// it is possible that the matches index past the interval length.  This trims it back.
+		//
+/*		 
+		if (trimMatches == true) {
+			int m;
+			int lastMatch = (*intvIt).matches.size()-1;
+			if ((*intvIt).matches[lastMatch].t + (*intvIt).matches[lastMatch].l > matchIntervalEnd) {
+				ChainedMatchPos mp((const ChainedMatchPos&)(*intvIt).matches[lastMatch]);
+				mp.l = matchIntervalEnd - (*intvIt).matches[lastMatch].t;
+				(*intvIt).matches[lastMatch] = mp;
+			}
+		}
+	*/	
     if ((*intvIt).GetStrandIndex() == Forward) {
       alignment->tAlignedSeq.Copy(genome, alignment->tAlignedSeqPos, alignment->tAlignedSeqLength);
       alignment->tStrand = Forward;
@@ -1317,7 +1340,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
           // Make the reverse complement of the match list.
           //
           
-          // 1. Reverse complement the coordinates.
+																																																									 
           for (m = 0; m < (*intvIt).matches.size(); m++) {
             int revCompIndex = rcMatches.size() - m - 1;
             rcMatches[revCompIndex].q = read.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
@@ -1421,14 +1444,14 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						else {
 							
 							int kbandScore = AffineKBandAlign(qSubSeq, tSubSeq, SMRTDistanceMatrix, 
-																						params.indel+2, params.indel - 3, // homopolymer insertion open and extend
-																						params.indel+2, params.indel - 1, // any insertion open and extend
-																						params.indel, // deletion
+																								params.indel+2, params.indel - 3, // homopolymer insertion open and extend
+																								params.indel+2, params.indel - 1, // any insertion open and extend
+																								params.indel, // deletion
 																								params.bandSize,
-																						refinementBuffers.scoreMat, refinementBuffers.pathMat, 
-																						refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
-																						refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
-																						alignmentInGap, Global);
+																								refinementBuffers.scoreMat, refinementBuffers.pathMat, 
+																								refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
+																								refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
+																								alignmentInGap, Global);
 							
 						}
 
@@ -1445,6 +1468,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
               for (b = 0; b < alignmentInGap.size(); b++) {
                 alignmentInGap.blocks[b].tPos += tPos + alignmentInGap.tPos + alignmentInGap.tAlignedSeqPos;
                 alignmentInGap.blocks[b].qPos += qPos + alignmentInGap.qPos + alignmentInGap.qAlignedSeqPos;
+
                 assert(alignmentInGap.blocks[b].tPos < alignment->tAlignedSeq.length);
                 assert(alignmentInGap.blocks[b].qPos < alignment->qAlignedSeq.length);
               }
@@ -1463,7 +1487,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         Block block;
         block.qPos = (*matches)[r].q;
         block.tPos = (*matches)[r].t;
-
+				if (block.tPos > alignment->tAlignedSeq.length) {
+					cout << "ERROR mapping " << read.title << endl;
+					read.PrintSeq(cout);
+				}
         assert(block.tPos <= alignment->tAlignedSeq.length);
         assert(block.qPos <= alignment->qAlignedSeq.length);
 
@@ -4566,12 +4593,30 @@ int main(int argc, char* argv[]) {
     for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size()-1; readsFileIndex++ ) {    
       reader->SetReadFileName(params.readsFileNames[readsFileIndex]);
       reader->Initialize();
-      string movieName, movieNameMD5;
-      reader->GetMovieName(movieName);
-      MakeMD5(movieName, movieNameMD5, 10);
+      string movieNameMD5;
+			ScanData scanData;
+			reader->GetScanData(scanData);
+      MakeMD5(scanData.movieName, movieNameMD5, 10);
       string chipId;
-      ParseChipIdFromMovieName(movieName, chipId);
-      *outFilePtr << "@RG\t" << "ID:"<<movieNameMD5<<"\t" << "PU:"<< movieName << "\tSM:"<<chipId << endl;
+      ParseChipIdFromMovieName(scanData.movieName, chipId);
+			
+      *outFilePtr << "@RG\t" 
+									<< "ID:" << movieNameMD5 << "\t" 
+									<< "PU:"<< scanData.movieName << "\t" 
+									<< "SM:"<< chipId << "\t" 
+									<< "PL:PACBIO" << "\t"
+									<< "DS:READTYPE=SUBREAD;" 
+									<< "BINDINGKIT=" << scanData.bindingKit << ";" 
+									<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
+									<< "BASECALLERVERSION=" << "2.1";
+
+			int q;
+			for (q = 0; q < params.samQVList.nTags; q++){ 
+				if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
+					*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+				}
+			}
+			*outFilePtr << endl;
       reader->Close();
     }
     string commandLineString;
