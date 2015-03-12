@@ -1519,7 +1519,39 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         }
         anchorsOnly.tPos = alignment->tPos;
         anchorsOnly.qPos = alignment->qPos;
+
+				//
+				// Adjacent blocks without gaps are not merged here.  Do the merging now.
+				//
+				int cur = 0, next = 1;
+				while (next < alignment->blocks.size()) {
+					while (next < alignment->blocks.size() and 
+								 alignment->blocks[cur].tPos + alignment->blocks[cur].length == alignment->blocks[next].tPos and 
+								 alignment->blocks[cur].qPos + alignment->blocks[cur].length == alignment->blocks[next].qPos) {
+						alignment->blocks[cur].length += alignment->blocks[next].length;
+						alignment->blocks[next].length = 0;
+						next +=1;
+					}
+					cur = next;
+					next += 1;
+				}
+				cur = 0; next = 0;
+				while (next < alignment->blocks.size()) {
+					while (next < alignment->blocks.size() and alignment->blocks[next].length == 0) {
+						next +=1;
+					}
+					if (next < alignment->blocks.size()) {
+						alignment->blocks[cur] = alignment->blocks[next];
+						cur+=1;
+						next+=1;
+					}
+				}
+				alignment->blocks.resize(cur);
+
 				alignment->gaps.clear();
+
+
+				
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);
 			}
