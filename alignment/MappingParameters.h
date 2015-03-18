@@ -484,6 +484,8 @@ class MappingParameters {
 			samQVList.UseQV(samqv);
 		}
 		affineAlign = true;
+		//		affineOpen  = 30;
+		//		affineExtend = 0;
   }
 
   void SetEmulateNucmer() {

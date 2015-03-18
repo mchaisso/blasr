@@ -4758,7 +4758,6 @@ int main(int argc, char* argv[]) {
         else {
           mapdb[0].lcpBoundsOutPtr = NULL;
         }
-
 				MapReads(&mapdb[0]);
 				metrics.Collect(mapdb[0].metrics);
 			}
