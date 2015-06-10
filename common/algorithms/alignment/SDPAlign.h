@@ -28,6 +28,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 AlignmentType alignType=Global,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true,
+						 int sdpPrefixLength=50,
              int  noRecurseUnder=10000) {
 
   /*
@@ -51,6 +52,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   alignType,
                   detailedAlignment,
                   extendFrontByLocalAlignment, 
+									sdpPrefixLength,
                   noRecurseUnder);
 }
 
@@ -63,6 +65,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 AlignmentType alignType=Global,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true, 
+						 int sdpPrefixLength=50,
              int  noRecurseUnder = 10000) {
 
   return SDPAlign(query, target, scoreFn, wordSize, 
@@ -75,7 +78,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   buffers.sdpCachedTargetPrefixTupleList,
                   buffers.sdpCachedTargetSuffixTupleList,
                   buffers.sdpCachedMaxFragmentChain,
-                  alignType, detailedAlignment, extendFrontByLocalAlignment, noRecurseUnder);
+                  alignType, detailedAlignment, extendFrontByLocalAlignment, 
+									sdpPrefixLength, noRecurseUnder);
 }
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn, typename T_TupleList>
@@ -95,6 +99,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 AlignmentType alignType=Global,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true, 
+						 int sdpPrefixLength=50,
              int  noRecurseUnder=10000) {
 
   fragmentSet.clear();
@@ -128,8 +133,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
    * be misaligned.
    */
   int prefixLength, middleLength, suffixLength, middlePos, suffixPos; // prefix pos is 0
-  prefixLength = min(target.length, (DNALength) SDP_PREFIX_LENGTH);
-  suffixLength = min(target.length - prefixLength, (DNALength) SDP_SUFFIX_LENGTH);
+  prefixLength = min(target.length, (DNALength) sdpPrefixLength);
+  suffixLength = min(target.length - prefixLength, (DNALength) sdpPrefixLength);
   middleLength = target.length - prefixLength - suffixLength;
 
   DNASequence prefix, middle, suffix;
@@ -149,17 +154,15 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   suffix.length = suffixLength;
   
   int qPrefixLength, qMiddleLength, qSuffixLength, qMiddlePos, qSuffixPos; // prefix pos is 0
-  qPrefixLength = min(query.length, (DNALength) SDP_PREFIX_LENGTH);
-  qSuffixLength = min(query.length - qPrefixLength, (DNALength) SDP_SUFFIX_LENGTH);
+  qPrefixLength = min(query.length, (DNALength) sdpPrefixLength);
+  qSuffixLength = min(query.length - qPrefixLength, (DNALength) sdpPrefixLength);
   qMiddleLength = query.length - qPrefixLength - qSuffixLength;
   pos = 0;
   qPrefix.seq = &query.seq[pos];
   qPrefix.length = qPrefixLength;
   qMiddlePos = pos += qPrefixLength;
   qMiddlePos = 0;
-  //qMiddle.seq = &query.seq[qMiddlePos];
   qMiddle.seq = &query.seq[0];
-  //qMiddle.length = qMiddleLength;
   qMiddle.length = query.length;
   qSuffixPos = pos += qMiddleLength;
   qSuffix.seq = &query.seq[qSuffixPos];

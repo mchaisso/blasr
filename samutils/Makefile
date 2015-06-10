@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep printGaps printConsensus printGappyRegions printMaxAlignedRead
+all: bin make.dep printGaps printConsensus printGappyRegions printMaxAlignedRead samtom
 
 include ../make.rules
 
@@ -52,6 +52,7 @@ printConsensus: bin/printConsensus
 printGappyRegions: bin/printGappyRegions
 printMaxAlignedRead: bin/printMaxAlignedRead
 printCoverage: bin/printCoverage
+samtom: bin/samtom
 
 
 bin/printCoverage: bin/PrintCoverage.o
@@ -67,6 +68,9 @@ bin/printConsensus: bin/PrintConsensus.o
 	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 bin/printGaps: bin/PrintGaps.o
+	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+
+bin/samtom: bin/SamToM0.o
 	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
 
 INSTALL_DIR ?= $(ANALYSIS_HOME)/bin

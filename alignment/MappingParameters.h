@@ -25,6 +25,7 @@ class MappingParameters {
   int deletion;
   int mismatch;
 	int sdpTupleSize;
+	int sdpPrefix;
 	int match;
 	int showAlign;
 	int refineAlign;
@@ -190,6 +191,7 @@ class MappingParameters {
     sdpIns   = 5;
     sdpDel   = 10;
 		sdpTupleSize = 11;
+		sdpPrefix=50;
 		match = 0;
     mismatch = 0;
 		showAlign = 1;
@@ -494,6 +496,7 @@ class MappingParameters {
     anchorParameters.maxAnchorsPerPosition = 1;
     sdpBypassThreshold                     = 0.75;
     sdpTupleSize                           = 15;
+		sdpPrefix                              = 0;
     anchorParameters.minMatchLength        = 30;
     useGuidedAlign                         = true;
     refineAlignments                       = false;

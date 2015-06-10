@@ -1424,7 +1424,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																		params.sdpIns, params.sdpDel, 0.25, 
 																		alignmentInGap, mappingBuffers, Local,
 																		params.detailedSDPAlignment, 
-																		params.extendFrontAlignment, params.recurseOver);
+																		params.extendFrontAlignment,
+																		params.sdpPrefix,
+																		params.recurseOver);
 							
 							vector<FASTQSequence*> bothQueryStrands;
 							bothQueryStrands.resize(2);
@@ -1561,6 +1563,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               *alignment, mappingBuffers, 
                               Local, 
                               params.detailedSDPAlignment, 
+															params.sdpPrefix,
                               params.extendFrontAlignment);
 
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
@@ -2234,10 +2237,16 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
          FindBand(mappingBuffers.matchPosList,
                refCopy, read, 100);
       */
+			DNALength maxGapLength = 50000;
+			DNALength intervalLength = (read.subreadEnd - read.subreadStart) * (1 + params.indelRate);
+			if (intervalLength  - (read.subreadEnd - read.subreadStart) > maxGapLength) {
+				intervalLength = (read.subreadEnd - read.subreadStart) + maxGapLength;
+			}
+			
       FindMaxIncreasingInterval(Forward,
                                 mappingBuffers.matchPosList,
                                 // allow for indels to stretch out the mapping of the read.
-                                (DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates,
+                                intervalLength, params.nCandidates,
                                 seqBoundary,
                                 lisPValue,//lisPValue2,
                                 lisWeightFn,
@@ -4047,6 +4056,7 @@ int main(int argc, char* argv[]) {
   clp.RegisterFlagOption("sam", &params.printSAM, "");
   clp.RegisterStringOption("clipping", &params.clippingString, "");
 	clp.RegisterIntOption("sdpTupleSize", &params.sdpTupleSize, "", CommandLineParser::PositiveInteger);
+	clp.RegisterIntOption("sdpPrefix", &params.sdpPrefix, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterIntOption("pvaltype", &params.pValueType, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterIntOption("start", &params.startRead, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterIntOption("stride", &params.stride, "", CommandLineParser::NonNegativeInteger);

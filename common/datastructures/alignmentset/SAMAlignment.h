@@ -182,6 +182,7 @@ class SAMAlignment {
 
     if (parseError) {
       cout << "Error parsing alignment line " << lineNumber << ". Missing or error in field " << SAMAlignmentRequiredFieldNames[field] << endl;
+			cout << line << endl;
       exit(1);
     }
     
@@ -223,22 +224,22 @@ class SAMAlignment {
         else if (kvName == "XQ") {
           strm >> xq;
         }
-				else if (kvName == "qi") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_Insertion-1]) {
 					strm >> qi;
 				}
-				else if (kvName == "qd") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_Deletion-1]) {
 					strm >> qd;
 				}
-				else if (kvName == "qs") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_Substitution-1]) {
 			    strm >> qs;
 				}
-				else if (kvName == "qm") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_Merge-1]) {
 					strm >> qm;
 				}
-				else if (kvName == "ts") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_SubstitutionTag-1]) {
 					strm >> ts;
 				}
-				else if (kvName == "td") {
+				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_DeletionTag-1]) {
 					strm >> td;
 				}
       }

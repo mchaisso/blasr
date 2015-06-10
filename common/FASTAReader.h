@@ -114,6 +114,7 @@ FASTAReader(string &fileName) {
 
 
 	void CheckValidTitleStart(long &p, char delim='>') {
+		char c = filePtr[p];
 		if (p >= fileSize or filePtr[p] != delim) {
 			cout << "ERROR, FASTA entry must begin with \"" << delim << "\"" << endl;
 			exit(1);
