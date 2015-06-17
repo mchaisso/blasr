@@ -9,8 +9,8 @@
 #include "SDPFragment.h"
 #include "SDPColumn.h"
 #include "FragmentSort.h"
-#include "../AlignmentUtils.h"
-#include "../../../defs.h"
+#include "algorithms/alignment/AlignmentUtils.h"
+#include "defs.h"
 
 
 /*******************************************************************************

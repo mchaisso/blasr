@@ -252,7 +252,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.3.2";
+  return "1.MC.rc39";
 }
 
 void GetVersion(string &version) {
@@ -1563,8 +1563,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               *alignment, mappingBuffers, 
                               Local, 
                               params.detailedSDPAlignment, 
-															params.sdpPrefix,
-                              params.extendFrontAlignment);
+															params.extendFrontAlignment,
+															params.sdpPrefix, params.recurseOver);
 
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);

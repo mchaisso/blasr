@@ -64,7 +64,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
              T_BufferCache &buffers,
 						 AlignmentType alignType=Global,
 						 bool detailedAlignment=true,
-						 bool extendFrontByLocalAlignment=true, 
+						 bool extendFrontByLocalAlignment=false, 
 						 int sdpPrefixLength=50,
              int  noRecurseUnder = 10000) {
 
@@ -463,7 +463,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                      targetPrefixTupleList,
                      targetSuffixTupleList,
                      recurseFragmentChain,
-                     alignType, detailedAlignment, extendFrontByLocalAlignment, 0);
+                     alignType, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, 0);
           }
 					
 					int anchorBlock;
@@ -525,7 +525,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                    targetPrefixTupleList,
                    targetSuffixTupleList,
                    recurseFragmentChain,
-                   alignType, detailedAlignment, 0, 0);
+                   alignType, detailedAlignment, 0, sdpPrefixLength, 0);
         }
         /*
         if (noRecurseUnder and qFragment.length * tFragment.length > noRecurseUnder) {
