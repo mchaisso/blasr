@@ -78,6 +78,7 @@ int GraphPaper(vector<T_Point> &points,
     int colIndex = GetIndex(points[i].GetY(), yMin, yMax, nCols);
     bins[rowIndex][colIndex]+= points[i].length;
   }
+
 	
   //
   // Now optimize using DP.
@@ -85,6 +86,29 @@ int GraphPaper(vector<T_Point> &points,
 
   // First handle boundary strips
   int r, c;
+	/*
+		// 
+		// test code to examine the distribution of # anchors/bin
+		//
+	int minBin = bins[0][0];
+	int maxBin = bins[0][0];
+	for (r = 0; r < nRows; r++) {
+		for (c = 0; c < nCols; c++) {
+			minBin = min(minBin, bins[r][c]);
+			maxBin = max(maxBin, bins[r][c]);
+		}
+	}
+	vector<int> hist(100,0);
+	for (r = 0; r < nRows; r++) {
+		for (c = 0; c < nCols; c++) {
+			hist[ (int) (((bins[r][c]-minBin)/float(maxBin-minBin))*100)] +=1;
+		}
+	}
+	for (i = 0; i < hist.size(); i++) {
+		cout << hist[i] << " ";
+	}
+	cout << endl;
+	*/
   for (r = 1; r < nRows+1; r++) {
     scoreMat[r][0] = 0;
     pathMat[r][0]  = Up;
