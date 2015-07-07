@@ -24,7 +24,7 @@
 namespace SAMOutput {
 
   enum Clipping {hard, soft, subread, none};
-
+	static string SAMVersion;
   void BuildFlag(T_AlignmentCandidate &alignment, AlignmentContext &context, uint16_t &flag) {
 
     /*
@@ -97,7 +97,6 @@ namespace SAMOutput {
 		else if (clipping == soft) {
       clippedReadLength = read.length - read.lowQualityPrefix - read.lowQualitySuffix;
 			clippedStartPos   = read.lowQualityPrefix;
-
 		}
 		else if (clipping == subread) {
 			clippedReadLength = read.subreadEnd - read.subreadStart;
@@ -396,26 +395,9 @@ namespace SAMOutput {
 
     string rNext;
     rNext = "*";
-    /*
-    if (context.hasNextSubreadPos == false) {
-      rNext = "*";
-    }
-    else {
-      if (context.rNext == alignment.tName) {
-        rNext = "=";
-      }
-      else {
-        rNext = context.rNext;
-      }
-    }
-    */
     samFile << rNext << "\t"; // RNEXT
     
     DNALength nextSubreadPos = 0;
-    /*
-    if (context.hasNextSubreadPos) {
-      nextSubreadPos = context.nextSubreadPos + 1;
-      }*/
     samFile << nextSubreadPos << "\t"; // RNEXT, add 1 for 1 based
                                            // indexing
 
@@ -426,6 +408,7 @@ namespace SAMOutput {
     // newline (by setting the line length to alignedSequence.length
     ((DNASequence)alignedSequence).PrintSeq(samFile, 0);  // SEQ
     samFile << "\t";
+
     if (alignedSequence.qual.data != NULL) {
       alignedSequence.PrintAsciiQual(samFile, 0);  // QUAL
     }
@@ -524,16 +507,14 @@ namespace SAMOutput {
     }
 
     // Unmapped reads have fixed defaults for most fields.
-    samFile << read.title << "\t" << flag << "\t*\t0\t0\t*\t*\t0\t0\t";   // RNAME, POS, MAP, CIGAR, RNEXT, PNEXT, TLEN
+    samFile << read.GetName() << "\t" << flag << "\t*\t0\t0\t*\t*\t0\t0\t";   // RNAME, POS, MAP, CIGAR, RNEXT, PNEXT, TLEN
 
     ((DNASequence)alignedSequence).PrintSeq(samFile, 0);  // SEQ
     samFile << "\t";
-    if (alignedSequence.qual.data != NULL) {
-      alignedSequence.PrintAsciiQual(samFile, 0);  // QUAL
-    }
-    else {
-      samFile <<"*";
-    }
+		//
+		// The quality is largely uninformative, so it is skipped and the null flag is output.
+		//
+		samFile <<"*";
     samFile << "\t";
 
     //
@@ -547,6 +528,23 @@ namespace SAMOutput {
     // "XQ" query sequence length
     // "XT" # of continues reads, always 1 for blasr
     //
+	  if (clipping == subread) {
+			DNALength xs = read.subreadStart;
+			DNALength xe = read.subreadEnd;
+			samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
+			samFile << "XE:i:" << xe + 1 << "\t";
+			samFile << "qs:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
+			samFile << "qe:i:" << xe + 1 << "\t";
+		}
+		else {
+			samFile << "XS:i:1\t"
+							<< "XE:i:"<<alignedSequence.length <<"\t"
+							<< "qs:i:1\t"
+							<< "qe:i:"<<alignedSequence.length << "\t";
+		}
+		samFile << "zm:i:" << read.holeNumber << "\t";
+    samFile << "XL:i:" << 0 << "\t";
+
     samFile << "XT:i:1"; // reads are allways continuous reads, not
                         // referenced based circular consensus when
                         // output by blasr.

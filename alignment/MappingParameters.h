@@ -424,11 +424,12 @@ class MappingParameters {
 			refineBetweenAnchorsOnly = true;
 			minMatchLength = anchorParameters.minMatchLength = 25;
 			anchorParameters.advanceExactMatches = advanceExactMatches = 25;
-			anchorParameters.maxLCPLength = 50;
+			anchorParameters.maxLCPLength = 40;
 			affineAlign = true;
 			affineExtend = 0;
-			affineOpen   = 100;
+			affineOpen   = 20;
 			anchorParameters.maxAnchorsPerPosition = 30;
+			indelRate = 0.0001;
 		}
 
 		if (emulateNucmer) {

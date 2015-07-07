@@ -4,7 +4,6 @@
 #include <semaphore.h>
 #include <fstream>
 #include <iostream>
-#include "LongestIncreasingSubsequence.h"
 #include "GlobalChain.h"
 #include "BasicEndpoint.h"
 #include "datastructures/anchoring/WeightedInterval.h"

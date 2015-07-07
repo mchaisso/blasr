@@ -11,7 +11,7 @@
 #include "FragmentSort.h"
 #include "algorithms/alignment/AlignmentUtils.h"
 #include "defs.h"
-
+#include <algorithm>
 
 /*******************************************************************************
  *  Sparse dynamic programming implementation of Longest Common Subsequence
@@ -157,34 +157,14 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 			int aboveIndex;
 			if (fragmentSet[fSweep].GetAbove(aboveIndex)) {
 
-			/*			if (sweepSet.Successor(fragmentSet[fSweep], succ) and
-					succ.y < fragmentSet[fSweep].y and
-					succ.y + fragmentLength >= fragmentSet[fSweep].y) {
-			*/
-				//				assert(((int)succ.y) - ((int)succ.x) >= ((int)fragmentSet[fSweep].y) - ((int)fragmentSet[fSweep].x));
-
-				
 				/*
 					Baker and Giancarlo LCS cost 
         */
-				/*
-				ca = fragmentSet[aboveIndex].cost +
-					(fragmentSet[aboveIndex].y - fragmentSet[aboveIndex].x) -
-					(fragmentSet[fSweep].y - fragmentSet[fSweep].x);
-				*/
-				/*
-				ca = succ.cost +
-					(succ.y - succ.x) -
-					(fragmentSet[fSweep].y - fragmentSet[fSweep].x);
-				*/
 
 				ca = (fragmentSet[aboveIndex].cost + 
 							(fragmentLength - (int)(fragmentSet[fSweep].y - fragmentSet[aboveIndex].y)) * match + 
 							IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y, fragmentSet[aboveIndex].x, fragmentSet[aboveIndex].y, insertion, deletion));
 				
-				//				ca = (succ.cost + 
-				//              (fragmentLength - (int)(fragmentSet[fSweep].y - succ.y)) * match + 
-				//              IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y, succ.x, succ.y, insertion, deletion));
 				foundPrev = 1;
 			}
 			
@@ -228,7 +208,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 					fragmentSet[fSweep].chainLength = 1;
 				}					
 			}
-      //      cout << fSweep << " " << fragmentSet[fSweep].chainPrev << " " << foundPrev << " " << fragmentSet[fSweep].x << " " << fragmentSet[fSweep].y << " " << cp << " " << cl << " " << ca << endl;
+
 			if (minFragmentCost > fragmentSet[fSweep].cost) {
 				minFragmentCost = fragmentSet[fSweep].cost;
 				minFragmentIndex = fSweep;
@@ -250,7 +230,6 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 		fSweep = startF;
 		while (fSweep < fragmentSetSize and 
 					 fragmentSet[fSweep].x == sweepRow) {
-			//			cout << "inserting sweep set with index" << fragmentSet[fSweep].index << endl;
 			sweepSet.Insert(fragmentSet[fSweep]);
 			++fSweep;
 		}

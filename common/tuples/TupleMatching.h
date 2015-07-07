@@ -35,7 +35,7 @@ template<typename Sequence, typename T_TupleList>
 	
 
 template<typename TSequence, typename TMatch, typename T_TupleList>
-	int StoreMatchingPositions(TSequence &querySeq, TupleMetrics &tm, T_TupleList &targetTupleList, vector<TMatch> &matchSet) {
+	int StoreMatchingPositions(TSequence &querySeq, TupleMetrics &tm, T_TupleList &targetTupleList, vector<TMatch> &matchSet, int maxMatches=0) {
 	DNALength s;
 //	TQueryTuple queryTuple;
 	typename T_TupleList::Tuple queryTuple;
@@ -48,11 +48,12 @@ template<typename TSequence, typename TMatch, typename T_TupleList>
 				int targetListIndex = 0;
         typename vector<typename T_TupleList::Tuple>::const_iterator curIt, endIt;
 				targetTupleList.FindAll(queryTuple, curIt, endIt);
-				
-        for(; curIt != endIt; curIt++) {
-          matchSet.push_back(TMatch(s, (*curIt).pos));
-          ++targetListIndex;
-        }
+				if (maxMatches == 0 or endIt - curIt <= maxMatches) {
+					for(; curIt != endIt; curIt++) {
+						matchSet.push_back(TMatch(s, (*curIt).pos));
+						++targetListIndex;
+					}
+				}
 			}
 		}
 	}

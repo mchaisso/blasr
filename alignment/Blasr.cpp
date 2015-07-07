@@ -1196,13 +1196,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       intervalContigStartPos = 0;
       intervalContigEndPos   = genome.length;
     }
+
     alignment->qName = read.title;
-    
     int alignScore;
     alignScore = 0;
-
-
-
     alignment->tAlignedSeqPos     = matchIntervalStart;
     alignment->tAlignedSeqLength  = matchIntervalEnd - matchIntervalStart;
 
@@ -1211,17 +1208,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 		// target interval because of an N in the query sequence.  If the match interval is truncated,
 		// it is possible that the matches index past the interval length.  This trims it back.
 		//
-/*		 
-		if (trimMatches == true) {
-			int m;
-			int lastMatch = (*intvIt).matches.size()-1;
-			if ((*intvIt).matches[lastMatch].t + (*intvIt).matches[lastMatch].l > matchIntervalEnd) {
-				ChainedMatchPos mp((const ChainedMatchPos&)(*intvIt).matches[lastMatch]);
-				mp.l = matchIntervalEnd - (*intvIt).matches[lastMatch].t;
-				(*intvIt).matches[lastMatch] = mp;
-			}
-		}
-	*/	
+
     if ((*intvIt).GetStrandIndex() == Forward) {
       alignment->tAlignedSeq.Copy(genome, alignment->tAlignedSeqPos, alignment->tAlignedSeqLength);
       alignment->tStrand = Forward;
@@ -1311,7 +1298,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 				// The first step to refining between anchors only is to make
 				// the anchors relative to the tAlignedSeq.
-
+				//
 				
 
 				matches = (vector<ChainedMatchPos>*) &(*intvIt).matches;
@@ -1325,8 +1312,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					}
 				}
 				else {
-				//
-				// Flip the entire alignment if it is on the reverse strand.
+					//
+					// Flip the entire alignment if it is on the reverse strand.
+					//
 
 					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1);
 					for (m = 0; m < matches->size(); m++) {
@@ -1334,7 +1322,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						(*matches)[m].q -= alignment->qAlignedSeqPos;
 					}
 
-					//					alignment->tAlignedSeq.CopyAsRC(tAlignedSeq);
           rcMatches.resize((*intvIt).matches.size());
           //
           // Make the reverse complement of the match list.
@@ -1523,7 +1510,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         anchorsOnly.qPos = alignment->qPos;
 
 				//
-				// Adjacent blocks without gaps are not merged here.  Do the merging now.
+				// Adjacent blocks without gaps (e.g. 50M50M50M) are not yet merged.  Do the merging now.
 				//
 				int cur = 0, next = 1;
 				while (next < alignment->blocks.size()) {
@@ -4651,6 +4638,7 @@ int main(int argc, char* argv[]) {
     *outFilePtr << hdString << endl;
     seqdb.MakeSAMSQString(sqString);
     *outFilePtr << sqString; // this already outputs endl
+		set<string> readGroups;
     for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size()-1; readsFileIndex++ ) {    
       reader->SetReadFileName(params.readsFileNames[readsFileIndex]);
       reader->Initialize();
@@ -4660,24 +4648,29 @@ int main(int argc, char* argv[]) {
       MakeMD5(scanData.movieName, movieNameMD5, 10);
       string chipId;
       ParseChipIdFromMovieName(scanData.movieName, chipId);
-			
-      *outFilePtr << "@RG\t" 
-									<< "ID:" << movieNameMD5 << "\t" 
-									<< "PU:"<< scanData.movieName << "\t" 
-									<< "SM:"<< chipId << "\t" 
-									<< "PL:PACBIO" << "\t"
-									<< "DS:READTYPE=SUBREAD;" 
-									<< "BINDINGKIT=" << scanData.bindingKit << ";" 
-									<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
-									<< "BASECALLERVERSION=" << "2.1";
+			//
+			// Each movie may only be represented once in the header.
+			//
+			if (readGroups.find(scanData.movieName) == readGroups.end()) {
+				*outFilePtr << "@RG\t" 
+										<< "ID:" << movieNameMD5 << "\t" 
+										<< "PU:"<< scanData.movieName << "\t" 
+										<< "SM:"<< chipId << "\t" 
+										<< "PL:PACBIO" << "\t"
+										<< "DS:READTYPE=SUBREAD;" 
+										<< "BINDINGKIT=" << scanData.bindingKit << ";" 
+										<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
+										<< "BASECALLERVERSION=" << "2.1";
 
-			int q;
-			for (q = 0; q < params.samQVList.nTags; q++){ 
-				if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
-					*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+				int q;
+				for (q = 0; q < params.samQVList.nTags; q++){ 
+					if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
+						*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+					}
 				}
+				*outFilePtr << endl;
 			}
-			*outFilePtr << endl;
+			readGroups.insert(scanData.movieName);
       reader->Close();
     }
     string commandLineString;

@@ -89,7 +89,7 @@ int main(int argc, char* argv[]) {
   clp.RegisterStringListOption("sam", &samFileNames, "Alignments.", true);
   clp.RegisterPreviousFlagsAsHidden();
   clp.RegisterStringOption("out", &outFileName, "Output file. Default to stdout", false);
-  clp.RegisterIntOption("format", &format, "Format (0,1,4,5)", CommandLineParser::NonNegativeInteger, false);
+  clp.RegisterIntOption("format", &format, "Format (supports 0 only, formats 1,4,5 to be added)", CommandLineParser::NonNegativeInteger, false);
   clp.ParseCommandLine(argc, argv);
 
   FASTAReader fastaReader;
