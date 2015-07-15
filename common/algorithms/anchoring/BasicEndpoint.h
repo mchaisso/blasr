@@ -83,8 +83,8 @@ template<typename T_ScoredFragment>
 	}
 
 	void FragmentPtrToEnd(T_ScoredFragment *fragment) {
-		p.SetX(fragment->GetX() + fragment->GetLength());
-		p.SetY(fragment->GetY() + fragment->GetLength());
+		p.SetX(fragment->GetX() + fragment->GetXLength());
+		p.SetY(fragment->GetY() + fragment->GetYLength());
 		side = End;
 		fragmentPtr = fragment;
 	}

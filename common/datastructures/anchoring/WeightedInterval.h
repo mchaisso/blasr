@@ -4,7 +4,7 @@
 #include <vector>
 #include <queue>
 #include "MatchPos.h"
-#include "../../DNASequence.h"
+#include "DNASequence.h"
 
 
 using namespace std;

@@ -18,7 +18,9 @@ using namespace std;
 class DNATuple : public BaseTuple {
  public:
 	DNALength pos;
-
+ DNATuple() : BaseTuple() {
+		pos = 0;
+	}
 	int FromStringLR(Nucleotide *strPtr, TupleMetrics &tm) {
 		DNASequence tmpSeq;
 		tmpSeq.seq = strPtr;

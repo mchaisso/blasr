@@ -301,7 +301,7 @@ int MapReadToGenome(T_RefSequence &reference,
 				}
         assert(sa.index[mp] + matchLength[matchIndex] <= reference.length);
 				assert(reference.seq[sa.index[mp] + matchLength[matchIndex] - 1] != 'N');
-				matchPosList.push_back(ChainedMatchPos(sa.index[mp], pos, matchLength[matchIndex], matchHigh[matchIndex] - matchLow[matchIndex]));
+				matchPosList.push_back(ChainedMatchPos(sa.index[mp], pos, matchLength[matchIndex]));
 			}
 		}
 	}

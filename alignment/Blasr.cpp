@@ -101,7 +101,7 @@ typedef DNASuffixArray T_SuffixArray;
 typedef DNATuple T_Tuple;
 
 typedef LISPValueWeightor<T_GenomeSequence, DNATuple, vector<ChainedMatchPos> >  PValueWeightor;
-typedef LISSMatchFrequencyPValueWeightor<T_GenomeSequence, DNATuple, vector<ChainedMatchPos> >  MultiplicityPValueWeightor;
+//typedef LISSMatchFrequencyPValueWeightor<T_GenomeSequence, DNATuple, vector<ChainedMatchPos> >  MultiplicityPValueWeightor;
 
 ReaderAgglomerate *reader;
 
@@ -252,7 +252,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc39";
+  return "1.MC.rc41";
 }
 
 void GetVersion(string &version) {
@@ -2149,7 +2149,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     SortMatchPosList(mappingBuffers.rcMatchPosList);
     metrics.clocks.sortMatchPosList.Tock();
     PValueWeightor lisPValue(read, genome, ct.tm, &ct);
-    MultiplicityPValueWeightor lisPValueByWeight(genome);
+		//    MultiplicityPValueWeightor lisPValueByWeight(genome);
 
     LISSumOfLogPWeightor<T_GenomeSequence,vector<ChainedMatchPos> > lisPValueByLogSum(genome);
 
@@ -2158,7 +2158,8 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     IntervalSearchParameters intervalSearchParameters;
     intervalSearchParameters.globalChainType = params.globalChainType;
 		intervalSearchParameters.overlap         = params.overlap;
-
+		intervalSearchParameters.minMatch        = params.minMatchLength;
+		intervalSearchParameters.minInterval     = params.minInterval;
     //
     // If specified, only align a band from the anchors.
     //
@@ -2239,6 +2240,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                                 lisWeightFn,
                                 topIntervals, genome, read, intervalSearchParameters,
                                 &mappingBuffers.globalChainEndpointBuffer, 
+                                &mappingBuffers.sdpFragmentSet, 
                                 mappingBuffers.clusterList,
                                 accumPValue, accumWeight, accumNBases, read.title);
       // Uncomment when the version of the weight functor needs the sequence.
@@ -2252,10 +2254,11 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                                 lisWeightFn,
                                 topIntervals, genome, readRC, intervalSearchParameters,
                                 &mappingBuffers.globalChainEndpointBuffer,
+                                &mappingBuffers.sdpFragmentSet, 
                                 mappingBuffers.revStrandClusterList,
                                 accumPValue, accumWeight, accumNBases, read.title);
     }
-    else if (params.pValueType == 1) {
+		/*    else if (params.pValueType == 1) {
       FindMaxIncreasingInterval(Forward,
                                 mappingBuffers.matchPosList,
                                 // allow for indels to stretch out the mapping of the read.
@@ -2281,7 +2284,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                                 mappingBuffers.revStrandClusterList,
                                 accumPValue, accumWeight, accumNBases,
                                 read.title);
-    }
+																}*/
     else if (params.pValueType == 2) {
       FindMaxIncreasingInterval(Forward,
                                 mappingBuffers.matchPosList,
@@ -2292,6 +2295,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                                 lisWeightFn,
                                 topIntervals, genome, read, intervalSearchParameters,
                                 &mappingBuffers.globalChainEndpointBuffer,
+                                &mappingBuffers.sdpFragmentSet, 
                                 mappingBuffers.clusterList,
                                 accumPValue, accumWeight, accumNBases,
                                 read.title);
@@ -2304,6 +2308,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
                                 lisWeightFn,
                                 topIntervals, genome, readRC, intervalSearchParameters,
                                 &mappingBuffers.globalChainEndpointBuffer,
+                                &mappingBuffers.sdpFragmentSet, 
                                 mappingBuffers.revStrandClusterList,
                                 accumPValue, accumWeight, accumNBases,
                                 read.title);
@@ -3890,7 +3895,7 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
       unrolledReadRC.Free();
 		}
     numAligned++;
-    if(numAligned % 100 == 0) {
+    if(numAligned % 200 == 0) {
       mappingBuffers.Reset();
     }
 	}
@@ -4115,6 +4120,7 @@ int main(int argc, char* argv[]) {
   clp.RegisterIntOption("affineExtend", &params.affineExtend, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterFlagOption("alignContigs", &params.alignContigs, "", false);
 	clp.RegisterStringOption("findex", &params.findex, "", false);
+	clp.RegisterIntOption("minInterval", &params.minInterval, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterStringListOption("samqv", &params.samqv, "", false);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);

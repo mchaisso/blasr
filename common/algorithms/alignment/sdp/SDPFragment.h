@@ -111,6 +111,13 @@ class Fragment {
 	int GetLength() {
 		return length;
 	}
+	int GetXLength() {
+		return length;
+	}
+	int GetYLength() {
+		return length;
+	}
+
 	void SetLength(int _length) {
 		length = _length;
 	}

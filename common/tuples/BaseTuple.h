@@ -7,7 +7,9 @@
 class BaseTuple {
  public:
   ULong  tuple;
-
+	BaseTuple() {
+		tuple = 0;
+	}
   ULong  HashPowerOfFour(int nBases, TupleMetrics &tm) {
     //
     // When the hash can fit inside the entire tuple, just return the

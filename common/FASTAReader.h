@@ -27,7 +27,7 @@ class FASTAReader {
 	char endOfReadDelim;
 	char readStartDelim;
   bool doToUpper;
-  char *convMat;
+  unsigned char *convMat;
 	//
 	// Quick check to see how much to read.
 	//

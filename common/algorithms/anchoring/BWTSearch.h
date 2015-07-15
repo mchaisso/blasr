@@ -63,7 +63,7 @@ int MapReadToGenome(BWT &bwt,
 			for (m = 0; m < matches.size(); m++ ) {
         // This if statement is a workaround for a bug that is allowing short matches
         if (matches[m] >= matchLength) {
-          matchPosList.push_back(ChainedMatchPos(matches[m] - matchLength, p-matchLength, matchLength , matches.size()));
+          matchPosList.push_back(ChainedMatchPos(matches[m] - matchLength, p-matchLength, matchLength));
         }
 			}
 		}

@@ -39,7 +39,7 @@ class LISSumOfLogPWeightor {
 	}
 };
 
-
+/*
 template<typename T_RefSequence, typename T_Tuple, typename T_MatchList>
 class LISSMatchFrequencyPValueWeightor {
  public:
@@ -76,7 +76,7 @@ class LISSMatchFrequencyPValueWeightor {
 	}
 };
 
-	
+*/
 
 template<typename T_RefSequence, typename T_Tuple, typename T_MatchList>
 class LISPValueWeightor {

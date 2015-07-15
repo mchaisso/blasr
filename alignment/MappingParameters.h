@@ -170,6 +170,7 @@ class MappingParameters {
   int   limsAlign;
 	int  minAlignLength;
 	string findex;
+	int minInterval;
 	vector<string> samqv;
 	SupplementalQVList samQVList;
 	bool alignContigs;
@@ -326,7 +327,7 @@ class MappingParameters {
 		minAlignLength = 0;
 		findex = "";
 		alignContigs = false;
-	
+		minInterval = 100;
 	}
 
 	MappingParameters() {
@@ -422,9 +423,9 @@ class MappingParameters {
 		if (alignContigs) {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
-			minMatchLength = anchorParameters.minMatchLength = 25;
-			anchorParameters.advanceExactMatches = advanceExactMatches = 25;
-			anchorParameters.maxLCPLength = 40;
+			minMatchLength = anchorParameters.minMatchLength = 20;
+			anchorParameters.advanceExactMatches = advanceExactMatches = 20;
+			anchorParameters.maxLCPLength = 25;
 			affineAlign = true;
 			affineExtend = 0;
 			affineOpen   = 20;
@@ -484,7 +485,9 @@ class MappingParameters {
 			samQVList.SetDefaultQV();
 		}
 		else {
-			samQVList.UseQV(samqv);
+			if (samqv[0] != "none") {
+				samQVList.UseQV(samqv);
+			}
 		}
 		affineAlign = true;
 		//		affineOpen  = 30;

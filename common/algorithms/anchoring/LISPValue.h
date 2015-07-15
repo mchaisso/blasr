@@ -154,7 +154,8 @@ template<typename T_TextSequence, typename TSequence, typename T_MatchPos, typen
 				float qLambda;
 				int   tGap;
 				int qGap;
-				qLambda          = lis[i].GetMultiplicity() / (1.0*text.length);
+				//				qLambda          = lis[i].GetMultiplicity() / (1.0*text.length);
+				qLambda          = 1 / (1.0*text.length);
 			
 				// Now compute the probability of the chain.  Since the
 				// matches are uniformly distributed across the genome, the

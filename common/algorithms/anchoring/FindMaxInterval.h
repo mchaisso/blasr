@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include "GlobalChain.h"
+#include "SDPGlobalChain.h"
 #include "BasicEndpoint.h"
 #include "datastructures/anchoring/WeightedInterval.h"
 #include "datastructures/anchoring/MatchPos.h"
@@ -47,10 +48,14 @@ class IntervalSearchParameters {
 	int   globalChainType;
 	float maxPValue;
 	bool  overlap;
+	int   minMatch;
+	int   minInterval;
 	IntervalSearchParameters() {
-		globalChainType     = 0;
-		maxPValue           = log(0.1);
-		overlap             = false;
+		globalChainType = 0;
+		maxPValue       = log(0.1);
+		overlap         = false;
+		minMatch        = 0;
+		minInterval     = 0;
 	}
 };
 
@@ -496,6 +501,7 @@ template<typename T_MatchList,
 																WeightedIntervalSet &intervalQueue, T_ReferenceSequence &reference, T_Sequence &query,
 																IntervalSearchParameters &params,
 																vector<BasicEndpoint<ChainedMatchPos> > *chainEndpointBuffer,
+																vector<Fragment> *fragmentBuffer,
                                 ClusterList &clusterList,
                                 VarianceAccumulator<float> &accumPValue, 
                                 VarianceAccumulator<float> &accumWeight,
@@ -503,6 +509,7 @@ template<typename T_MatchList,
                                 const char *titlePtr=NULL
 																) {
 
+	int nRectangles;
 	WeightedIntervalSet sdpiq;
 	VectorIndex cur = 0;
 	VectorIndex nPos = pos.size();
@@ -535,7 +542,8 @@ template<typename T_MatchList,
 
 	vector<DNALength> start, end;
 	
-	StoreLargestIntervals(pos, ContigStartPos, intervalLength, 100, start, end, params);
+	
+	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params);
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;
@@ -565,7 +573,8 @@ template<typename T_MatchList,
         //
         //  A different call that allows for indel penalties.
         //
-				lisSize = RestrictedGlobalChain(&pos[cur],next - cur, 0.1, lisIndices, scores, prevOpt);
+				//				lisSize = RestrictedGlobalChain(&pos[cur],next - cur, 0.1, lisIndices, scores, prevOpt);
+				lisSize = SDPGlobalChain(&pos[cur], next-cur, lisIndices, params.minMatch, *fragmentBuffer);
 			}
 		}
     

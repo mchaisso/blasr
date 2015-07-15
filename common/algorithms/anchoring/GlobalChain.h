@@ -50,14 +50,14 @@ UInt RestrictedGlobalChain( T_Fragment *fragments,
 			//  Check to see if the fragments may be connected within the
 			//  expected indel rate.
 			//
-			if (fragments[f2].GetQ() > fragments[f1].GetQ() + fragments[f1].GetW() and
-					fragments[f2].GetT() > fragments[f1].GetT() + fragments[f1].GetW()) {
+			if (fragments[f2].GetQ() > fragments[f1].GetQ() + fragments[f1].GetQW() and
+					fragments[f2].GetT() > fragments[f1].GetT() + fragments[f1].GetQW()) {
 				//
 				// Compute drift from diagonal.
 				//
 				UInt tDiff, qDiff;
-				tDiff = fragments[f2].GetT() - (fragments[f1].GetT() + fragments[f1].GetW());
-				qDiff = fragments[f2].GetQ() - (fragments[f1].GetQ() + fragments[f1].GetW());
+				tDiff = fragments[f2].GetT() - (fragments[f1].GetT() + fragments[f1].GetQW());
+				qDiff = fragments[f2].GetQ() - (fragments[f1].GetQ() + fragments[f1].GetQW());
 				UInt tIns, qIns;
 				tIns = qIns = 0;
 				UInt maxDiff = max(tDiff, qDiff);
@@ -151,6 +151,8 @@ template<typename T_Fragment, typename T_Endpoint>
 			int maxPointIndex;
 			if (pst.FindIndexOfMaxPoint((*endpointsPtr), (*endpointsPtr)[p].GetKey(), maxPointIndex)) {
 				(*endpointsPtr)[p].SetChainPrev((*endpointsPtr)[maxPointIndex].GetFragmentPtr());
+				assert((*endpointsPtr)[maxPointIndex] < (*endpointsPtr)[p]);
+				//				assert((*endpointsPtr)[p].GetY() <= (*endpointsPtr)[p].GetY());
 				(*endpointsPtr)[p].SetScore((*endpointsPtr)[maxPointIndex].GetScore() + (*endpointsPtr)[p].GetScore());
 			}
 			else {
@@ -186,7 +188,7 @@ template<typename T_Fragment, typename T_Endpoint>
 	unsigned int numIter = 0;
 	while (optFragmentPtr != NULL) {
 		optFragmentChainIndices.push_back((int) (optFragmentPtr - &fragments[0]));
-		optFragmentPtr = optFragmentPtr->GetChainPrev();
+		optFragmentPtr = (T_Fragment*) optFragmentPtr->GetChainPrev();
 		// 
 		// Do a sanity check to make sure this loop is finite -- the optimal
 		// fragment chain should never contain more fragments than what are

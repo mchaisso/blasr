@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <algorithm>
-#include "../../DNASequence.h"
+#include "DNASequence.h"
 
 using namespace std;
 
@@ -13,13 +13,11 @@ class MatchPos {
 	DNALength t, q;
 	MatchWeight w;
 	DNALength l;
-	int m; // multiplicity
-	MatchPos(DNALength pt, DNALength pq, DNALength pl, int pm = 0) {
+	MatchPos(DNALength pt, DNALength pq, DNALength pl) {
 		t = pt;
 		q = pq;
 		l = pl;
-		m = pm;
-        w = 0;
+		w = 0;
 	}
 	MatchPos (const MatchPos &rhs) {
 		(*this) = rhs;
@@ -32,29 +30,22 @@ class MatchPos {
 		t = q = -1;
 		l = 0;
 		w = 0;
-        m = 0;
 	}
 
 	MatchPos& operator=(const MatchPos &rhs) {
 		t = rhs.t; q = rhs.q; w = rhs.w;
 		l = rhs.l;
-    m = rhs.m;
 		return *this;
 	}
 	
 	DNALength GetLength() const {
 		return l;
 	}
-	int GetMultiplicity() const {
-		return m;
+	DNALength GetXLength() const {
+		return l;
 	}
-	MatchWeight GetWeight() const {
-		if (m > 0) {
-			return (1.0*l)/m;
-		}
-		else {
-			return 0;
-		}
+	DNALength GetYLength() const {
+		return l;
 	}
 
 	DNALength GetX() const {
@@ -69,24 +60,34 @@ class MatchPos {
 	UInt GetQ() {
 		return (UInt) q;
 	}
+
+	UInt GetTW() {
+		return w;
+	}
+	
+	UInt GetQW() {
+		return w;
+	}
+	
 	UInt GetW() {
 		return w;
 	}
   friend ostream& operator<<(ostream & out, MatchPos &p) {
-    out << p.q << "\t" << p.t <<"\t"<< p.l << "\t"<< p.m;
+    out << p.q << "\t" << p.t <<"\t"<< p.l;
     return out;
   }
 };
 
 
 class ChainedMatchPos : public MatchPos {
+ protected:
 	int score;
 	ChainedMatchPos *chainPrev;
  public:
- ChainedMatchPos(DNALength pt, DNALength pq, DNALength pl, int pm) : MatchPos(pt, pq, pl, pm) {score = 0; chainPrev = NULL;}
+ ChainedMatchPos(DNALength pt, DNALength pq, DNALength pl) : MatchPos(pt, pq, pl) {score = 0; chainPrev = NULL;}
   ChainedMatchPos() : MatchPos() {
 		score = 0;
-        chainPrev = NULL;
+		chainPrev = NULL;
 	}
 	ChainedMatchPos(const ChainedMatchPos &rhs) {
 		(*this) = rhs;
@@ -108,7 +109,7 @@ class ChainedMatchPos : public MatchPos {
 		return *this;
 	}
   friend ostream& operator<<(ostream & out, ChainedMatchPos &p) {
-    out << p.q << "\t" << p.t <<"\t"<< p.l << "\t"<< p.m;
+    out << p.q << "\t" << p.t <<"\t"<< p.l;
     return out;
   }
 };
@@ -144,7 +145,7 @@ class CompareMatchPosIndexByWeight {
  public:
 	vector<T_MatchPos> *list;
 	int operator()(const int i, const int j) const {
-		return ((*list)[i].w > (*list)[j].w);
+		return ((*list)[i].l > (*list)[j].l);
 	}
 };
 
