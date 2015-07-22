@@ -252,7 +252,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc41";
+  return "1.MC.rc42";
 }
 
 void GetVersion(string &version) {
@@ -267,7 +267,7 @@ void GetVersion(string &version) {
 
 void MakeSAMHDString(string &hdString) {
   stringstream out;
-  out << "@HD\t" << "VN:" << GetMajorVersion() << "\t" << "pb:3.0b4";
+  out << "@HD\t" << "VN:" << GetMajorVersion() << "\t" << "pb:3.0b7";
   hdString = out.str();
 }
 

@@ -138,23 +138,61 @@ namespace SAMOutput {
  }
 
  void AddGaps(T_AlignmentCandidate &alignment, int gapIndex,
-              vector<int> &opSize, vector<char> &opChar) {
+              vector<int> &opSize, vector<char> &opChar, int &qPos, int &tPos) {
    int g;
    for (g = 0; g < alignment.gaps[gapIndex].size(); g++) {
      if (alignment.gaps[gapIndex][g].seq == Gap::Query) {
        opSize.push_back(alignment.gaps[gapIndex][g].length);
        opChar.push_back('D');
+			 tPos += alignment.gaps[gapIndex][g].length;
      }
      else if (alignment.gaps[gapIndex][g].seq == Gap::Target) {
        opSize.push_back(alignment.gaps[gapIndex][g].length);
        opChar.push_back('I');
+			 qPos += alignment.gaps[gapIndex][g].length;
      }
    }
  }
 
+ void AddUngappedOperations(T_AlignmentCandidate &alignment, 
+														int blockIndex,
+														int qPos,
+														int tPos,
+														vector<int> &opSize, 
+														vector<char> &opChar) {
+	 int i;
+	 int opStart;
+	 i = 0;
+	 string qstr, tstr;
+	 qstr.insert(0, (char*) &alignment.qAlignedSeq.seq[qPos], alignment.blocks[blockIndex].length);
+	 tstr.insert(0, (char*) &alignment.tAlignedSeq.seq[tPos], alignment.blocks[blockIndex].length);
+	 while (i < alignment.blocks[blockIndex].length) {
+		 opStart = i;
+		 while (i < alignment.blocks[blockIndex].length and 
+						alignment.qAlignedSeq.seq[qPos+i] != alignment.tAlignedSeq.seq[tPos+i]) {
+			 i+=1;
+		 }
+		 if (i > opStart) {
+			 opSize.push_back(i - opStart);
+			 opChar.push_back('X');
+		 }
+		 opStart = i;
+		 while (i < alignment.blocks[blockIndex].length and 
+						alignment.qAlignedSeq.seq[qPos+i] == alignment.tAlignedSeq.seq[tPos+i]) {
+			 i+=1;
+		 }
+		 if (i > opStart) {
+			 opSize.push_back(i - opStart);
+			 opChar.push_back('=');
+		 }
+	 }		 
+ }
+
  void CreateNoClippingCigarOps(T_AlignmentCandidate &alignment, 
-                                vector<int> &opSize, 
-                                vector<char> &opChar) {
+															 int qPos,
+															 int tPos,
+															 vector<int> &opSize, 
+															 vector<char> &opChar) {
     //
     // Create the cigar string for the aligned region of a read,
     // excluding the clipping.
@@ -163,13 +201,12 @@ namespace SAMOutput {
     // Each block creates a match NM (N=block.length)
     int nBlocks = alignment.blocks.size();
     int nGaps   = alignment.gaps.size();
-    opSize.clear();
-    opChar.clear();
+
     //
     // Add gaps at the beginning of the alignment.
     //
     if (nGaps > 0) {
-      AddGaps(alignment, 0, opSize, opChar);
+      AddGaps(alignment, 0, opSize, opChar, qPos, tPos);
     }
     for (b = 0; b < nBlocks; b++) {
       //
@@ -196,30 +233,28 @@ namespace SAMOutput {
 					tGap -= commonGap;
 					matchLength += commonGap;
 				}
-				opSize.push_back(matchLength);
-				opChar.push_back('M');
+				AddUngappedOperations(alignment, b, qPos, tPos, opSize, opChar);
+				qPos += alignment.blocks[b].length;
+				tPos += alignment.blocks[b].length;
 				if (qGap > 0 or tGap > 0) {
 					if (qGap > 0) {
 						opSize.push_back(qGap);
 						opChar.push_back('I');
+						qPos += qGap;
 					}
 					if (tGap > 0) {
 						opSize.push_back(tGap);
 						opChar.push_back('D'); 
+						tPos += tGap;
 					}
 				}
       }
       else {
-        opSize.push_back(matchLength);
-        opChar.push_back('M');
-        int g;
-        int gapIndex = b+1;
-        AddGaps(alignment, gapIndex, opSize, opChar);
+				AddUngappedOperations(alignment, b, qPos, tPos, opSize, opChar);
+				qPos += alignment.blocks[b].length;
+				tPos += alignment.blocks[b].length;
+        AddGaps(alignment, b+1, opSize, opChar, qPos, tPos);
       }
-    }
-    if (alignment.tStrand == 1) {
-      reverse(opSize.begin(), opSize.end());
-      reverse(opChar.begin(), opChar.end());
     }
   }
 
@@ -286,24 +321,12 @@ namespace SAMOutput {
     // All cigarString use the no clipping core
     vector<int> opSize;
     vector<char> opChar;
-    CreateNoClippingCigarOps(alignment, opSize, opChar);
-
-    // Clipping needs to be added
-
+		prefixSoftClip = prefixHardClip = 0;
+		suffixSoftClip = suffixHardClip = 0;
     if (clipping == hard) {
-
       SetHardClip(alignment, read, prefixHardClip, suffixHardClip);
-      if (prefixHardClip > 0) {
-        opSize.insert(opSize.begin(), prefixHardClip);
-        opChar.insert(opChar.begin(), 'H');
-      }
-      if (suffixHardClip > 0) {
-        opSize.push_back(suffixHardClip);
-        opChar.push_back('H');
-      }
-			prefixSoftClip = 0;
-			suffixSoftClip = 0;
-    }
+		}
+		
     if (clipping == soft or clipping == subread) {
       //
       // Even if clipping is soft, the hard clipping removes the 
@@ -319,42 +342,47 @@ namespace SAMOutput {
 			}
 
 			SetSoftClip(alignment, read, prefixHardClip, suffixHardClip, prefixSoftClip, suffixSoftClip);
+		}
 
-      if (alignment.tStrand == 1) {
-        swap(prefixHardClip, suffixHardClip);
-        swap(prefixSoftClip, suffixSoftClip);
-      }
+		//
+		// The position of the alignment in the query and target.
+		//
+		int qPos = 0;
+		int tPos = 0;
 
-      //
-      // Insert the hard and soft clipping so that they are in the
-      // order H then S if both exist.
-      //
-      if (prefixSoftClip > 0) {
-        opSize.insert(opSize.begin(), prefixSoftClip);
-        opChar.insert(opChar.begin(), 'S');
-      }
-      if (prefixHardClip > 0) {
-        opSize.insert(opSize.begin(), prefixHardClip);
-        opChar.insert(opChar.begin(), 'H');
-      }
+		if (prefixHardClip > 0) {
+			opSize.push_back(prefixHardClip);
+			opChar.push_back('H');
+		}
+		if (prefixSoftClip > 0) {
+			opSize.push_back(prefixSoftClip);
+			opChar.push_back('S');
+		}
+		
+    CreateNoClippingCigarOps(alignment, qPos, tPos, opSize, opChar);
       
-      //
-      // Append the hard and soft clipping so they are in the order S
-      // then H. 
-      //
-      if (suffixSoftClip > 0) {
-        opSize.push_back(suffixSoftClip);
-        opChar.push_back('S');
-      }
-      if (suffixHardClip > 0) {
-        opSize.push_back(suffixHardClip);
-        opChar.push_back('H');
-      }
+		//
+		// Append the hard and soft clipping so they are in the order S
+		// then H. 
+		//
+		if (suffixSoftClip > 0) {
+			opSize.push_back(suffixSoftClip);
+			opChar.push_back('S');
+		}
+		if (suffixHardClip > 0) {
+			opSize.push_back(suffixHardClip);
+			opChar.push_back('H');
+		}
+
+    if (alignment.tStrand == 1) {
+      reverse(opSize.begin(), opSize.end());
+      reverse(opChar.begin(), opChar.end());
     }
 
     CigarOpsToString(opSize, opChar, cigarString);
-
   }
+
+
   template<typename T_Sequence>
   void PrintAlignment(T_AlignmentCandidate &alignment,
                       T_Sequence &read,

@@ -565,9 +565,11 @@ template<typename T_MatchList,
       //
       // Find the largest set of increasing intervals that do not overlap.
       //
+			//			cout << "gc: " << cur << " " << next << " " << next - cur << endl;
 			if (params.globalChainType == 0) {
 				lisSize = GlobalChain<ChainedMatchPos, BasicEndpoint<ChainedMatchPos> >(pos, cur, next, 
 																																								lisIndices, chainEndpointBuffer);
+				//				cout << lisIndices.size() << endl;
 			}
 			else {
         //
@@ -575,6 +577,7 @@ template<typename T_MatchList,
         //
 				//				lisSize = RestrictedGlobalChain(&pos[cur],next - cur, 0.1, lisIndices, scores, prevOpt);
 				lisSize = SDPGlobalChain(&pos[cur], next-cur, lisIndices, params.minMatch, *fragmentBuffer);
+				//				cout << lisIndices.size() << endl;
 			}
 		}
     
