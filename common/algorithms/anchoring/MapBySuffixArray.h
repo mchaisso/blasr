@@ -128,6 +128,7 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
       //
       // Check to see if the match was unique.
       //
+
       if (matchLow[m] + 1 == matchHigh[m]) {
         //
         // If the match is unique, extend for as long as possible.
@@ -199,7 +200,6 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
       matchHigh[m]   = 0;
       matchLength[m] = 0;
 		}
-
 		//
 		// Possibly advance a bunch of steps.
 		//

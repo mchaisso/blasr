@@ -619,7 +619,7 @@ template<typename T_MatchList,
     accumPValue.Append(lisPValue);
     accumWeight.Append(lisWeight);
 
-		if (lisPValue < params.maxPValue and lisSize > 0) {
+		if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
       WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
                                         lis[0].t, lis[lisEnd].t + lis[lisEnd].GetLength(), 
                                         readDir, lisPValue, 

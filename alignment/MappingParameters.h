@@ -429,7 +429,7 @@ class MappingParameters {
 			affineAlign = true;
 			affineExtend = 0;
 			affineOpen   = 20;
-			anchorParameters.maxAnchorsPerPosition = 30;
+			anchorParameters.maxAnchorsPerPosition = 100;
 			indelRate = 0.0001;
 		}
 

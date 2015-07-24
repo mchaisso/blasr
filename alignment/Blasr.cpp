@@ -761,7 +761,7 @@ void PairwiseLocalAlign(T_Sequence &qSeq, T_RefSequence &tSeq,
 }
 
 template<typename T_RefSequence, typename T_Sequence>
-void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
+void RefineAlignment(T_Sequence &query,
                      T_RefSequence &genome,
                      T_AlignmentCandidate  &alignmentCandidate, MappingParameters &params,
                      MappingBuffers &mappingBuffers) {
@@ -790,10 +790,9 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
 
   if (params.doGlobalAlignment) {
     SMRTSequence subread;
-    ((FASTQSequence*)&subread)->ReferenceSubstring(*bothQueryStrands[0], 
-																									 bothQueryStrands[0]->subreadStart,
-																									 (bothQueryStrands[0]->subreadEnd - 
-																										bothQueryStrands[0]->subreadStart));
+    ((FASTQSequence*)&subread)->ReferenceSubstring(query,
+																									 query.subreadStart,
+																									 query.subreadEnd - query.subreadStart);
 
     int drift = ComputeDrift(alignmentCandidate);
     T_AlignmentCandidate refinedAlignment;
@@ -813,7 +812,7 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
     alignmentCandidate.blocks = refinedAlignment.blocks;
     alignmentCandidate.gaps   = refinedAlignment.gaps;
     alignmentCandidate.tPos   = refinedAlignment.tPos;
-    alignmentCandidate.qPos   = refinedAlignment.qPos + bothQueryStrands[0]->subreadStart;
+    alignmentCandidate.qPos   = refinedAlignment.qPos + query.subreadStart;
     alignmentCandidate.score  = refinedAlignment.score;
   }
   else if (params.useGuidedAlign) {
@@ -840,7 +839,7 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
                  alignmentCandidate.blocks[0].tPos));
     
       //      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq,
-      qSeq.ReferenceSubstring(*bothQueryStrands[0],
+      qSeq.ReferenceSubstring(query,
                               alignmentCandidate.qAlignedSeqPos + alignmentCandidate.qPos, 
                               (alignmentCandidate.blocks[lastBlock].qPos +
                                alignmentCandidate.blocks[lastBlock].length));
@@ -968,7 +967,7 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
     //
 
     if (alignmentCandidate.qIsSubstring) {
-      qSeq.ReferenceSubstring(*bothQueryStrands[0],  // the original sequence
+      qSeq.ReferenceSubstring(query,  // the original sequence
                               alignmentCandidate.qPos + alignmentCandidate.qAlignedSeqPos, 
                               alignmentCandidate.blocks[lastBlock].qPos + alignmentCandidate.blocks[lastBlock].length);
     }
@@ -1049,6 +1048,76 @@ void RefineAlignment(vector<T_Sequence*> &bothQueryStrands,
 }
 
 
+int AlignSubstring(DNASequence &tSeq, int tPos, int tLength, 
+									 FASTQSequence &qSeq, int qPos, int qLength, 
+									 MappingParameters &params,
+									 int sdpTupleSize,
+									 DistanceMatrixScoreFunction<DNASequence, FASTQSequence> &distScoreFn,
+									 MappingBuffers &refinementBuffers,
+									 T_AlignmentCandidate &alignment) {
+
+	DNASequence tSubSeq;
+	FASTQSequence qSubSeq;
+	tSubSeq.ReferenceSubstring(tSeq, tPos, tLength);
+	qSubSeq.ReferenceSubstring(qSeq, qPos, qLength);
+
+	int alignScore;
+	if (tLength > 100 and qLength > 100) {
+		alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
+													params.sdpIns, params.sdpDel, 0.25, 
+													alignment, refinementBuffers, Local,
+													params.detailedSDPAlignment, 
+													params.extendFrontAlignment,
+													params.sdpPrefix,
+													params.recurseOver);
+		
+		alignment.qAlignedSeq.ReferenceSubstring(qSubSeq);
+		alignment.tAlignedSeq.ReferenceSubstring(tSubSeq);
+		
+		RefineAlignment(qSubSeq, tSubSeq, 
+										alignment, 
+										params, 
+										refinementBuffers);
+	}
+	else {
+		alignScore = AffineKBandAlign(qSubSeq, tSubSeq, distScoreFn.scoreMatrix, 
+																	params.indel+2, params.indel - 3, // homopolymer insertion open and extend
+																	params.indel+2, params.indel - 1, // any insertion open and extend
+																	params.indel, // deletion
+																	params.bandSize,
+																	refinementBuffers.scoreMat, refinementBuffers.pathMat, 
+																	refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
+																	refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
+																	alignment, Global);
+	}
+	return alignScore;
+}
+
+void AppendSubseqAlignment(T_AlignmentCandidate &alignment, 
+													 T_AlignmentCandidate &alignmentInGap, 
+													 DNALength qPos, 
+													 DNALength tPos) {
+	if (alignmentInGap.blocks.size() > 0) {
+		int b;
+		//
+		// Configure this block to be relative to the beginning
+		// of the aligned substring.  
+		//
+		for (b = 0; b < alignmentInGap.size(); b++) {
+			alignmentInGap.blocks[b].tPos += tPos + alignmentInGap.tPos + alignmentInGap.tAlignedSeqPos;
+			alignmentInGap.blocks[b].qPos += qPos + alignmentInGap.qPos + alignmentInGap.qAlignedSeqPos;
+
+			assert(alignmentInGap.blocks[b].tPos < alignment.tAlignedSeq.length);
+			assert(alignmentInGap.blocks[b].qPos < alignment.qAlignedSeq.length);
+		}
+	}
+	// Add the blocks for the refined aignment.
+	alignment.blocks.insert(alignment.blocks.end(),
+													alignmentInGap.blocks.begin(),
+													alignmentInGap.blocks.end());
+}
+
+
 template<typename T_TargetSequence, typename T_QuerySequence, typename TDBSequence>
 void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequence &rcRead,
                     WeightedIntervalSet &weightedIntervals,
@@ -1093,6 +1162,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     T_AlignmentCandidate *alignment = alignments[alignmentIndex];
     alignment->clusterWeight= (*intvIt).totalAnchorSize;
     alignment->clusterScore = (*intvIt).pValue;
+
 
     //
     // Advance references.  Intervals are stored in reverse order, so
@@ -1142,7 +1212,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       subreadEnd   = read.MakeRCCoordinate(read.subreadStart) + 1;
       subreadStart = read.MakeRCCoordinate(read.subreadEnd-1);
     }
-		/*
+
     DNALength lengthBeforeFirstMatch = ((*intvIt).qStart - subreadStart) * params.approximateMaxInsertionRate ;
     DNALength lengthAfterLastMatch   = (subreadEnd - (*intvIt).qEnd) * params.approximateMaxInsertionRate;
     if (matchIntervalStart < lengthBeforeFirstMatch  or params.doGlobalAlignment) {
@@ -1158,7 +1228,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     else {
       matchIntervalEnd += lengthAfterLastMatch;
     }
-		*/
+
 		bool trimMatches = false;
     DNALength intervalContigStartPos, intervalContigEndPos;
     if (useSeqDB) {
@@ -1224,14 +1294,27 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       alignment->tAlignedSeqPos = rcAlignedSeqPos;
       alignment->tStrand        = Reverse;
     }
+		
+		//
+    // Reference the subread of the query, always in the forward
+    // strand for refining alignments.
+		//
 
-    // Configure the part of the query that is aligned.  The entire
-    // query should always be aligned.
-    alignment->qAlignedSeqPos    = 0;
-    alignment->qAlignedSeq.ReferenceSubstring(read);
+		alignment->qAlignedSeqPos = read.subreadStart;
+		alignment->qAlignedSeq.ReferenceSubstring(read, read.subreadStart, subreadEnd - subreadStart);
     alignment->qAlignedSeqLength = alignment->qAlignedSeq.length;
     alignment->qLength           = read.length;
     alignment->qStrand           = 0;
+		
+		//
+    // First count how much of the read matches the genome exactly.  
+		// It may be too low to bother refining.
+		// 
+    int intervalSize = 0;
+    int m;
+    for (m = 0; m < intvIt->matches.size(); m++) {
+			intervalSize += intvIt->matches[m].l;
+		} 
 
     if (params.verbosity > 1) {
       cout << "aligning read " << endl;
@@ -1241,25 +1324,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       cout << endl;
     }
 
-    //
-    // The type of alignment that is performed depends on the mode
-    // blasr is running in.  If it is running in normal mode, local
-    // aligment is performed and guided by SDP alignment.  When
-    // running in overlap mode, the alignments are forced to the ends
-    // of reads.
-    //
-
-    int intervalSize = 0;
-    int m;
-    // 
-    // Check to see if the matches to the genome are sufficiently
-    // dense to allow them to be used instead of having to redo
-    // sdp alignment.  
-    //
-        
-    // First count how much of the read matches the genome exactly.
-    for (m = 0; m < intvIt->matches.size(); m++) { intervalSize += intvIt->matches[m].l;} 
-
+		//		cout << "Interval size: " << intervalSize << endl;
     int subreadLength = forrev[(*intvIt).GetStrandIndex()]->subreadEnd - forrev[(*intvIt).GetStrandIndex()]->subreadStart;
     if ((1.0*intervalSize) / subreadLength < params.sdpBypassThreshold and !params.emulateNucmer) {
       //
@@ -1305,6 +1370,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				tAlignedSeq = alignment->tAlignedSeq;
 				qAlignedSeq = alignment->qAlignedSeq;
 				
+				
+
+
 				if (alignment->tStrand == 0) {
 					for (m = 0; m < matches->size(); m++) {
 						(*matches)[m].t -= alignment->tAlignedSeqPos;
@@ -1315,11 +1383,12 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					//
 					// Flip the entire alignment if it is on the reverse strand.
 					//
-
+					DNALength rcSubreadStart = read.length - read.subreadEnd;
 					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1);
+
 					for (m = 0; m < matches->size(); m++) {
 						(*matches)[m].t -= rcAlignedSeqPos;
-						(*matches)[m].q -= alignment->qAlignedSeqPos;
+						(*matches)[m].q -= rcSubreadStart; //alignment->qAlignedSeqPos;
 					}
 
           rcMatches.resize((*intvIt).matches.size());
@@ -1330,7 +1399,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																																																									 
           for (m = 0; m < (*intvIt).matches.size(); m++) {
             int revCompIndex = rcMatches.size() - m - 1;
-            rcMatches[revCompIndex].q = read.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
+            rcMatches[revCompIndex].q = qAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
             rcMatches[revCompIndex].t = tAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].t + (*intvIt).matches[m].l - 1);
             rcMatches[revCompIndex].l = (*intvIt).matches[m].l;
           }
@@ -1375,6 +1444,38 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						break;
 					}
 				}
+
+				//
+				// Map any unaligned portion of the query prefix to the reference.
+				//
+				if (matches->size() > 0) {
+					DNALength unalignedQueryPrefixLength = (*matches)[f].q;
+					DNALength unalignedTargetPrefixLength = (*matches)[f].t;
+
+					if (unalignedTargetPrefixLength > unalignedQueryPrefixLength * (1+params.indelRate)) {
+						unalignedTargetPrefixLength = unalignedQueryPrefixLength * (1+params.indelRate);
+					}
+					DNASequence targetPrefix;
+					DNASequence queryPrefix;
+					T_AlignmentCandidate alignmentInGap;
+					int as;
+					if (unalignedTargetPrefixLength > 0 and unalignedQueryPrefixLength > 0) {
+						DNALength qPos, tPos;
+						qPos = (*matches)[f].q - unalignedQueryPrefixLength;
+						tPos = (*matches)[f].t - unalignedTargetPrefixLength;
+						as = AlignSubstring(alignment->tAlignedSeq, tPos, unalignedTargetPrefixLength,
+																alignment->qAlignedSeq, qPos, unalignedQueryPrefixLength,
+																params,
+																sdpTupleSize,
+																distScoreFn,
+																refinementBuffers,
+																alignmentInGap);
+						if (as < -100) {
+							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
+						}
+					}
+				}
+
 				
         for (m = f; matches->size() > 0 and m < r; m++) {
           Block block;
@@ -1398,75 +1499,26 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					anchorsOnly.blocks.push_back(block);
 						
           if (tGap > 0 and qGap > 0) {
+						T_AlignmentCandidate alignmentInGap;
 
             DNALength tPos, qPos;
             tPos = block.tPos + block.length;
             qPos = block.qPos + block.length;
-            tSubSeq.ReferenceSubstring(alignment->tAlignedSeq, tPos, tGap);
-            qSubSeq.ReferenceSubstring(alignment->qAlignedSeq, qPos, qGap);
-            T_AlignmentCandidate alignmentInGap;
-            int alignScore;
-						if (tGap > 100 and qGap > 100) {
-							alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
-																		params.sdpIns, params.sdpDel, 0.25, 
-																		alignmentInGap, mappingBuffers, Local,
-																		params.detailedSDPAlignment, 
-																		params.extendFrontAlignment,
-																		params.sdpPrefix,
-																		params.recurseOver);
-							
-							vector<FASTQSequence*> bothQueryStrands;
-							bothQueryStrands.resize(2);
-							bothQueryStrands[Forward] = &qSubSeq;
-							T_QuerySequence qSubSeqRC;
-							qSubSeq.MakeRC(qSubSeqRC);
-							bothQueryStrands[Reverse] = &qSubSeqRC;
-							
-							alignmentInGap.qAlignedSeq.ReferenceSubstring(qSubSeq);
-							alignmentInGap.tAlignedSeq.ReferenceSubstring(tSubSeq);
+						AlignSubstring(alignment->tAlignedSeq, tPos, tGap,
+													 alignment->qAlignedSeq, qPos, qGap,
+													 params,
+													 sdpTupleSize,
+													 distScoreFn,
+													 refinementBuffers,
+													 alignmentInGap);
 
-							RefineAlignment(bothQueryStrands,
-															tSubSeq, 
-															alignmentInGap, params, refinementBuffers);
-							qSubSeqRC.Free();
-						}
-						else {
-							
-							int kbandScore = AffineKBandAlign(qSubSeq, tSubSeq, SMRTDistanceMatrix, 
-																								params.indel+2, params.indel - 3, // homopolymer insertion open and extend
-																								params.indel+2, params.indel - 1, // any insertion open and extend
-																								params.indel, // deletion
-																								params.bandSize,
-																								refinementBuffers.scoreMat, refinementBuffers.pathMat, 
-																								refinementBuffers.hpInsScoreMat, refinementBuffers.hpInsPathMat,
-																								refinementBuffers.insScoreMat, refinementBuffers.insPathMat,
-																								alignmentInGap, Global);
-							
-						}
 
             //
             // Now, splice the fragment alignment into the current
             // alignment. 
             //
-            if (alignmentInGap.blocks.size() > 0) {
-              int b;
-              //
-              // Configure this block to be relative to the beginning
-              // of the aligned substring.  
-              //
-              for (b = 0; b < alignmentInGap.size(); b++) {
-                alignmentInGap.blocks[b].tPos += tPos + alignmentInGap.tPos + alignmentInGap.tAlignedSeqPos;
-                alignmentInGap.blocks[b].qPos += qPos + alignmentInGap.qPos + alignmentInGap.qAlignedSeqPos;
-
-                assert(alignmentInGap.blocks[b].tPos < alignment->tAlignedSeq.length);
-                assert(alignmentInGap.blocks[b].qPos < alignment->qAlignedSeq.length);
-              }
-            }
-						// Add the blocks for the refined aignment.
-            alignment->blocks.insert(alignment->blocks.end(),
-                                     alignmentInGap.blocks.begin(),
-                                     alignmentInGap.blocks.end());
-          }
+						AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
+					}
         }
 
 				//
@@ -1486,6 +1538,39 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         block.length = (*matches)[m].l;
         alignment->blocks.push_back(block);        
         anchorsOnly.blocks.push_back(block);
+
+
+				//
+				// Map any unaligned portion of the query prefix to the reference.
+				//
+				if (r > 0 and r < (*matches).size()) {
+					int lastMatch = r;
+					DNALength unalignedQuerySuffixLength = alignment->qAlignedSeq.length - ((*matches)[lastMatch].q + (*matches)[lastMatch].l);
+					DNALength unalignedTargetSuffixLength = alignment->tAlignedSeq.length - ((*matches)[lastMatch].t + (*matches)[lastMatch].l);
+					if (unalignedTargetSuffixLength > unalignedQuerySuffixLength * (1+params.indelRate)) {
+						unalignedTargetSuffixLength = unalignedQuerySuffixLength * (1+params.indelRate);
+					}
+					DNASequence targetSuffix;
+					DNASequence querySuffix;
+					T_AlignmentCandidate alignmentInGap;
+					int as;
+					if (unalignedTargetSuffixLength > 0 and unalignedQuerySuffixLength > 0) {
+						DNALength qPos, tPos;
+						qPos = (*matches)[lastMatch].q + (*matches)[lastMatch].l;
+						tPos = (*matches)[lastMatch].t + (*matches)[lastMatch].l;
+
+						as = AlignSubstring(alignment->tAlignedSeq, tPos, unalignedTargetSuffixLength,
+																alignment->qAlignedSeq, qPos, unalignedQuerySuffixLength, 
+																params,
+																sdpTupleSize,
+																distScoreFn,
+																refinementBuffers,
+																alignmentInGap);
+						if (as < -100) {
+							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
+						}
+					}
+				}
 
 				//
 				// By convention, blocks start at 0, and the
@@ -1571,6 +1656,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         alignment->blocks.push_back(block);
       }
     }
+
+
 
     //
     //  The anchors/sdp alignments may leave portions of the read
@@ -1980,7 +2067,7 @@ void RefineAlignments(vector<T_Sequence*> &bothQueryStrands,
   
   UInt i;
   for (i = 0; i < alignmentPtrs.size(); i++ ) {
-    RefineAlignment(bothQueryStrands, genome, *alignmentPtrs[i], params, mappingBuffers);
+    RefineAlignment(*bothQueryStrands[0], genome, *alignmentPtrs[i], params, mappingBuffers);
   }
   //
   // It's possible the alignment references change their order after running
