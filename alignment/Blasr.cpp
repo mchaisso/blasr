@@ -91,7 +91,7 @@ MappingSemaphores semaphores;
  */
 
 ostream *outFilePtr;
-//ofstream clOut, nsOut, mcOut;
+
 
 HDFRegionTableReader *regionTableReader;
 
@@ -1069,7 +1069,8 @@ int AlignSubstring(DNASequence &tSeq, int tPos, int tLength,
 													params.detailedSDPAlignment, 
 													params.extendFrontAlignment,
 													params.sdpPrefix,
-													params.recurseOver);
+													params.recurseOver, 
+													params.sdpMaxAnchorsPerPosition);
 		
 		alignment.qAlignedSeq.ReferenceSubstring(qSubSeq);
 		alignment.tAlignedSeq.ReferenceSubstring(tSubSeq);
@@ -1117,6 +1118,9 @@ void AppendSubseqAlignment(T_AlignmentCandidate &alignment,
 													alignmentInGap.blocks.end());
 }
 
+bool LengthInBounds(DNALength len, DNALength min, DNALength max) {
+	return (len > min and len < max);
+}
 
 template<typename T_TargetSequence, typename T_QuerySequence, typename TDBSequence>
 void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequence &rcRead,
@@ -1316,14 +1320,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 			intervalSize += intvIt->matches[m].l;
 		} 
 
-    if (params.verbosity > 1) {
-      cout << "aligning read " << endl;
-      ((DNASequence)alignment->qAlignedSeq).PrintSeq(cout);
-      cout << endl << "aligning reference" << endl;
-      ((DNASequence)alignment->tAlignedSeq).PrintSeq(cout);
-      cout << endl;
-    }
-
 		//		cout << "Interval size: " << intervalSize << endl;
     int subreadLength = forrev[(*intvIt).GetStrandIndex()]->subreadEnd - forrev[(*intvIt).GetStrandIndex()]->subreadStart;
     if ((1.0*intervalSize) / subreadLength < params.sdpBypassThreshold and !params.emulateNucmer) {
@@ -1384,7 +1380,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					// Flip the entire alignment if it is on the reverse strand.
 					//
 					DNALength rcSubreadStart = read.length - read.subreadEnd;
-					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1);
+					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1 );
 
 					for (m = 0; m < matches->size(); m++) {
 						(*matches)[m].t -= rcAlignedSeqPos;
@@ -1448,6 +1444,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 				// Map any unaligned portion of the query prefix to the reference.
 				//
+				int maxRefine = 1000000;
 				if (matches->size() > 0) {
 					DNALength unalignedQueryPrefixLength = (*matches)[f].q;
 					DNALength unalignedTargetPrefixLength = (*matches)[f].t;
@@ -1459,7 +1456,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					DNASequence queryPrefix;
 					T_AlignmentCandidate alignmentInGap;
 					int as;
-					if (unalignedTargetPrefixLength > 0 and unalignedQueryPrefixLength > 0) {
+					if (LengthInBounds(unalignedTargetPrefixLength, 0, maxRefine) and
+							LengthInBounds(unalignedQueryPrefixLength, 0, maxRefine)) {
+						if (params.verbosity) {
+							cerr << "refining prefix: " << unalignedTargetPrefixLength << " " << unalignedQueryPrefixLength << " " << alignmentIndex << endl;
+						}
 						DNALength qPos, tPos;
 						qPos = (*matches)[f].q - unalignedQueryPrefixLength;
 						tPos = (*matches)[f].t - unalignedTargetPrefixLength;
@@ -1470,7 +1471,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																distScoreFn,
 																refinementBuffers,
 																alignmentInGap);
-						if (as < -100) {
+						if (as < -200) {
 							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
 						}
 					}
@@ -1547,6 +1548,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					int lastMatch = r;
 					DNALength unalignedQuerySuffixLength = alignment->qAlignedSeq.length - ((*matches)[lastMatch].q + (*matches)[lastMatch].l);
 					DNALength unalignedTargetSuffixLength = alignment->tAlignedSeq.length - ((*matches)[lastMatch].t + (*matches)[lastMatch].l);
+
+					if (params.verbosity) {
+						cerr << "refining prefix: " << unalignedTargetSuffixLength << " " << unalignedQuerySuffixLength << endl;
+					}
+
 					if (unalignedTargetSuffixLength > unalignedQuerySuffixLength * (1+params.indelRate)) {
 						unalignedTargetSuffixLength = unalignedQuerySuffixLength * (1+params.indelRate);
 					}
@@ -1554,7 +1560,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					DNASequence querySuffix;
 					T_AlignmentCandidate alignmentInGap;
 					int as;
-					if (unalignedTargetSuffixLength > 0 and unalignedQuerySuffixLength > 0) {
+					if (LengthInBounds(unalignedTargetSuffixLength, 0, maxRefine) and 
+							LengthInBounds(unalignedQuerySuffixLength, 0, maxRefine)) {
+
 						DNALength qPos, tPos;
 						qPos = (*matches)[lastMatch].q + (*matches)[lastMatch].l;
 						tPos = (*matches)[lastMatch].t + (*matches)[lastMatch].l;
@@ -1566,7 +1574,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																distScoreFn,
 																refinementBuffers,
 																alignmentInGap);
-						if (as < -100) {
+						if (as < -200) {
 							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
 						}
 					}
@@ -1860,17 +1868,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       }
     }
 
-    if (params.verbosity > 0) {
-      cout << "interval align score: " << alignScore << endl;
-			if (params.verbosity > 1) {
-				StickPrintAlignment(*alignment,
-														(DNASequence&) alignment->qAlignedSeq,
-														(DNASequence&) alignment->tAlignedSeq,
-														cout,
-														0, alignment->tAlignedSeqPos);
-			}
-
-    }
     ComputeAlignmentStats(*alignment, 
                           alignment->qAlignedSeq.seq,
                           alignment->tAlignedSeq.seq, distScoreFn, params.affineAlign);
@@ -1906,6 +1903,9 @@ void DeleteAlignments(vector<T_AlignmentCandidate*> &alignmentPtrs, int startInd
   }
   alignmentPtrs.resize(0);
 }
+
+
+
 
 int RemoveLowQualitySDPAlignments(int readLength, vector<T_AlignmentCandidate*> &alignmentPtrs, MappingParameters &params) {
   // Just a hack.  For now, assume there is at least 1 match per 50 bases.
@@ -2172,7 +2172,9 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     params.anchorParameters.expand = expand;
 
     metrics.clocks.mapToGenome.Tick();
-    
+		if (params.verbosity > 1) {
+			cerr << "mapping to genome." << endl;
+		}
     if (params.useSuffixArray) {
       params.anchorParameters.lcpBoundsOutPtr = mapData->lcpBoundsOutPtr;
       numKeysMatched   = 
@@ -2417,6 +2419,15 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 
     WeightedIntervalSet::iterator topIntIt, topIntEnd;
     topIntEnd = topIntervals.end();
+		
+		if (params.removeContainedIntervals) {
+			topIntervals.RemoveContained();
+		}
+    //
+    // Allocate candidate alignments on the stack.  Each interval is aligned.
+    //
+    alignmentPtrs.resize(topIntervals.size());
+
     if (params.verbosity > 0) {
       int topintind = 0;
       cout << " intv: index start end qstart qend seq_boundary_start seq_boundary_end pvalue " << endl;
@@ -2437,10 +2448,6 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
       }
     }
 
-    //
-    // Allocate candidate alignments on the stack.  Each interval is aligned.
-    //
-    alignmentPtrs.resize(topIntervals.size());
     UInt i;
     for (i = 0; i < alignmentPtrs.size(); i++ ) {
       alignmentPtrs[i] = new T_AlignmentCandidate;
@@ -3037,6 +3044,9 @@ void PrintAlignment(T_AlignmentCandidate &alignment, SMRTSequence &fullRead, Map
 		}
 		return;
 	}
+	if (alignment.mapQV < params.minMapQV) {
+		return;
+	}
   try {
     int lastBlock = alignment.blocks.size() - 1;
     if (params.printFormat == StickPrint) {
@@ -3116,17 +3126,18 @@ void PrintAlignments(vector<T_AlignmentCandidate*> alignmentPtrs,
       }
     }
   }
+
+	int prev=totalBases / 10000000;
+	totalBases += read.length;
+	if (totalBases / 10000000 > prev) {
+		cerr << "Processed " << totalBases << endl;
+	}
   
   if (params.nProc > 1) {
 #ifdef __APPLE__
     sem_wait(semaphores.writer);
 #else
     sem_wait(&semaphores.writer);
-		int prev=totalBases / 10000000;
-		totalBases += read.length;
-		if (totalBases / 10000000 > prev) {
-			cerr << "Processed " << totalBases << endl;
-		}
 
 
 #endif
@@ -3412,11 +3423,6 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
       }
       smrtRead.Free();
       continue;
-    }
-
-    if (params.verbosity > 1) {
-      cout << "aligning read: " << endl;
-      smrtRead.PrintSeq(cout);
     }
 
     smrtRead.MakeRC(smrtReadRC);
@@ -4111,6 +4117,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("extendBandSize", &params.extendBandSize, "", CommandLineParser::PositiveInteger);	
 	clp.RegisterIntOption("guidedAlignBandSize", &params.guidedAlignBandSize, "", CommandLineParser::PositiveInteger);	
 	clp.RegisterIntOption("maxAnchorsPerPosition", &params.anchorParameters.maxAnchorsPerPosition, "", CommandLineParser::PositiveInteger);
+	clp.RegisterIntOption("sdpMaxAnchorsPerPosition", &params.sdpMaxAnchorsPerPosition, "", CommandLineParser::PositiveInteger);
 	clp.RegisterIntOption("stopMappingOnceUnique", (int*) &params.anchorParameters.stopMappingOnceUnique, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterStringOption("out", &params.outFileName, "");
 	clp.RegisterIntOption("match", &params.match, "", CommandLineParser::Integer);
@@ -4209,6 +4216,8 @@ int main(int argc, char* argv[]) {
 	clp.RegisterStringOption("findex", &params.findex, "", false);
 	clp.RegisterIntOption("minInterval", &params.minInterval, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterStringListOption("samqv", &params.samqv, "", false);
+	clp.RegisterIntOption("minMapQV", &params.minMapQV, "", CommandLineParser::NonNegativeInteger);
+	clp.RegisterFlagOption("removeContained", &params.removeContainedIntervals, "", false);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
 

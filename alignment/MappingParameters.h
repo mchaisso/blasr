@@ -174,6 +174,9 @@ class MappingParameters {
 	vector<string> samqv;
 	SupplementalQVList samQVList;
 	bool alignContigs;
+	int minMapQV;
+	bool removeContainedIntervals;
+	int sdpMaxAnchorsPerPosition;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -328,6 +331,9 @@ class MappingParameters {
 		findex = "";
 		alignContigs = false;
 		minInterval = 100;
+		minMapQV = 0;
+		removeContainedIntervals = false;
+		sdpMaxAnchorsPerPosition = 0; // default to any number
 	}
 
 	MappingParameters() {
@@ -431,6 +437,8 @@ class MappingParameters {
 			affineOpen   = 20;
 			anchorParameters.maxAnchorsPerPosition = 100;
 			indelRate = 0.0001;
+			clipping = SAMOutput::soft;
+			removeContainedIntervals = true;
 		}
 
 		if (emulateNucmer) {

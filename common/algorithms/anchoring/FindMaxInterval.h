@@ -623,7 +623,7 @@ template<typename T_MatchList,
       WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
                                         lis[0].t, lis[lisEnd].t + lis[lisEnd].GetLength(), 
                                         readDir, lisPValue, 
-                                        lis[0].q, lis[lisEnd].q + lis[lisEnd].GetLength(), 
+                                        lis[0].q, lis[lisEnd].q + lis[lisEnd].GetLength(), query.length,
                                         lis);
 			intervalQueue.insert(weightedInterval);
       if (weightedInterval.isOverlapping == false) {

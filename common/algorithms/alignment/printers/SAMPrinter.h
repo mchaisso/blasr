@@ -347,8 +347,8 @@ namespace SAMOutput {
 		//
 		// The position of the alignment in the query and target.
 		//
-		int qPos = 0;
-		int tPos = 0;
+		int qPos = alignment.qPos;
+		int tPos = alignment.tPos;
 
 		if (prefixHardClip > 0) {
 			opSize.push_back(prefixHardClip);

@@ -29,7 +29,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true,
 						 int sdpPrefixLength=50,
-             int  noRecurseUnder=10000) {
+             int  noRecurseUnder=10000,
+						 int maxFragmentsPerPosition=0) {
 
   /*
     Since SDP Align uses a large list of buffers, but none are
@@ -53,7 +54,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   detailedAlignment,
                   extendFrontByLocalAlignment, 
 									sdpPrefixLength,
-                  noRecurseUnder);
+                  noRecurseUnder, 
+									maxFragmentsPerPosition);
 }
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn, typename T_BufferCache>
@@ -66,7 +68,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=false, 
 						 int sdpPrefixLength=50,
-             int  noRecurseUnder = 10000) {
+             int  noRecurseUnder = 10000,
+						 int maxFragmentsPerPosition=0) {
 
   return SDPAlign(query, target, scoreFn, wordSize, 
                   sdpIns, sdpDel, indelRate,
@@ -79,7 +82,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   buffers.sdpCachedTargetSuffixTupleList,
                   buffers.sdpCachedMaxFragmentChain,
                   alignType, detailedAlignment, extendFrontByLocalAlignment, 
-									sdpPrefixLength, noRecurseUnder);
+									sdpPrefixLength, noRecurseUnder, maxFragmentsPerPosition);
 }
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn, typename T_TupleList>
@@ -100,7 +103,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true, 
 						 int sdpPrefixLength=50,
-             int  noRecurseUnder=10000) {
+             int  noRecurseUnder=10000, 
+						 int maxMatchesPerPosition=0) {
 
   fragmentSet.clear();
   prefixFragmentSet.clear();
@@ -189,9 +193,9 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 	StoreMatchingPositions(query, tm, targetTupleList, fragmentSet); 
   */
 
-  StoreMatchingPositions(qPrefix, tmSmall, targetPrefixTupleList, prefixFragmentSet);
-  StoreMatchingPositions(qSuffix, tmSmall, targetSuffixTupleList, suffixFragmentSet);
-	StoreMatchingPositions(qMiddle, tm, targetTupleList, fragmentSet); 
+  StoreMatchingPositions(qPrefix, tmSmall, targetPrefixTupleList, prefixFragmentSet, maxMatchesPerPosition);
+  StoreMatchingPositions(qSuffix, tmSmall, targetSuffixTupleList, suffixFragmentSet, maxMatchesPerPosition);
+	StoreMatchingPositions(qMiddle, tm, targetTupleList, fragmentSet, maxMatchesPerPosition); 
   
   // 
   // The method to store matching positions is not weight aware.

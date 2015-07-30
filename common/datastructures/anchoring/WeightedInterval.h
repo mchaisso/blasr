@@ -14,7 +14,7 @@ public:
 	DNALength size; // not necessarily end - start + 1
 	DNALength start;
 	DNALength end;
-	DNALength qStart, qEnd;
+	DNALength qStart, qEnd, qLength;
 	int readIndex;
 	float pValue;
 	vector<int> positions;
@@ -64,6 +64,7 @@ public:
 		pValue    = _pValue;
 		qStart = 0;
 		qEnd   = 0;
+		qLength = 0;
     nAnchors = 0;
     totalAnchorSize = 0;
     pValueVariance =
@@ -76,16 +77,21 @@ public:
 		Init(_size, _start, _end, _readIndex, _pValue);
 	}
 	
-	WeightedInterval(int _size, int _start, int _end, int _readIndex, float _pValue, int _qStart, int _qEnd){
+	WeightedInterval(int _size, int _start, int _end, int _readIndex, float _pValue, int _qStart, int _qEnd, int _qLength){
 		Init(_size, _start, _end, _readIndex, _pValue);
 		qStart    = _qStart;
 		qEnd      = _qEnd;
+		qLength   = _qLength;
 	}
 
-	WeightedInterval(int _size, unsigned int _nAnchors, unsigned int _totalAnchorSize, int _start, int _end, int _readIndex, float _pValue, int _qStart, int _qEnd, vector<ChainedMatchPos> &_matches) {
+	WeightedInterval(int _size, unsigned int _nAnchors, unsigned int _totalAnchorSize, 
+									 int _start, int _end, int _readIndex, float _pValue, 
+									 int _qStart, int _qEnd, int _qLength, 
+									 vector<ChainedMatchPos> &_matches) {
 		Init(_size, _start, _end, _readIndex, _pValue);
 		qStart    = _qStart;
 		qEnd      = _qEnd;
+		qLength   = _qLength;
 		matches   = _matches;
     nAnchors  = _nAnchors;
     totalAnchorSize = _totalAnchorSize;
@@ -117,6 +123,47 @@ typedef multiset<WeightedInterval, CompareWeightedIntervalByPValue> T_WeightedIn
 class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
  public:
   int  maxSize;
+	
+	void RemoveContained(float maxRatio = 0.9) {
+		WeightedIntervalSet::iterator it = (*this).begin();
+		WeightedIntervalSet::iterator endIt = (*this).end();
+		bool isContained = false;
+		while (it != endIt and isContained == false) {
+			DNALength curStart = (*it).qStart;
+			DNALength curEnd   = (*it).qEnd;
+			int curAnchorSize = (*it).totalAnchorSize;
+			DNALength curReadLength = (*it).qLength;
+			/*
+			if ((*it).GetStrandIndex() == 1) {
+				curStart = (*it).qLength - (*it).qEnd;
+				curEnd   = (*it).qLength - (*it).qStart;
+				}*/
+			WeightedIntervalSet::iterator nextIt = it;
+			++nextIt;
+			while (nextIt != endIt) {
+				float overlap = 0;
+				DNALength nextStart = (*nextIt).qStart;
+				DNALength nextEnd   = (*nextIt).qEnd;
+				/*
+				if ((*nextIt).GetStrandIndex() == 1) {
+					nextEnd   = (*nextIt).qLength - (*nextIt).qStart;
+					nextStart = (*nextIt).qLength - (*nextIt).qEnd;
+					}	*/				
+				float overlapRatio = ((float)(nextEnd - nextStart))/(curEnd - curStart);
+				float anchorSizeRatio = ((float)(*nextIt).totalAnchorSize)/curAnchorSize;
+				if (nextStart >= curStart and nextEnd <= curEnd and (overlapRatio < maxRatio or anchorSizeRatio < 0.25)) {
+					WeightedIntervalSet::iterator skip = nextIt;
+					++skip;
+					this->erase(nextIt);
+					nextIt = skip;
+				}
+				else {
+					++nextIt;
+				}
+			}
+			++it;
+		}
+	}
 
   WeightedIntervalSet() {
     maxSize = 0;
@@ -134,10 +181,12 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 		//
 
 		WeightedIntervalSet::iterator it = (*this).begin();
-		WeightedIntervalSet::iterator endit = (*this).end();
+		WeightedIntervalSet::iterator endIt = (*this).end();
 		bool isContained = false;
-		while (it != endit and isContained == false) {
 
+
+		while (it != endIt and isContained == false) {
+			
 			if (intv.qStart >= (*it).qStart and intv.qEnd <= (*it).qEnd and
 					intv.start  >= (*it).start and intv.end <= (*it).end and 
           intv.readIndex == (*it).readIndex and
