@@ -248,7 +248,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc42";
+  return "1.MC.rc43";
 }
 
 void GetVersion(string &version) {
