@@ -9,10 +9,10 @@ class BaseScoreFunction {
   int globalDeletionPrior;
   int affineExtend;
   int affineOpen;
+
   BaseScoreFunction() {
     ins = del = substitutionPrior = globalDeletionPrior = 0;
     affineOpen = affineExtend = 0;
-    
   }
 
   BaseScoreFunction(int insP, int delP, int subPriorP, int delPriorP, int affineExtensionP, int affineOpenP)  {

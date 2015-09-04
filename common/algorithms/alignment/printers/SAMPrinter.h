@@ -33,40 +33,18 @@ namespace SAMOutput {
      */
 
 
-    //
-    // Without supporting strobe, assume 1 segment per template.
     flag = 0;
-    /*
-    if (context.nSubreads > 1) {
-      flag |= MULTI_SEGMENTS;
-      }*/
-
-    //    if (context.AllSubreadsAligned() and context.nSubreads > 1) {
-    //      flag |= ALL_SEGMENTS_ALIGNED;
-      //    }
 
     if (alignment.tStrand == 1) {
       flag |= SEQ_REVERSED;
     }
-    /*
-    if (context.hasNextSubreadPos == false and context.nSubreads > 1) {
-      flag |= NEXT_SEGMENT_UNMAPPED;
-    }
-    if (context.nextSubreadDir == 1) {
-      flag |= SEQ_NEXT_REVERSED;
-    }
-    if (context.IsFirst() and context.nSubreads > 1) {
-      flag |= FIRST_SEGMENT;
-    }
-    */
     else if (context.nSubreads > 1) {
       /*
        * Remember, if you're not first, you're last.
        */
-      //      flag |= LAST_SEGMENT;
     }
     if (context.isPrimary == false) {
-      flag |= SECONDARY_ALIGNMENT;
+     flag |= SECONDARY_ALIGNMENT;
     }
   }
 
@@ -188,6 +166,38 @@ namespace SAMOutput {
 	 }		 
  }
 
+ void AddUnmatchedOperations(T_AlignmentCandidate &alignment, 
+														 int qPos,
+														 int tPos,
+														 int alnLength,
+														 vector<int> &opSize, 
+														 vector<char> &opChar) {
+	 int i;
+	 int opStart;
+	 i = 0;
+	 while (i < alnLength) {
+		 opStart = i;
+		 while (i < alnLength and 
+						alignment.qAlignedSeq.seq[qPos+i] != alignment.tAlignedSeq.seq[tPos+i]) {
+			 i+=1;
+		 }
+		 if (i > opStart) {
+			 opSize.push_back(i - opStart);
+			 opChar.push_back('X');
+		 }
+		 opStart = i;
+		 while (i < alnLength and 
+						alignment.qAlignedSeq.seq[qPos+i] == alignment.tAlignedSeq.seq[tPos+i]) {
+			 i+=1;
+		 }
+		 if (i > opStart) {
+			 opSize.push_back(i - opStart);
+			 opChar.push_back('=');
+		 }
+	 }		 
+ }
+
+
  void CreateNoClippingCigarOps(T_AlignmentCandidate &alignment, 
 															 int qPos,
 															 int tPos,
@@ -215,7 +225,7 @@ namespace SAMOutput {
       // time, which merges into a mismatch.
       //
       int qGap=0, tGap=0, commonGap=0;
-      int matchLength = alignment.blocks[b].length;
+
       if (nGaps == 0) {
 				qGap = 0;
 				tGap = 0;
@@ -226,16 +236,31 @@ namespace SAMOutput {
           qGap = alignment.blocks[b+1].qPos - alignment.blocks[b].qPos - alignment.blocks[b].length;
           tGap = alignment.blocks[b+1].tPos - alignment.blocks[b].tPos - alignment.blocks[b].length;
 				}
+				//
+				// Add the current block to the alignment.
+				//
+				AddUngappedOperations(alignment, b, qPos, tPos, opSize, opChar);
+				qPos += alignment.blocks[b].length;
+				tPos += alignment.blocks[b].length;
+
+				//
+				// In sloppy regions, there may be a set of bases that are not
+				// aligned in both the reference and query.  It is necessary
+				// to account for all bases, but SAM does not allow
+				// overlapping gaps.  To account for this the largest of the
+				// two (insertion or deletion) is printed, minus the
+				// difference.
+				// Next, the extra characters must be printed in an alignment
+
+				int unmatchedLength = 0;
 				if (qGap > 0 and tGap > 0) {
 					int commonGap;
 					commonGap = min(qGap, tGap);
 					qGap -= commonGap;
 					tGap -= commonGap;
-					matchLength += commonGap;
+					unmatchedLength = commonGap;
 				}
-				AddUngappedOperations(alignment, b, qPos, tPos, opSize, opChar);
-				qPos += alignment.blocks[b].length;
-				tPos += alignment.blocks[b].length;
+
 				if (qGap > 0 or tGap > 0) {
 					if (qGap > 0) {
 						opSize.push_back(qGap);
@@ -248,6 +273,11 @@ namespace SAMOutput {
 						tPos += tGap;
 					}
 				}
+
+				AddUnmatchedOperations(alignment, qPos, tPos, unmatchedLength, opSize, opChar);
+				qPos += unmatchedLength;
+				tPos += unmatchedLength;
+
       }
       else {
 				AddUngappedOperations(alignment, b, qPos, tPos, opSize, opChar);
@@ -388,7 +418,6 @@ namespace SAMOutput {
                       T_Sequence &read,
                       ostream &samFile,
                       AlignmentContext &context,
-											//											SupplementalQVList &qvList,
 											SupplementalQVList &qvlist,
                       Clipping clipping = none,
                       int subreadIndex = 0,

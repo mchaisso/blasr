@@ -762,13 +762,6 @@ void WriteComponentList(ofstream &out) {
 			 //
 			 assert(index[m]+targetOffset < targetLength);
 
-       /*
-			 if (ThreeBit[target[index[m]+targetOffset]] >= 4 or 
-           ThreeBit[queryChar] >= 4) {
-				 lr = ll;
-				 break;
-			 }
-       */
 			 comp = Compare::Compare(target[index[m]+targetOffset], queryChar);
        
 		 }

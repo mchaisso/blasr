@@ -239,16 +239,6 @@ regular  |===|=+||===|=+|
   int curMatrix = REGULAR;
   Arrow arrow;
 
-  /*
-  cout << "score " << endl;
-  PrintFlatMatrix(scoreMat.matrix, scoreMat.nRows, scoreMat.nCols, cout, 3);
-  cout << "path " << endl;
-  PrintFlatMatrix(pathMat.matrix, scoreMat.nRows, scoreMat.nCols, cout, 3);
-  cout << "affine score " << endl;
-  PrintFlatMatrix(affineScoreMat.matrix, scoreMat.nRows, scoreMat.nCols, cout, 3);
-  cout << "affine path " << endl;
-  PrintFlatMatrix(affinePathMat.matrix, scoreMat.nRows, scoreMat.nCols, cout, 3);
-  */
   int optScore = scoreMat[i][j];
   while (i > 0 or j > 0 or curMatrix == AFFINE) {
     if (curMatrix == REGULAR) {

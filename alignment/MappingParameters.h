@@ -8,6 +8,8 @@
 #include "qvs/QualityValue.h"
 #include "algorithms/alignment/printers/SAMPrinter.h"
 #include "algorithms/alignment/AlignmentFormats.h"
+#include "algorithms/anchoring/IntervalSearchParameters.h"
+#include "algorithms/alignment/BaseScoreFunction.h"
 
 class MappingParameters {
  public:
@@ -177,6 +179,8 @@ class MappingParameters {
 	int minMapQV;
 	bool removeContainedIntervals;
 	int sdpMaxAnchorsPerPosition;
+	int maxRefine;
+	int maxAnchorGap;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -334,6 +338,8 @@ class MappingParameters {
 		minMapQV = 0;
 		removeContainedIntervals = false;
 		sdpMaxAnchorsPerPosition = 0; // default to any number
+		maxRefine = 1000000;
+		maxAnchorGap = 0;
 	}
 
 	MappingParameters() {
@@ -429,9 +435,9 @@ class MappingParameters {
 		if (alignContigs) {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
-			minMatchLength = anchorParameters.minMatchLength = 20;
-			anchorParameters.advanceExactMatches = advanceExactMatches = 20;
-			anchorParameters.maxLCPLength = 25;
+			minMatchLength = anchorParameters.minMatchLength = 30;
+			anchorParameters.advanceExactMatches = advanceExactMatches = 0;
+			anchorParameters.maxLCPLength = 31;
 			affineAlign = true;
 			affineExtend = 0;
 			affineOpen   = 20;
@@ -532,7 +538,23 @@ class MappingParameters {
 			return false;
 		}
 	}
+	void InitializeIntervalSearchParameters(IntervalSearchParameters &intervalSearchParameters) {
+		intervalSearchParameters.globalChainType = globalChainType;
+		intervalSearchParameters.overlap         = overlap;
+		intervalSearchParameters.minMatch        = minMatchLength;
+		intervalSearchParameters.minInterval     = minInterval;
+		intervalSearchParameters.maxAnchorGap    = maxAnchorGap;
+	}
+
+	void InitializeScoreFunction(BaseScoreFunction &f) {
+		f.del = deletion;
+		f.ins = insertion;
+		f.affineOpen = affineOpen;
+		f.affineExtend = affineExtend;
+	}
+
 };
+
 
 
 #endif

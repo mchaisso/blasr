@@ -9,7 +9,10 @@
 using namespace std;
 using namespace H5;
 
-void CallStoreAttributeName(H5Object &obj, string attrName, void *attrListPtr);
+template<typename T_H5Object>
+void CallStoreAttributeName(T_H5Object &obj, string attrName, void *attrList){ 
+	((vector<string>*)attrList)->push_back(attrName);
+ }
 
 class HDFAttributable {
  public:
@@ -44,8 +47,5 @@ class HDFAttributable {
 
 };
 
-void CallStoreAttributeName(H5Object &obj, string attrName, void *attrList){ 
-	((vector<string>*)attrList)->push_back(attrName);
- }
 
 #endif

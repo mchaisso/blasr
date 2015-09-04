@@ -146,19 +146,6 @@ class AlignmentCandidate : public Alignment {
     GetQInterval(qStart, qEnd, true);
   }
 
-  void GetQInterval(int &qStart, int &qEnd, bool useForwardStrand=false) {
-    qStart = qEnd = 0;
-    if (blocks.size() == 0) { return; }
-    qStart = blocks[0].qPos + qAlignedSeqPos;
-    qEnd   = QEnd() + qAlignedSeqPos;
-    if (useForwardStrand and qStrand == 1) {
-      int forQEnd, forQStart;
-      forQStart = qLength - qEnd;
-      forQEnd   = qLength - qStart;
-      qStart    = forQStart;
-      qEnd      = forQEnd;
-    }
-  }
   
   DNALength QAlignEnd() {
     return QEnd() + qPos + qAlignedSeqPos;
@@ -170,6 +157,20 @@ class AlignmentCandidate : public Alignment {
   
   DNALength TAlignStart() {
     return tPos + tAlignedSeqPos;
+  }
+
+  void GetQInterval(int &qStart, int &qEnd, bool useForwardStrand=false) {
+    qStart = qEnd = 0;
+    if (blocks.size() == 0) { return; }
+    qStart = QAlignStart();
+    qEnd   = QAlignEnd();
+    if (useForwardStrand and qStrand == 1) {
+      int forQEnd, forQStart;
+      forQStart = qLength - qEnd;
+      forQEnd   = qLength - qStart;
+      qStart    = forQStart;
+      qEnd      = forQEnd;
+    }
   }
 
   // Synonyms for T/QStart 

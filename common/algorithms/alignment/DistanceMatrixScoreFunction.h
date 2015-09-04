@@ -4,8 +4,8 @@
 #include "ScoreMatrices.h"
 #include "BaseScoreFunction.h"
 
-#include "../../FASTASequence.h"
-#include "../../FASTQSequence.h"
+#include "FASTASequence.h"
+#include "FASTQSequence.h"
 
 
 template<typename T_RefSequence, typename T_QuerySequence>
