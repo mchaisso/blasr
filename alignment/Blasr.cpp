@@ -1302,6 +1302,9 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 				if (alignment->tStrand == 0) {
 					for (m = 0; m < matches->size(); m++) {
+						if ((*matches)[m].t < alignment->tAlignedSeqPos or (*matches)[m].q < alignment->qAlignedSeqPos) {
+							cout << "Yikes!" << endl;
+						}
 						(*matches)[m].t -= alignment->tAlignedSeqPos;
 						(*matches)[m].q -= alignment->qAlignedSeqPos;
 					}
@@ -1326,8 +1329,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																																																									 
           for (m = 0; m < (*intvIt).matches.size(); m++) {
             int revCompIndex = rcMatches.size() - m - 1;
-            rcMatches[revCompIndex].q = qAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
-            rcMatches[revCompIndex].t = tAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].t + (*intvIt).matches[m].l - 1);
+            rcMatches[revCompIndex].q = alignment->qAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
+            rcMatches[revCompIndex].t = alignment->tAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].t + (*intvIt).matches[m].l - 1);
             rcMatches[revCompIndex].l = (*intvIt).matches[m].l;
           }
           matches = &rcMatches;

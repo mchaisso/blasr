@@ -617,7 +617,6 @@ template<typename T_MatchList,
 	
 	
 	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params);
-	cout << "rc43 start size: " << start.size() << endl;
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;
@@ -681,6 +680,9 @@ template<typename T_MatchList,
 
 
 		if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
+			if (lis[0].t == 4262543333) {
+				cout << "YIKES!" << endl;
+			}
       WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
                                         lis[0].t, lis[lisEnd].t + lis[lisEnd].GetLength(), 
                                         readDir, lisPValue, 
