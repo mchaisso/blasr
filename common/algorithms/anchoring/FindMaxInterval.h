@@ -180,8 +180,8 @@ template<typename T_MatchList,
 			(pos[index].t - pos[index-1].t > maxAnchorGap)) {
 		cout << "broke on big gap t: " << pos[index].t - pos[index-1].t  << " q: " << pos[index].q - pos[index-1].q << endl;
 	}
-				 
 }
+
 template<typename T_MatchList>  
 int RemoveZeroLengthAnchors(T_MatchList &matchList) {       
   int origSize = matchList.size();
@@ -459,7 +459,6 @@ template<typename T_MatchList,
 						//
 						pos[endIndex].t - pos[endIndex-1].t > params.maxAnchorGap ) {
 						cur = endIndex;
-						cout << "broke on big gap t: " << pos[endIndex].t - pos[endIndex-1].t  << endl;
 						endIndex+=1;
 						if (endIndex < nPos) {
 							endIndexBoundary = ContigStartPos(pos[endIndex].t);
@@ -618,6 +617,7 @@ template<typename T_MatchList,
 	
 	
 	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params);
+	cout << "rc43 start size: " << start.size() << endl;
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;

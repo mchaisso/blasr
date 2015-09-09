@@ -1299,11 +1299,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				
 
 				matches = (vector<ChainedMatchPos>*) &(*intvIt).matches;
-				tAlignedSeq = alignment->tAlignedSeq;
-				qAlignedSeq = alignment->qAlignedSeq;
-				
-				
-
 
 				if (alignment->tStrand == 0) {
 					for (m = 0; m < matches->size(); m++) {
