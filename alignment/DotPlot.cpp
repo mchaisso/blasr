@@ -116,11 +116,11 @@ int main(int argc, char* argv[]) {
 	
 	int i;
 	for (i = 0; i < matchPosList.size(); i++ ){
-		cout << matchPosList[i].q << "\t" << matchPosList[i].t << "\t" << matchPosList[i].l << "\t0" << endl;
+		cout << matchPosList[i].q << "\t" << matchPosList[i].t << "\t" << matchPosList[i].l << "\t0\t0" << endl;
 	}
 
 	for (i = 0; i < rcMatchPosList.size(); i++) {
-		cout << query.length - (rcMatchPosList[i].q + rcMatchPosList[i].l) << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t1" << endl;
+		cout << query.length - (rcMatchPosList[i].q + rcMatchPosList[i].l) << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t0\t1" << endl;
 	}
 }
 	
