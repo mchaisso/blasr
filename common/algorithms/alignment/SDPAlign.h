@@ -29,8 +29,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true,
 						 int sdpPrefixLength=50,
+						 int recurse=3,
              int  noRecurseUnder=10000,
-						 int maxFragmentsPerPosition=0) {
+						 int maxFragmentsPerPosition=0,
+						 AlignmentType smithWatermanAlignType=EndAnchored) {
 
   /*
     Since SDP Align uses a large list of buffers, but none are
@@ -54,8 +56,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   detailedAlignment,
                   extendFrontByLocalAlignment, 
 									sdpPrefixLength,
+									recurse,
                   noRecurseUnder, 
-									maxFragmentsPerPosition);
+									maxFragmentsPerPosition, 
+									smithWatermanAlignType);
 }
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn, typename T_BufferCache>
@@ -68,8 +72,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=false, 
 						 int sdpPrefixLength=50,
+						 int recurse=3,
              int  noRecurseUnder = 10000,
-						 int maxFragmentsPerPosition=0) {
+						 int maxFragmentsPerPosition=0,
+						 AlignmentType smithWatermanAlignType=EndAnchored) {
 
   return SDPAlign(query, target, scoreFn, wordSize, 
                   sdpIns, sdpDel, indelRate,
@@ -82,7 +88,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
                   buffers.sdpCachedTargetSuffixTupleList,
                   buffers.sdpCachedMaxFragmentChain,
                   alignType, detailedAlignment, extendFrontByLocalAlignment, 
-									sdpPrefixLength, noRecurseUnder, maxFragmentsPerPosition);
+									sdpPrefixLength, recurse, noRecurseUnder, maxFragmentsPerPosition, smithWatermanAlignType);
 }
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn, typename T_TupleList>
@@ -103,8 +109,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 						 bool detailedAlignment=true,
 						 bool extendFrontByLocalAlignment=true, 
 						 int sdpPrefixLength=50,
+						 int recurse=3,
              int  noRecurseUnder=10000, 
-						 int maxMatchesPerPosition=0) {
+						 int maxMatchesPerPosition=0,
+						 AlignmentType smithWatermanAlignType=EndAnchored) {
 
   fragmentSet.clear();
   prefixFragmentSet.clear();
@@ -457,26 +465,27 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 				// where the alignment begins, but normal, ungapped alignment
 				// otherwise. 
 				if (extendFrontByLocalAlignment) {
-          if (noRecurseUnder == 0 or qFragment.length * tFragment.length < noRecurseUnder) {
+          if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
             frontAlignmentScore  = 
-              SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, frontAlignment, scoreFn, EndAnchored);
+              SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, frontAlignment, scoreFn, smithWatermanAlignType);
           }
           else {
-            //            cout << "running recursive sdp alignment. " << endl;
-            vector<int> recurseFragmentChain;
-            SDPAlign(qFragment, tFragment, scoreFn,
-                     max(wordSize/2, 5),
-                     sdpIns, sdpDel,  indelRate,
-                     frontAlignment,
-                     fragmentSet,
-                     prefixFragmentSet,
-                     suffixFragmentSet,
-                     targetTupleList,
-                     targetPrefixTupleList,
-                     targetSuffixTupleList,
-                     recurseFragmentChain,
-                     alignType, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, 0);
-          }
+						if (recurse != 0) {
+							vector<int> recurseFragmentChain;
+							SDPAlign(qFragment, tFragment, scoreFn,
+											 max(wordSize-4, 5),
+											 sdpIns, sdpDel,  indelRate,
+											 frontAlignment,
+											 fragmentSet,
+											 prefixFragmentSet,
+											 suffixFragmentSet,
+											 targetTupleList,
+											 targetPrefixTupleList,
+											 targetSuffixTupleList,
+											 recurseFragmentChain,
+											 Global, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, smithWatermanAlignType);
+						}
+					}
 					
 					int anchorBlock;
 					for (anchorBlock = 0; anchorBlock < frontAlignment.blocks.size(); anchorBlock++) {
@@ -521,24 +530,26 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 					tFragment.length > 0 and
 					detailedAlignment == true) {
 
-        if (noRecurseUnder == 0 or qFragment.length * tFragment.length < noRecurseUnder) {
+        if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
           alignScore = SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, Global);
         }
         else {
           //          cout << "running recursive sdp alignment on " << qFragment.length * tFragment.length << endl;
-          vector<int> recurseFragmentChain;
-          SDPAlign(qFragment, tFragment, scoreFn,
-                   max(wordSize/2, 5),
-                   sdpIns, sdpDel,  indelRate,
-                   fragAlignment,
-                   fragmentSet,
-                   prefixFragmentSet,
-                   suffixFragmentSet,
-                   targetTupleList,
-                   targetPrefixTupleList,
-                   targetSuffixTupleList,
-                   recurseFragmentChain,
-                   alignType, detailedAlignment, 0, sdpPrefixLength, 0);
+					if (recurse != 0) {
+						vector<int> recurseFragmentChain;
+						SDPAlign(qFragment, tFragment, scoreFn,
+										 max(wordSize-4, 5),
+										 sdpIns, sdpDel,  indelRate,
+										 fragAlignment,
+										 fragmentSet,
+										 prefixFragmentSet,
+										 suffixFragmentSet,
+										 targetTupleList,
+										 targetPrefixTupleList,
+										 targetSuffixTupleList,
+										 recurseFragmentChain,
+										 alignType, detailedAlignment, false, sdpPrefixLength, recurse-1, noRecurseUnder);
+					}
         }
         /*
         if (noRecurseUnder and qFragment.length * tFragment.length > noRecurseUnder) {
@@ -585,27 +596,26 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
             if (extendFrontByLocalAlignment) {
 
               fragAlignment.Clear();
-              if (qFragment.length * tFragment.length > 10000) {
-                //              cout << "Cautin: slow alignment crossing! " << qFragment.length  << " " << tFragment.length << endl;
-              }
-
-              if (noRecurseUnder == 0 or qFragment.length * tFragment.length < noRecurseUnder) {
-                SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, EndAnchored);
+              if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
+                SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, smithWatermanAlignType);
               }
               else {
-                vector<int> recurseFragmentChain;
-                SDPAlign(qFragment, tFragment, scoreFn,
-                         max(wordSize/2, 5),
-                         sdpIns, sdpDel,  indelRate,
-                         fragAlignment,
-                         fragmentSet,
-                         prefixFragmentSet,
-                         suffixFragmentSet,
-                         targetTupleList,
-                         targetPrefixTupleList,
-                         targetSuffixTupleList,
-                         recurseFragmentChain,
-                         alignType, detailedAlignment, extendFrontByLocalAlignment, 0);
+								if (recurse != 0) {
+									vector<int> recurseFragmentChain;
+									SDPAlign(qFragment, tFragment, scoreFn,
+													 max(wordSize/2, 5),
+													 sdpIns, sdpDel,  indelRate,
+													 fragAlignment,
+													 fragmentSet,
+													 prefixFragmentSet,
+													 suffixFragmentSet,
+													 targetTupleList,
+													 targetPrefixTupleList,
+													 targetSuffixTupleList,
+													 recurseFragmentChain,
+													 alignType, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, maxMatchesPerPosition, smithWatermanAlignType);
+								}
+
               }
 
 

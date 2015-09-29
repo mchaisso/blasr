@@ -33,6 +33,7 @@ int main(int argc, char* argv[]) {
 	int minMatchLength = 20;
   CommandLineParser clp;
 	int maxAlignScore = 50;
+	int maxRealignLength = 500;
 	vector<string> samHeader;
   clp.RegisterStringOption("genome", &genomeFileName, "Genome.", true);
   clp.RegisterStringOption("sam", &samFileName, "Alignments.", true);
@@ -70,7 +71,22 @@ int main(int argc, char* argv[]) {
   for (i = 0; i < references.size(); i++) {
     refToIndex[references[i].title] = i;
   }
-	cout << "done reading ref." << endl;
+
+	vector<string> header;
+	ifstream samFileHeader(samFileName.c_str());
+	string headerLine;
+	while(samFileHeader) {
+		string line;
+		getline(samFileHeader, line);
+		if (line.size() > 0 and line[0] == '@') {
+			header.push_back(line);
+		}
+		else {
+			break;
+		}
+	}
+	samFileHeader.close();
+
 
 	SAMReader<SAMFullReferenceSequence, SAMReadGroup, SAMPosAlignment> samReader;
 	samReader.Initialize(samFileName);
@@ -81,13 +97,15 @@ int main(int argc, char* argv[]) {
 	SAMAlignment samAlignment;  
 
 	int index = 0;
-	vector<int> realignedGapStart, realignedGapEnd;
-	vector<AlignmentCandidate<> > replacementAlignments;
+	int lineNumber;
+	for (lineNumber=0; lineNumber < header.size(); lineNumber++) {
+		outFile << header[lineNumber] << endl;
+	}
 	while (samReader.GetNextAlignment(samAlignment)) {
 		if (samAlignment.rName == "*") {
 			continue;
 		}
-		cout << samAlignment.qName << endl;
+		cerr << samAlignment.qName << endl;
 		vector<AlignmentCandidate<> > convertedAlignments;
 		//
 		// Convert the SAM alignment into a block structure.  This lets
@@ -104,6 +122,9 @@ int main(int argc, char* argv[]) {
 			//
 			// Look for a region of high identity.
 			//
+			vector<int> realignedGapStart, realignedGapEnd;
+			vector<AlignmentCandidate<> > replacementAlignments;
+
 			AlignmentCandidate<> &aln =convertedAlignments[i];
 			int b = 0;
 			while (b < aln.blocks.size()-1) {
@@ -118,16 +139,10 @@ int main(int argc, char* argv[]) {
 				int gapStart = b;
 				while (b < aln.blocks.size() - 1 and 
 							 NotInGap(aln.blocks[b], aln.blocks[b+1], minGapLength, minMatchLength) == false) {
-					cout << "IN:  q, " << aln.blocks[b].qPos << " " << aln.blocks[b+1].qPos << " " << aln.blocks[b+1].qPos- aln.blocks[b].qPos << " ," << aln.blocks[b].tPos << " " << aln.blocks[b+1].tPos << " " << aln.blocks[b+1].tPos- aln.blocks[b].tPos << endl;
 					b++;
 				}
 				int gapEnd = b;
-				cout << "Boundary NOT:  q, " << aln.blocks[b].qPos << " " << aln.blocks[b+1].qPos << " " << aln.blocks[b+1].qPos- aln.blocks[b].qPos << " ," << aln.blocks[b].tPos << " " << aln.blocks[b+1].tPos << " " << aln.blocks[b+1].tPos- aln.blocks[b].tPos << endl;
 				if (gapEnd - gapStart > 1) {
-				cout << "BLOCK: " << aln.blocks[blockStart].qPos << "," << aln.tAlignedSeqPos + aln.blocks[blockStart].tPos 
-							 << " to: " << aln.blocks[blockEnd].qPos + aln.blocks[blockEnd].length << "," << aln.tAlignedSeqPos +  aln.blocks[blockEnd].tPos + aln.blocks[blockEnd].length << " " << blockEnd << " (" << blockEnd- blockStart << ")"
-							 << " GAP: " << aln.blocks[gapStart].qPos + aln.blocks[gapStart].length << " " << aln.tAlignedSeqPos + aln.blocks[gapStart].tPos + aln.blocks[gapStart].length << " " 
-							 << " to: " << aln.blocks[gapEnd].qPos << " " << aln.tAlignedSeqPos + aln.blocks[gapEnd].tPos << " (" << gapEnd - gapStart << ") " << endl;
 
 					//
 					// There is opportunity to smush the blocks in the middle
@@ -142,9 +157,6 @@ int main(int argc, char* argv[]) {
 					int tGapLength = tGapSeqEnd - tGapSeqStart;
 					int qGapLength = qGapSeqEnd - qGapSeqStart;
 						
-
-					cout << "Tgap: " << tGapLength << "  qgap: " << qGapLength << endl;
-
 					DNASequence qGapSeq, tGapSeq;
 
 					qGapSeq.seq = &aln.qAlignedSeq.seq[qGapSeqStart];
@@ -196,15 +208,18 @@ int main(int argc, char* argv[]) {
 						querySuffixSeq.length = qGapSeq.length;
 						qSuffixOffset = 0;
 					}
-					int prefixScore=0,suffixScore=0;
+					int prefixScore=maxAlignScore,suffixScore=maxAlignScore;
 					vector<int> scoreMat;
 					vector<Arrow> pathMat;
 					AlignmentCandidate<> prefixAlignment, suffixAlignment;
-					prefixScore = SWAlign(queryPrefixSeq, targetPrefixSeq, scoreMat, pathMat, prefixAlignment, scoreFn, Global);
-					suffixScore = SWAlign(querySuffixSeq, targetSuffixSeq, scoreMat, pathMat, suffixAlignment, scoreFn, Global);
-					cout << "SCORES: " << prefixScore << " " << suffixScore << endl;
-					StickPrintAlignment(prefixAlignment, queryPrefixSeq, targetPrefixSeq, cout);
-					StickPrintAlignment(suffixAlignment, querySuffixSeq, targetSuffixSeq, cout);
+					if (queryPrefixSeq.length < maxRealignLength and targetPrefixSeq.length < maxRealignLength) {
+						prefixScore = SWAlign(queryPrefixSeq, targetPrefixSeq, scoreMat, pathMat, prefixAlignment, scoreFn, Global);
+					}
+					if (querySuffixSeq.length < maxRealignLength and targetSuffixSeq.length < maxRealignLength) {
+						suffixScore = SWAlign(querySuffixSeq, targetSuffixSeq, scoreMat, pathMat, suffixAlignment, scoreFn, Global);
+					}
+					//					StickPrintAlignment(prefixAlignment, queryPrefixSeq, targetPrefixSeq, cout);
+					//					StickPrintAlignment(suffixAlignment, querySuffixSeq, targetSuffixSeq, cout);
 					prefixAlignment.tAlignedSeq.seq = targetPrefixSeq.seq;
 					prefixAlignment.qAlignedSeq.seq = queryPrefixSeq.seq;
 					suffixAlignment.tAlignedSeq.seq = targetSuffixSeq.seq;
@@ -241,7 +256,6 @@ int main(int argc, char* argv[]) {
 				}
 			}
 
-			cout << "replacing " << replacementAlignments.size() << " alignments." << endl;
 			aln.gaps.clear();
 			if (replacementAlignments.size() > 0) {
 				vector<int> newReplacementBlockIndex;
@@ -250,8 +264,7 @@ int main(int argc, char* argv[]) {
 				for (b = 0; b < aln.blocks.size(); b++) {
 					aln.blocks[n] = aln.blocks[b];
 
-					if (b == realignedGapStart[r]) {
-						assert(b > 0);
+					if (r < realignedGapStart.size() and b == realignedGapStart[r]) {
 						newReplacementBlockIndex.push_back(n);
 						assert(realignedGapEnd[r]-1>b);
 						b += realignedGapEnd[r] - realignedGapStart[r]-1;
@@ -283,13 +296,12 @@ int main(int argc, char* argv[]) {
 						r++;
 					}
 				}
-				cout << "deleted " << nDeleted << " added: " << newBlocks.size() - aln.blocks.size() << endl;
 				aln.blocks = newBlocks;
 
 			}
 			SMRTSequence seq;
-			seq.seq = convertedAlignments[i].qAlignedSeq.seq;
-			seq.length = convertedAlignments[i].qAlignedSeq.length;
+			seq.seq = (Nucleotide*) samAlignment.seq.c_str();
+			seq.length = samAlignment.seq.size();
 			seq.CopyTitle(convertedAlignments[i].qName);
 			AlignmentContext defaultAlignmentContext;
 			defaultAlignmentContext.readGroupId = samAlignment.rg;
@@ -303,4 +315,5 @@ int main(int argc, char* argv[]) {
 																SAMOutput::soft);
 		}
 	}
+	outFile.close();
 }

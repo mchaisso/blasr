@@ -49,48 +49,137 @@ void RetainLongestContiguousMatch(T_MatchList &matchList, int maxGap) {
 	int maxSpanStart = 0;
 	int maxSpanEnd   = 0;
 	int maxSpanWeight = 0;
-	while (i < matchList.size()) {
-		j=i+1;
-		int spanStart = i;
-		int spanWeight = matchList[i].l;
+  //
+  // First find the locations of the large gaps
+  //
+  int prevGapEnd = 0;
+	int maxMatchStart = 0;
+	int maxMatchEnd = 0;
+	int maxMatchAnchorWeight = 0;
+	int curMatchAnchorWeight = matchList[0].l;
 
-		while (j < matchList.size() and 
-					 matchList[j].t - matchList[j-1].t < maxGap ) {
-			spanWeight += matchList[j].l;
+  for (i = 0; i < matchList.size() - 1; i++) {
+		if (matchList[i+1].t - matchList[i].t > maxGap or matchList[i+1].q - matchList[i].q > maxGap  ) {
+			//
+			// Gap between i and i+1
+			//
+			if (curMatchAnchorWeight > maxMatchAnchorWeight) {
+				maxMatchStart = prevGapEnd;
+				maxMatchEnd   = i;
+				maxMatchAnchorWeight = curMatchAnchorWeight;
+			}
+			prevGapEnd = i+1;
+			curMatchAnchorWeight = 0;
+		}
+		curMatchAnchorWeight += matchList[i+1].l;
+	}
+	if (curMatchAnchorWeight > maxMatchAnchorWeight) {
+		maxMatchEnd = matchList.size();
+		maxMatchStart = prevGapEnd;
+	}
+	
+	for (i = 0; i < maxMatchEnd - maxMatchStart; i++) {
+		matchList[i] = matchList[maxMatchStart+i];
+	}
+
+	matchList.resize(maxMatchEnd - maxMatchStart);
+}
+
+template<typename T_MatchList>
+void ScreenSpuriousMatches(T_MatchList &matchList, 
+													 int maxGap) {
+	vector<bool> spurious(matchList.size(), false);
+	int spurGap = maxGap / 4;
+	int i, j;
+  for (i = 1; i < matchList.size() - 1; i++) {
+		//
+		// If the distance between two anchors is sufficiently small, this may initiate a match
+		//
+		if ((matchList[i].t - matchList[i-1].t > spurGap and matchList[i+1].q - matchList[i].q > spurGap ) or 
+				(matchList[i].q - matchList[i-1].q > spurGap and matchList[i+1].t - matchList[i].t > spurGap )) {
+			spurious[i] = true;
+		}
+	}
+	j = 0;
+	for (i = 0; i < matchList.size(); i++) {
+		if (spurious[i] == false) {
+			matchList[j] = matchList[i];
 			j++;
 		}
-		if (spanWeight > maxSpanWeight) {
-			maxSpanWeight = spanWeight;
-			maxSpanStart = i;
-			maxSpanEnd   = j;
+	}
+	//	cerr << "Removed " << matchList.size() - j << " spurious matches." << endl;
+	matchList.resize(j);
+}
+template<typename T_MatchList>
+void DivideIntoContiguousMatches(T_MatchList &matchList, 
+																 int maxGap, 
+																 int minLength,
+																 vector<T_MatchList> &dividedLists) {
+	ScreenSpuriousMatches(matchList, maxGap);
+	int i, j;
+	vector<int> matchStart, matchEnd;
+	bool inMatch = false;
+	int start=0, end;
+  for (i = 0; i < matchList.size() - 1; i++) {
+		//
+		// If the distance between two anchors is sufficiently small, this may initiate a match
+		//
+		if (matchList[i+1].t - matchList[i].t < maxGap and
+				matchList[i+1].q - matchList[i].q < maxGap  ) {
+			if (inMatch == false) {
+				start = i;
+				inMatch = true;
+			}
 		}
-		i=j;
-  }
+
+		if (matchList[i+1].t - matchList[i].t > maxGap or
+				matchList[i+1].q - matchList[i].q > maxGap) {
+			if (inMatch == true) {
+				end = i;
+				if (end - start > minLength) {
+					matchStart.push_back(start);
+					matchEnd.push_back(end);
+				}
+			}
+			inMatch=false;
+		}
+	}
+	if (inMatch == true) {
+		matchStart.push_back(start);
+		matchEnd.push_back(matchList.size());
+	}
+
+	int c;
+	for (i = 0; i < matchStart.size(); i++) {
+		int l = matchEnd[i]-  matchStart[i];
+		dividedLists.push_back(T_MatchList(l));
+		for (j = 0; j < l; j++) {
+			dividedLists[i][j] = matchList[matchStart[i] + j];
+		}
+	}
 }
 
 
 
 template<typename T_MatchList>
-void PrintLIS(T_MatchList &matchList, 
-							DNALength curPos, DNALength curGenomePos, 
-							DNALength nextGenomePos, DNALength clp, DNALength cle) {
+int MatchListWeight(T_MatchList &matchList) {
+	int i;
+	int totalWeight = 0;
+	for (i = 0; i < matchList.size(); i++) {
+		totalWeight+= matchList[i].l;
+	}
+	return totalWeight;
+}
+
+
+
+template<typename T_MatchList>
+void PrintLIS(T_MatchList &matchList, ofstream &out) {
   int i;
-	cout << curPos << " " << curGenomePos << " " << nextGenomePos << " " << clp << " " << cle << endl;
-  for (i = 0; i < matchList.size(); i++) {
-    cout.width(8);
-    cout << matchList[i].l << " ";
-  }
-  cout << endl;
-  for (i = 0; i < matchList.size(); i++) {
-    cout.width(8);
-    cout << matchList[i].q << " ";
-  }  
-  cout << endl;
-  for (i = 0; i < matchList.size(); i++) {
-    cout.width(8);
-    cout << matchList[i].t << " ";
-  }
-  cout << endl << endl;
+	for (i = 0; i < matchList.size(); i++) {
+		out << matchList[i].q << "\t" << matchList[i].t << "\t" << matchList[i].l << endl;
+	}
+  out << endl << endl;
 }
 
 
@@ -138,7 +227,6 @@ template<typename T_MatchList,
       	 typename T_SequenceBoundaryDB>
   void AdvanceIndexToPastInterval(T_MatchList &pos, DNALength nPos,
                                   DNALength intervalLength,
-																	DNALength maxAnchorGap,
                                   T_SequenceBoundaryDB &SeqBoundary,
                                   DNALength startIndex, DNALength startIntervalBoundary,
                                   DNALength &index, DNALength &indexIntervalBoundary
@@ -155,18 +243,13 @@ template<typename T_MatchList,
   indexIntervalBoundary = SeqBoundary(pos[index].t);
   DNALength boundaryIndex = SeqBoundary.GetIndex(pos[index].t);
   DNALength nextBoundary  = SeqBoundary.GetStartPos(boundaryIndex + 1);
+
   while (// index is not past the end of the genome
          index < nPos and 
          //
          // Stop when the index goes too far ahead.
          //
          pos[index].t - pos[startIndex].t < intervalLength and
-				 // 
-				 // Break search when the gap between anchors is too big.
-				 //
-				 (maxAnchorGap == 0 or 
-					(pos[index].t - pos[index-1].t < maxAnchorGap)
-					) and 
          //
          // Still searching in the current contig.
          //
@@ -176,10 +259,6 @@ template<typename T_MatchList,
 		  indexIntervalBoundary = SeqBoundary(pos[index].t);
 		}
   }
-	if (maxAnchorGap > 0 and 
-			(pos[index].t - pos[index-1].t > maxAnchorGap)) {
-		cout << "broke on big gap t: " << pos[index].t - pos[index-1].t  << " q: " << pos[index].q - pos[index-1].q << endl;
-	}
 }
 
 template<typename T_MatchList>  
@@ -266,7 +345,7 @@ template<typename T_MatchList,
 		curBoundary = ContigStartPos(pos[cur].t);
 
 		
-		AdvanceIndexToPastInterval(pos, nPos, intervalLength, params.maxAnchorGap, ContigStartPos,
+		AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
 															 cur, curBoundary, next, nextBoundary);
 
 		if (nextBoundary != curBoundary and nextBoundary - curBoundary < float(intervalLength)/2.0) {
@@ -340,7 +419,6 @@ template<typename T_MatchList,
 	VectorIndex endIndex = cur + 1;
 	DNALength curBoundary = 0, endIndexBoundary = 0;
 
-
 	if (params.overlap == true) {
 		AdvanceOverlap(pos, nPos, 
 									 intervalLength, minSize, 
@@ -359,7 +437,7 @@ template<typename T_MatchList,
 
 		DNALength curIntervalLength = NumRemainingBases(pos[cur].q, intervalLength);
 
-		AdvanceIndexToPastInterval(pos, nPos, intervalLength, params.maxAnchorGap, ContigStartPos,
+		AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
 															 cur, curBoundary, endIndex, endIndexBoundary);
 
 
@@ -421,7 +499,7 @@ template<typename T_MatchList,
 				//
 				if (endIndex < nPos) {
 					endIndex++;
-					AdvanceIndexToPastInterval(pos, nPos, intervalLength, params.maxAnchorGap, ContigStartPos,
+					AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
 																		 cur, curBoundary, endIndex, endIndexBoundary);
 					maxSize = 0;
 					maxStart = cur;
@@ -451,52 +529,32 @@ template<typename T_MatchList,
 				//            cur  cur+1                             endIndex endIndex+1
 				// read intv                           ==================== 
 
+				//
+				// Because curSize is a sliding window, remove the anchors
+				// that are skipped from the window size.
+				//
 
-				if (params.maxAnchorGap > 0 and 
-						//
-						// Check to see if the endIndex anchor is a large gap from the
-						// last anchor of the current interval (endIndex-1).  
-						//
-						pos[endIndex].t - pos[endIndex-1].t > params.maxAnchorGap ) {
-						cur = endIndex;
-						endIndex+=1;
-						if (endIndex < nPos) {
-							endIndexBoundary = ContigStartPos(pos[endIndex].t);
-						
-							AdvanceIndexToPastInterval(pos, nPos, intervalLength, params.maxAnchorGap, ContigStartPos,
-																				 cur, curBoundary, endIndex, endIndexBoundary);
-							maxSize = curSize = SumAnchors(pos, cur, endIndex);
-							maxStart = cur;
-							maxEndIndex = endIndex;
-						}
+				while (cur < endIndex and 
+							 pos[cur].t + intervalLength < pos[endIndex].t) {
+					curSize -= pos[cur].l;
+					cur++;
 				}
-				else {
-					//
-					// Because curSize is a sliding window, remove the anchors
-					// that are skipped from the window size.
-					//
-
-					while (cur < endIndex and 
-								 pos[cur].t + intervalLength < pos[endIndex].t) {
-						curSize -= pos[cur].l;
-						cur++;
-					}
 					
-					//
-					// At last anchor. Outside this loop will possibly add the
-					// current interval to the set of candidates if it is large
-					// enough. 
-					//
-					if (cur >= nPos)
-						break;
+				//
+				// At last anchor. Outside this loop will possibly add the
+				// current interval to the set of candidates if it is large
+				// enough. 
+				//
+				if (cur >= nPos)
+					break;
 					
-					//
-					// Advance the endIndex to outside this interval.
-					//
-					curSize += pos[endIndex].l;
-					endIndex++;
-				}
+				//
+				// Advance the endIndex to outside this interval.
+				//
+				curSize += pos[endIndex].l;
+				endIndex++;
 			}
+
 
 			if (endIndex > nPos) {
 				//
@@ -615,7 +673,6 @@ template<typename T_MatchList,
 
 	vector<DNALength> start, end;
 	
-	
 	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params);
 	VectorIndex i;
 	VectorIndex posi;
@@ -641,6 +698,7 @@ template<typename T_MatchList,
 			if (params.globalChainType == 0) {
 				lisSize = GlobalChain<ChainedMatchPos, BasicEndpoint<ChainedMatchPos> >(pos, cur, endIndex, 
 																																								lisIndices, chainEndpointBuffer);
+
 			}
 			else {
         //
@@ -648,47 +706,72 @@ template<typename T_MatchList,
         //
 				lisSize = SDPGlobalChain(&pos[cur], endIndex-cur, lisIndices, params.minMatch, *fragmentBuffer);
 			}
+			
 		}
 
 		//
 		// Store the subset of pos in the longest increasing subsequence in lis
 		//
+		vector<T_MatchList> contiguousMatches;
 		StoreLIS(pos, lisIndices, cur, lis);
+		if (params.maxAnchorGap > 0) {
+			//
+			// This can divide a single hit into multiple smaller ones.
+			//
 
-		// 
-		// Compute pvalue of this match.
-		//
-		if (lis.size() > 0) {
-			lisPValue = MatchPValueFunction.ComputePValue(lis, noOvpLisNBases, noOvpLisSize);
+			DivideIntoContiguousMatches(lis,
+																	params.maxAnchorGap,
+																	100,
+																	contiguousMatches);
+
+			
+
 		}
 		else {
-			lisPValue = 0;
+			contiguousMatches.resize(1);
+			contiguousMatches[0] = lis;
 		}
 
-		if (lisSize > maxLISSize) {
-			maxLISSize  = lisSize;
-		}
-
-		//
-		// Insert the interval into the interval queue maintaining only the 
-		// top 'nBest' intervals. 
-		//
-
-		WeightedIntervalSet::iterator lastIt = intervalQueue.begin();
-		MatchWeight lisWeight = MatchWeightFunction(lis);
-    VectorIndex lisEnd    = lis.size() - 1;
-
-
-		if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
-			if (lis[0].t == 4262543333) {
-				cout << "YIKES!" << endl;
+		int cm;
+		for (cm = 0; cm < contiguousMatches.size(); cm++) {
+			
+			
+			// 
+			// Compute pvalue of this match.
+			//
+			T_MatchList *lisPtr = &contiguousMatches[cm];
+			lisSize = MatchListWeight(*lisPtr);
+			if (lisPtr->size() > 0) {
+				lisPValue = MatchPValueFunction.ComputePValue(*lisPtr,
+																											noOvpLisNBases, 
+																											noOvpLisSize);
 			}
-      WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
-                                        lis[0].t, lis[lisEnd].t + lis[lisEnd].GetLength(), 
-                                        readDir, lisPValue, 
-                                        lis[0].q, lis[lisEnd].q + lis[lisEnd].GetLength(), query.length,
-                                        lis);
-			intervalQueue.insert(weightedInterval);
+			else {
+				lisPValue = 0;
+			}
+
+			if (lisSize > maxLISSize) {
+				maxLISSize  = lisSize;
+			}
+
+			//
+			// Insert the interval into the interval queue maintaining only the 
+			// top 'nBest' intervals. 
+			//
+	
+			WeightedIntervalSet::iterator lastIt = intervalQueue.begin();
+			MatchWeight lisWeight = MatchWeightFunction(*lisPtr);
+			VectorIndex lisEnd    = lisPtr->size() - 1;
+
+
+			if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
+				WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
+																					(*lisPtr)[0].t, (*lisPtr)[lisEnd].t + (*lisPtr)[lisEnd].GetLength(), 
+																					readDir, lisPValue, 
+																					(*lisPtr)[0].q, (*lisPtr)[lisEnd].q + (*lisPtr)[lisEnd].GetLength(), query.length,
+																					*lisPtr);
+				intervalQueue.insert(weightedInterval);
+			}
 		}
 	}
 	return maxLISSize;

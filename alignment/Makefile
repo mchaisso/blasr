@@ -19,7 +19,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter buildQualityValueProfile sals pbmask findLongestRepeat
+EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter buildQualityValueProfile sals pbmask findLongestRepeat dotPlot
 
 EXTENDED = guidedalign extendAlign
 
@@ -45,6 +45,7 @@ endif
 wordCounter:        bin/wordCounter
 printReadWordCount: bin/printReadWordCount
 blasr:        bin/blasr
+dotPlot:        bin/dotPlot
 sdpMatcher:         bin/sdpMatcher
 samatcher:          bin/samatcher
 saprinter:          bin/saprinter
@@ -64,7 +65,7 @@ guidedalign: bin/guidedalign
 extendAlign: bin/extendAlign
 findLongestRepeat: bin/findLongestRepeat
 pbmask: bin/pbmask
-
+STATIC=-static
 bin/findLongestRepeat: bin/FindLongestRepeat.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
@@ -85,6 +86,10 @@ bin/saquery: bin/SAQuery.o
 
 bin/samodify: bin/SAModify.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
+
+bin/dotPlot: bin/DotPlot.o
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
+
 
 bin/wordCounter: bin/WordCounter.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@

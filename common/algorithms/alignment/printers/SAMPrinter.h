@@ -25,7 +25,9 @@ namespace SAMOutput {
 
   enum Clipping {hard, soft, subread, none};
 	static string SAMVersion;
-  void BuildFlag(T_AlignmentCandidate &alignment, AlignmentContext &context, uint16_t &flag) {
+	
+	template<typename T_Alignment>
+  void BuildFlag(T_Alignment &alignment, AlignmentContext &context, uint16_t &flag) {
 
     /*
      *  Much of the flags are commented out for now since they do not
@@ -35,7 +37,7 @@ namespace SAMOutput {
 
     flag = 0;
 
-    if (alignment.tStrand == 1) {
+    if (alignment.tStrand != alignment.qStrand) {
       flag |= SEQ_REVERSED;
     }
     else if (context.nSubreads > 1) {
@@ -54,8 +56,8 @@ namespace SAMOutput {
   // aligned base to the last (hard and no clipping), or first high
   // quality base to the last high quality base (soft clipping).
   //
-  template<typename T_Sequence>
-  void SetAlignedSequence(T_AlignmentCandidate &alignment, T_Sequence &read,
+  template<typename T_Alignment, typename T_Sequence>
+  void SetAlignedSequence(T_Alignment &alignment, T_Sequence &read,
                           T_Sequence &alignedSeq,
                           Clipping clipping = none) {
     //
@@ -114,8 +116,9 @@ namespace SAMOutput {
    clippedSeq.seq    = &seq.seq[trimFront];
    clippedSeq.length = seq.length - trimEnd - trimFront;
  }
-
- void AddGaps(T_AlignmentCandidate &alignment, int gapIndex,
+ 
+ template<typename T_Alignment>
+ void AddGaps(T_Alignment &alignment, int gapIndex,
               vector<int> &opSize, vector<char> &opChar, int &qPos, int &tPos) {
    int g;
    for (g = 0; g < alignment.gaps[gapIndex].size(); g++) {
@@ -131,8 +134,8 @@ namespace SAMOutput {
      }
    }
  }
-
- void AddUngappedOperations(T_AlignmentCandidate &alignment, 
+ template<typename T_Alignment>
+ void AddUngappedOperations(T_Alignment &alignment, 
 														int blockIndex,
 														int qPos,
 														int tPos,
@@ -165,8 +168,8 @@ namespace SAMOutput {
 		 }
 	 }		 
  }
-
- void AddUnmatchedOperations(T_AlignmentCandidate &alignment, 
+ template<typename T_Alignment>
+ void AddUnmatchedOperations(T_Alignment &alignment, 
 														 int qPos,
 														 int tPos,
 														 int alnLength,
@@ -197,8 +200,8 @@ namespace SAMOutput {
 	 }		 
  }
 
-
- void CreateNoClippingCigarOps(T_AlignmentCandidate &alignment, 
+ template<typename T_Alignment>
+ void CreateNoClippingCigarOps(T_Alignment &alignment, 
 															 int qPos,
 															 int tPos,
 															 vector<int> &opSize, 
@@ -288,8 +291,8 @@ namespace SAMOutput {
     }
   }
 
- template<typename T_Sequence>
-  void SetSoftClip(T_AlignmentCandidate &alignment,
+ template<typename T_Alignment, typename T_Sequence>
+  void SetSoftClip(T_Alignment &alignment,
                    T_Sequence &read,
 									 DNALength hardClipPrefix,
 									 DNALength hardClipSuffix,
@@ -305,8 +308,8 @@ namespace SAMOutput {
     softClipSuffix = read.length - hardClipSuffix - alignment.QAlignEnd();
   }
  
- template<typename T_Sequence>
-  void SetHardClip(T_AlignmentCandidate &alignment, 
+ template<typename T_Alignment, typename T_Sequence>
+  void SetHardClip(T_Alignment &alignment, 
                    T_Sequence &read,
                    DNALength &prefixClip,
                    DNALength &suffixClip) {
@@ -339,8 +342,8 @@ namespace SAMOutput {
   // Straight forward: create the cigar string allowing some clipping
   // The read is provided to give length and hq information.
   //
-  template<typename T_Sequence>
-  void CreateCIGARString(T_AlignmentCandidate &alignment,
+  template<typename T_Alignment, typename T_Sequence>
+  void CreateCIGARString(T_Alignment &alignment,
                          T_Sequence &read,
                          string &cigarString, 
 												 Clipping clipping, 
@@ -413,8 +416,8 @@ namespace SAMOutput {
   }
 
 
-  template<typename T_Sequence>
-  void PrintAlignment(T_AlignmentCandidate &alignment,
+  template<typename T_Alignment, typename T_Sequence>
+  void PrintAlignment(T_Alignment &alignment,
                       T_Sequence &read,
                       ostream &samFile,
                       AlignmentContext &context,

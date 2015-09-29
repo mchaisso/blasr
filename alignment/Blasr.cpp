@@ -784,8 +784,7 @@ void RefineAlignment(T_Sequence &query,
       tSeq.Copy(alignmentCandidate.tAlignedSeq, 
                 alignmentCandidate.tPos,
                 (alignmentCandidate.blocks[lastBlock].tPos + 
-                 alignmentCandidate.blocks[lastBlock].length -
-                 alignmentCandidate.blocks[0].tPos));
+                 alignmentCandidate.blocks[lastBlock].length));
     
       //      qSeq.ReferenceSubstring(alignmentCandidate.qAlignedSeq,
       qSeq.ReferenceSubstring(query,
@@ -1010,18 +1009,44 @@ int AlignSubstring(DNASequence &tSeq, int tPos, int tLength,
 																			alignment, Global);
 	}
 	else {
+		AlignmentType alignType = Global;
+		
 		alignScore = SDPAlign(qSubSeq, tSubSeq, distScoreFn, sdpTupleSize, 
 													params.sdpIns, params.sdpDel, 0.25, 
-													alignment, refinementBuffers, Local,
+													alignment, refinementBuffers, alignType,
 													params.detailedSDPAlignment, 
-													params.extendFrontAlignment,
+													true,
 													params.sdpPrefix,
+													params.recurse,
 													params.recurseOver, 
-													params.sdpMaxAnchorsPerPosition);
+													params.sdpMaxAnchorsPerPosition, Global);
 		
 		alignment.qAlignedSeq.ReferenceSubstring(qSubSeq);
 		alignment.tAlignedSeq.ReferenceSubstring(tSubSeq);
-		
+
+		if (alignment.blocks.size() > 0) {
+			int last = alignment.blocks.size()-1;
+			if (alignment.blocks[last].tPos + alignment.blocks[last].length < tSubSeq.length and 
+					alignment.blocks[last].qPos + alignment.blocks[last].length < qSubSeq.length) {
+				Block end;
+				end.tPos = tSubSeq.length - 1;
+				end.qPos = qSubSeq.length - 1;
+				end.length = 1;
+				alignment.blocks.push_back(end);
+			}
+			
+			if (alignment.blocks[0].tPos > 0 and alignment.blocks[0].qPos > 0) {
+				//
+				// Pin the alignment to the beginning of the sequences.
+				//
+				Block start;
+				start.tPos = 0;
+				start.qPos = 0;
+				start.length = 1;
+				alignment.blocks.insert(alignment.blocks.begin(), start);
+			}
+		}
+
 		RefineAlignment(qSubSeq, tSubSeq, 
 										alignment, 
 										params, 
@@ -1274,8 +1299,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         vector<ChainedMatchPos> *matches;
         vector<ChainedMatchPos> rcMatches;
         Alignment anchorsOnly;
-				DNASequence tAlignedSeq;
-				FASTQSequence qAlignedSeq;
 				//
 				// The strand bookkeeping is a bit confusing, so hopefully
 				// this will set things straight.
@@ -1405,7 +1428,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 																distScoreFn,
 																refinementBuffers,
 																alignmentInGap);
-						if (as < -200) {
+						if (as < 0) {
 							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
 						}
 					}
@@ -1439,20 +1462,29 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
             DNALength tPos, qPos;
             tPos = block.tPos + block.length;
             qPos = block.qPos + block.length;
-						AlignSubstring(alignment->tAlignedSeq, tPos, tGap,
-													 alignment->qAlignedSeq, qPos, qGap,
-													 params,
-													 sdpTupleSize,
-													 distScoreFn,
-													 refinementBuffers,
-													 alignmentInGap);
+
+						//
+						// The following is to prevent the attempt to align massive gaps.
+						//
+						float tRatio = ((float)tGap)/qGap;
+						float qRatio = 1/tRatio;
+						int maxGap = 100000;
+						if (tRatio > 0.001 and qRatio > 0.001 and tGap < maxGap and qGap< maxGap) {
+							AlignSubstring(alignment->tAlignedSeq, tPos, tGap,
+														 alignment->qAlignedSeq, qPos, qGap,
+														 params,
+														 sdpTupleSize,
+														 distScoreFn,
+														 refinementBuffers,
+														 alignmentInGap);
 
 
-            //
-            // Now, splice the fragment alignment into the current
-            // alignment. 
-            //
-						AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
+							//
+							// Now, splice the fragment alignment into the current
+							// alignment. 
+							//
+							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
+						}
 					}
         }
 
@@ -1578,7 +1610,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               Local, 
                               params.detailedSDPAlignment, 
 															params.extendFrontAlignment,
-															params.sdpPrefix, params.recurseOver);
+															params.sdpPrefix, params.recurse, params.recurseOver);
 
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);
@@ -2112,7 +2144,9 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     if (params.useSuffixArray) {
       params.anchorParameters.lcpBoundsOutPtr = mapData->lcpBoundsOutPtr;
       numKeysMatched   = 
-        MapReadToGenome(genome, sarray, read,   params.lookupTableLength, mappingBuffers.matchPosList,   
+        MapReadToGenome(genome, sarray, read, 
+												params.lookupTableLength, 
+												mappingBuffers.matchPosList,
                         params.anchorParameters);
       
       //
@@ -2146,13 +2180,12 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
         sem_wait(&semaphores.writer);
 #endif
       }
-      *mapData->anchorFilePtr << read.title << endl;
+			cout << "writing anchors to " << params.anchorFileName << endl;
       for (i = 0; i < mappingBuffers.matchPosList.size(); i++) {
-        *mapData->anchorFilePtr << mappingBuffers.matchPosList[i] << endl;
+        *mapData->anchorFilePtr << mappingBuffers.matchPosList[i].q << " " << mappingBuffers.matchPosList[i].t << " " << mappingBuffers.matchPosList[i].l << " " << 0 << endl;
       }
-      *mapData->anchorFilePtr << readRC.title << " (RC) " << endl;
       for (i = 0; i < mappingBuffers.rcMatchPosList.size(); i++) {
-        *mapData->anchorFilePtr << mappingBuffers.rcMatchPosList[i] << endl;
+        *mapData->anchorFilePtr << read.length - mappingBuffers.rcMatchPosList[i].q << " " << mappingBuffers.rcMatchPosList[i].t << " " << mappingBuffers.rcMatchPosList[i].l << " " << 1 << endl;
       }
       
       if (params.nProc > 1) {
@@ -3960,7 +3993,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("maxAnchorGap", &params.maxAnchorGap, "", CommandLineParser::NonNegativeInteger);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
-
+	
   if (params.printVersion) {
     string version;
     GetVersion(version);

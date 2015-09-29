@@ -157,6 +157,7 @@ class MappingParameters {
   int   globalDeletionPrior;
   bool  outputByThread;
   int   maxReadIndex;
+	int   recurse;
   int   recurseOver;
   bool  forPicard;
   bool  separateGaps;
@@ -318,7 +319,8 @@ class MappingParameters {
     substitutionPrior = 20;
     globalDeletionPrior = 13;
     outputByThread = false;
-    recurseOver = 10000;
+		recurse = 2;
+    recurseOver = 100000;
     forPicard = false;
     separateGaps = false;
     scoreMatrixString = "";
@@ -435,16 +437,23 @@ class MappingParameters {
 		if (alignContigs) {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
-			minMatchLength = anchorParameters.minMatchLength = 30;
+			
+			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 30);
 			anchorParameters.advanceExactMatches = advanceExactMatches = 0;
-			anchorParameters.maxLCPLength = 31;
+
+			anchorParameters.maxLCPLength = max(minMatchLength, max(31, anchorParameters.maxLCPLength+1));
+			
 			affineAlign = true;
 			affineExtend = 0;
 			affineOpen   = 20;
-			anchorParameters.maxAnchorsPerPosition = 100;
-			indelRate = 0.0001;
+			anchorParameters.maxAnchorsPerPosition = 30;
+			indelRate = 0.1;
 			clipping = SAMOutput::soft;
 			removeContainedIntervals = true;
+			// Good for human alignments
+			//			maxAnchorGap = 40000;
+			insertion = 8;
+			deletion  = 8;
 		}
 
 		if (emulateNucmer) {

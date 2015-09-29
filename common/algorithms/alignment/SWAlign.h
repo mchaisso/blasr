@@ -5,9 +5,9 @@
 
 #include "AlignmentUtils.h"
 
-#include "../../datastructures/matrix/FlatMatrix.h"
-#include "../../datastructures/alignment/Path.h"
-#include "../../datastructures/alignment/Alignment.h"
+#include "datastructures/matrix/FlatMatrix.h"
+#include "datastructures/alignment/Path.h"
+#include "datastructures/alignment/Alignment.h"
 
 using namespace std;
 
@@ -34,7 +34,9 @@ int SWAlign(T_QuerySequence &qSeq, T_TargetSequence &tSeq,
 		pathMat.resize(totalMatSize);
 	}
 
-
+	if (nRows * nCols > 10000000) {
+		cerr << "slow alignment " << nRows << " " << nCols << endl;
+	}
 	// 
 	// Initialze matrices
 	std::fill(scoreMat.begin(), scoreMat.begin() + totalMatSize, 0);
@@ -310,10 +312,7 @@ int SWAlign(T_QuerySequence &qSeq, T_TargetSequence &tSeq,
 		c = minCol;
 		minRow = nRows - 1;
 	}
-/*
-	PrintFlatMatrix(&scoreMat[0], nRows, nCols, cout);
-	PrintFlatMatrix(&pathMat[0], nRows,nCols, cout);
-*/
+
 	if (alignType != ScoreGlobal and
 			alignType != ScoreLocal and
 			alignType != ScoreQueryFit and
