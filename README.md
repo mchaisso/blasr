@@ -74,7 +74,7 @@ and a genome.
 
 ## Output formats ##
 
-The multiple output formats of blasr conform to different applications, and as such the meanings of columns are not consistent.  The most universally compatible output is the SAM format, specified by ''-sam''.  Alignments reported on the reverse strand may be converted to the forward strand using forward_start = length - reverse_end, reverse_start = length  - forward_start. 
+The multiple output formats of blasr conform to different applications, and as such the meanings of columns are not consistent.  The most universally compatible output is the SAM format, specified by ''-sam''.  Alignments reported on the reverse strand may be converted to the forward strand using forward_start = length - reverse_end, reverse_start = length  - forward_start.  All output except for SAM is half-open zero based.
 
 +		 -m 0
 

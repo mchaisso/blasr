@@ -133,25 +133,39 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 			DNALength curEnd   = (*it).qEnd;
 			int curAnchorSize = (*it).totalAnchorSize;
 			DNALength curReadLength = (*it).qLength;
-			/*
+
 			if ((*it).GetStrandIndex() == 1) {
 				curStart = (*it).qLength - (*it).qEnd;
 				curEnd   = (*it).qLength - (*it).qStart;
-				}*/
+			}
 			WeightedIntervalSet::iterator nextIt = it;
 			++nextIt;
 			while (nextIt != endIt) {
 				float overlap = 0;
-				DNALength nextStart = (*nextIt).qStart;
-				DNALength nextEnd   = (*nextIt).qEnd;
-				/*
+				float nextStart = (*nextIt).qStart;
+				float nextEnd   = (*nextIt).qEnd;
+
 				if ((*nextIt).GetStrandIndex() == 1) {
 					nextEnd   = (*nextIt).qLength - (*nextIt).qStart;
 					nextStart = (*nextIt).qLength - (*nextIt).qEnd;
-					}	*/				
-				float overlapRatio = ((float)(nextEnd - nextStart))/(curEnd - curStart);
+				}	
+				float overlapRatio = 0;
+				if ((nextStart >= curStart and nextEnd < curEnd) or 
+						(nextStart <= curStart and nextEnd >= curEnd)) {
+					overlapRatio = 1;
+				}
+				else if (nextEnd < curStart or nextStart > curEnd) {
+					overlapRatio = 0;
+				}
+				else if (nextStart < curStart and nextEnd > curStart) {
+					overlapRatio = (nextEnd - curStart)*2/(nextEnd - nextStart + curEnd - curStart);
+				}
+				else if (nextStart < curEnd and nextEnd > curEnd) {
+					overlapRatio = (curEnd - nextStart)*2/(nextEnd - nextStart + curEnd - curStart);
+				}
+				
 				float anchorSizeRatio = ((float)(*nextIt).totalAnchorSize)/curAnchorSize;
-				if (nextStart >= curStart and nextEnd <= curEnd and (overlapRatio < maxRatio or anchorSizeRatio < 0.25)) {
+				if (nextStart >= curStart and nextEnd <= curEnd and (overlapRatio > maxRatio or anchorSizeRatio < 0.25)) {
 					WeightedIntervalSet::iterator skip = nextIt;
 					++skip;
 					this->erase(nextIt);

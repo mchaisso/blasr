@@ -145,15 +145,17 @@ template<typename T_Fragment, typename T_Endpoint>
 	VectorIndex p;
 	VectorIndex maxScoringEndpoint = 0;
 	bool maxScoringEndpointFound = false;
-	
 	for (p = 0; p < endpointsPtr->size(); p++) {
+		int x = (*endpointsPtr)[p].p.GetX();
+		int y = (*endpointsPtr)[p].p.GetY();
 		if ((*endpointsPtr)[p].GetSide() == T_Endpoint::Start) {
 			int maxPointIndex;
 			if (pst.FindIndexOfMaxPoint((*endpointsPtr), (*endpointsPtr)[p].GetKey(), maxPointIndex)) {
 				(*endpointsPtr)[p].SetChainPrev((*endpointsPtr)[maxPointIndex].GetFragmentPtr());
 				assert((*endpointsPtr)[maxPointIndex] < (*endpointsPtr)[p]);
 				//				assert((*endpointsPtr)[p].GetY() <= (*endpointsPtr)[p].GetY());
-				(*endpointsPtr)[p].SetScore((*endpointsPtr)[maxPointIndex].GetScore() + (*endpointsPtr)[p].GetScore());
+				int score = (*endpointsPtr)[maxPointIndex].GetScore() + (*endpointsPtr)[p].GetScore();
+				(*endpointsPtr)[p].SetScore(score);
 			}
 			else {
 				(*endpointsPtr)[p].SetChainPrev(NULL);
@@ -173,6 +175,8 @@ template<typename T_Fragment, typename T_Endpoint>
 		}
 	}
 	
+
+	
 	// 
 	// Now compute the chain of optimum fragments
 	//
@@ -185,6 +189,7 @@ template<typename T_Fragment, typename T_Endpoint>
 	}
 	
 	optFragmentPtr = (*endpointsPtr)[maxScoringEndpoint].GetFragmentPtr();
+
 	unsigned int numIter = 0;
 	while (optFragmentPtr != NULL) {
 		optFragmentChainIndices.push_back((int) (optFragmentPtr - &fragments[0]));

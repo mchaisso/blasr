@@ -299,13 +299,13 @@ namespace SAMOutput {
                    DNALength &softClipPrefix, 
                    DNALength &softClipSuffix) {
     DNALength qStart, qEnd;
-    qStart = alignment.QAlignStart();
+    qStart = alignment.QAlignStart() + alignment.blocks[0].qPos;
     qEnd   = alignment.QAlignEnd();
 
     assert(qStart >= hardClipPrefix);
-    softClipPrefix = alignment.QAlignStart() - hardClipPrefix;
+    softClipPrefix = qStart - hardClipPrefix;
     assert(alignment.QAlignEnd() + hardClipSuffix <= read.length);
-    softClipSuffix = read.length - hardClipSuffix - alignment.QAlignEnd();
+    softClipSuffix = read.length - hardClipSuffix - qEnd;
   }
  
  template<typename T_Alignment, typename T_Sequence>
@@ -380,8 +380,8 @@ namespace SAMOutput {
 		//
 		// The position of the alignment in the query and target.
 		//
-		int qPos = alignment.qPos;
-		int tPos = alignment.tPos;
+		int qPos = alignment.qPos + alignment.blocks[0].qPos;
+		int tPos = alignment.tPos + alignment.blocks[0].tPos;
 
 		if (prefixHardClip > 0) {
 			opSize.push_back(prefixHardClip);
@@ -438,14 +438,15 @@ namespace SAMOutput {
     samFile << alignment.qName << "\t" 
             << flag << "\t" 
             << alignment.tName << "\t";   // RNAME
+		DNALength tAlignStart = alignment.TAlignStart() + alignment.blocks[0].tPos;
     if (alignment.tStrand == 0) {
-      samFile << alignment.TAlignStart() + 1 << "\t"; // POS, add 1 to
+      samFile << tAlignStart + 1 << "\t"; // POS, add 1 to
                                              // get 1 based
                                              // coordinate
                                              // system   
     }
     else {
-      samFile << alignment.tLength - (alignment.TAlignStart() + alignment.TEnd()) + 1 << "\t"; // includes - 1 for rev-comp,  +1 for one-based
+      samFile << alignment.tLength - (tAlignStart + alignment.TEnd()) + 1 << "\t"; // includes - 1 for rev-comp,  +1 for one-based
     }
     samFile << (int) alignment.mapQV << "\t"// MAPQ
             << cigarString << "\t"; // CIGAR

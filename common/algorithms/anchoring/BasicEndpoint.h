@@ -69,10 +69,10 @@ template<typename T_ScoredFragment>
 		}
 	};
 	
- private:
+ public:// private:
 	Coordinate p;
 	WhichEnd side;
- public:
+
 	WhichEnd GetSide() { return side; }
 
 	void FragmentPtrToStart(T_ScoredFragment *fragment) {

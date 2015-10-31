@@ -21,12 +21,12 @@
 typedef DNASuffixArray T_SuffixArray;
 
 void PrintUsage() {
-	cout << "usage: dotplot query target min_k " << endl;
+	cout << "usage: dotplot query target min_k [-maxCount] " << endl;
 }
 
 void QuickMatch(FASTASequence &target, DNASuffixArray &sa, FASTASequence &query, 
 								AnchorParameters &anchorParameters, 
-								vector<ChainedMatchPos> &matchPosList) {
+								vector<ChainedMatchPos> &matchPosList, int maxMatchesPerPosition=0) {
 	SMRTSequence smrtQuery;
 	smrtQuery.seq = query.seq;
 	smrtQuery.length = query.length;
@@ -39,8 +39,10 @@ void QuickMatch(FASTASequence &target, DNASuffixArray &sa, FASTASequence &query,
 	for (i = 0; i < matchLow.size(); i++) {
 		DNALength mp;
 		if (matchLength[i] >= anchorParameters.minMatchLength) {
-			for (mp = matchLow[i]; mp < matchHigh[i]; mp++ ) {
-				matchPosList.push_back(ChainedMatchPos(sa.index[mp], i, matchLength[i]));
+			if (maxMatchesPerPosition == 0 or matchHigh[i] - matchLow[i] <= maxMatchesPerPosition) {
+				for (mp = matchLow[i]; mp < matchHigh[i]; mp++ ) {
+					matchPosList.push_back(ChainedMatchPos(sa.index[mp], i, matchLength[i]));
+				}
 			}
 		}
 	}
@@ -82,7 +84,24 @@ int main(int argc, char* argv[]) {
 	queryName = argv[1];
 	targetName = argv[2];
 	minK = atoi(argv[3]);
+	string outFileName = "/dev/stdout";
+	ofstream outFile;
+	int argi = 4;
+	int maxPerPosition=0;
+	while (argi < argc){ 
+		if (strcmp(argv[argi], "-o") == 0) {
+			++argi;
+			cerr << "opening " << argv[argi] << endl;
+			outFileName = argv[argi];
+		}
+		if (strcmp(argv[argi], "-m") == 0) {
+			++argi;
+			maxPerPosition = atoi(argv[argi]);
+		}
+		++argi;
+	}
 
+	ofstream dotOut(outFileName.c_str());
 	FASTAReader reader;
 	reader.Initialize(queryName);
 	
@@ -111,16 +130,18 @@ int main(int argc, char* argv[]) {
 	anchorParameters.minMatchLength = minK;
 	anchorParameters.stopMappingOnceUnique = false;
 	
-	QuickMatch(target, sarray, query, anchorParameters,matchPosList);
-	QuickMatch(target, sarray, queryRC, anchorParameters, rcMatchPosList);
+	QuickMatch(target, sarray, query, anchorParameters,matchPosList, maxPerPosition);
+	QuickMatch(target, sarray, queryRC, anchorParameters, rcMatchPosList, maxPerPosition  );
 	
 	int i;
 	for (i = 0; i < matchPosList.size(); i++ ){
-		cout << matchPosList[i].q << "\t" << matchPosList[i].t << "\t" << matchPosList[i].l << "\t0\t0" << endl;
+		dotOut << matchPosList[i].q << "\t" << matchPosList[i].t << "\t" << matchPosList[i].l << "\t0\t0" << endl;
 	}
 
 	for (i = 0; i < rcMatchPosList.size(); i++) {
-		cout << query.length - (rcMatchPosList[i].q + rcMatchPosList[i].l) << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t0\t1" << endl;
+		dotOut << query.length - rcMatchPosList[i].q << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t0\t1" << endl;
 	}
-}
+
 	
+	dotOut.close();
+}

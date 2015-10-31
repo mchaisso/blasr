@@ -724,6 +724,57 @@ void PairwiseLocalAlign(T_Sequence &qSeq, T_RefSequence &tSeq,
   
 }
 
+
+int SDPAlignLite(DNASequence &query, DNASequence &target, int wordSize, int maxMatchesPerPosition, 
+									vector<Fragment> &fragmentSet ) {
+
+
+	TupleList<PositionDNATuple> targetTupleList;
+
+	/*
+		Collect a set of matching fragments between query and target.
+		Since this function is an inner-loop for alignment, anything to
+		speed it up will help.  One way to speed it up is to re-use the
+		vectors that contain the sdp matches. 
+	*/
+
+	TupleMetrics tm, tmSmall;
+	tm.Initialize(wordSize);
+
+	SequenceToTupleList(target, tm, targetTupleList);
+
+  targetTupleList.Sort();
+			 
+  //
+  // Store in fragmentSet the tuples that match between the target
+  // and query.
+  //
+
+	StoreMatchingPositions(query, tm, targetTupleList, fragmentSet, maxMatchesPerPosition);
+	VectorIndex f;  
+	for (f = 0; f < fragmentSet.size(); f++) {
+		fragmentSet[f].weight = tm.tupleSize;
+		fragmentSet[f].length = tm.tupleSize;
+
+  }
+	
+	std::sort(fragmentSet.begin(), fragmentSet.end(), LexicographicFragmentSort<Fragment>());
+
+	//
+	// Assume inversion will be in rc max frament chain set.
+	//
+	std::vector<int> maxFragmentChain;
+	SDPLongestCommonSubsequence(query.length, fragmentSet, tm.tupleSize, 2, 2, -5, maxFragmentChain, Local);
+  //GlobalChainFragmnetList(fragmentSet, maxFragmentChain);
+
+	for (f = 0; f < maxFragmentChain.size(); f++) {
+		fragmentSet[f] = fragmentSet[maxFragmentChain[f]];
+	}
+	fragmentSet.resize(f);
+	return maxFragmentChain.size();
+
+ }
+
 template<typename T_RefSequence, typename T_Sequence>
 void RefineAlignment(T_Sequence &query,
                      T_RefSequence &genome,
@@ -1296,7 +1347,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         //
         int m;
 
-        vector<ChainedMatchPos> *matches;
+				vector<ChainedMatchPos> *matches;
         vector<ChainedMatchPos> rcMatches;
         Alignment anchorsOnly;
 				//
@@ -1319,10 +1370,53 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// The first step to refining between anchors only is to make
 				// the anchors relative to the tAlignedSeq.
 				//
-				
 
-				matches = (vector<ChainedMatchPos>*) &(*intvIt).matches;
+				vector<Fragment> sdpMatches;
+				SDPAlignLite(alignment->qAlignedSeq, alignment->tAlignedSeq, params.sdpTupleSize, params.sdpMaxAnchorsPerPosition, sdpMatches);
+				// Hack to avoid having to allocate
 
+				vector<ChainedMatchPos> matchesImpl;
+				matches=&matchesImpl;
+				matchesImpl.resize(sdpMatches.size());
+				for (m = 0; m < matchesImpl.size(); m++) {
+					matchesImpl[m].q = sdpMatches[m].x;// + alignment->qAlignedSeqPos;
+					matchesImpl[m].t = sdpMatches[m].y;// + alignment->tAlignedSeqPos;
+					matchesImpl[m].l = sdpMatches[m].length;
+				}
+
+
+				vector<bool> toRemove(matches->size(), false);
+				if (matches->size() > 0) {
+					m = 0;
+					while (m < matches->size()-1) {
+						int n = m+1;
+						while (n < matches->size() and 
+									 (((*matches)[m].q+(*matches)[m].l > (*matches)[n].q) or
+										((*matches)[m].t+(*matches)[m].l > (*matches)[n].t))) {
+							toRemove[n] = true;
+							n++;
+						}
+						m=n;
+					}
+					m=0;
+					int n=0;
+					for(n=0;n<matches->size();n++) {
+						if (toRemove[n] == false) {
+							(*matches)[m] = (*matches)[n];
+							m++;
+						}
+					}
+
+
+					matches->resize(m);
+					/*
+					for (m = 0; m < matches->size(); m++) {
+						cout << (*matches)[m].q << "\t" << (*matches)[m].t << "\t" << (*matches)[m].l << endl;
+					}
+					cout << "DONE." << endl;
+					*/
+				}
+				/*
 				if (alignment->tStrand == 0) {
 					for (m = 0; m < matches->size(); m++) {
 						if ((*matches)[m].t < alignment->tAlignedSeqPos or (*matches)[m].q < alignment->qAlignedSeqPos) {
@@ -1336,29 +1430,28 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					//
 					// Flip the entire alignment if it is on the reverse strand.
 					//
-					DNALength rcSubreadStart = read.length - read.subreadEnd;
+					DNALength rcSubreadStart  = read.length - read.subreadEnd;
 					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1 );
 
 					for (m = 0; m < matches->size(); m++) {
 						(*matches)[m].t -= rcAlignedSeqPos;
-						(*matches)[m].q -= rcSubreadStart; //alignment->qAlignedSeqPos;
+						(*matches)[m].q -= rcSubreadStart; 
 					}
 
-          rcMatches.resize((*intvIt).matches.size());
+          rcMatches.resize((*matches).size());
           //
           // Make the reverse complement of the match list.
           //
-          
 																																																									 
-          for (m = 0; m < (*intvIt).matches.size(); m++) {
+          for (m = 0; m < matches->size(); m++) {
             int revCompIndex = rcMatches.size() - m - 1;
-            rcMatches[revCompIndex].q = alignment->qAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].q + (*intvIt).matches[m].l - 1);
-            rcMatches[revCompIndex].t = alignment->tAlignedSeq.MakeRCCoordinate((*intvIt).matches[m].t + (*intvIt).matches[m].l - 1);
-            rcMatches[revCompIndex].l = (*intvIt).matches[m].l;
+            rcMatches[revCompIndex].q = alignment->qAlignedSeq.MakeRCCoordinate((*matches)[m].q + (*matches)[m].l - 1);
+            rcMatches[revCompIndex].t = alignment->tAlignedSeq.MakeRCCoordinate((*matches)[m].t + (*matches)[m].l - 1);
+            rcMatches[revCompIndex].l = (*matches)[m].l;
           }
           matches = &rcMatches;
         }
-
+				*/
 				DNASequence tSubSeq;
 				FASTQSequence qSubSeq, mSubSeq;
 				
@@ -1377,32 +1470,33 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// around this, for now be very sloppy but remove these
 				// anchors if there is too large of a gap.
 				//
-        for (f = 0; f < matches->size() - 1; f++) {
-          //
-          // Find the lengths of the gaps between anchors.
-          //
-          int tGap, qGap;
-          tGap = (*matches)[f+1].t - ((*matches)[f].t + (*matches)[f].l);
-          qGap = (*matches)[f+1].q - ((*matches)[f].q + (*matches)[f].l);
-
-					if (max(tGap, qGap) < 10 * (*matches)[f].l) {
+				if (matches->size() > 0) {
+					for (f = 0; f < matches->size() - 1; f++) {
+						//
+						// Find the lengths of the gaps between anchors.
+						//
+						int tGap, qGap;
+						tGap = (*matches)[f+1].t - ((*matches)[f].t + (*matches)[f].l);
+						qGap = (*matches)[f+1].q - ((*matches)[f].q + (*matches)[f].l);
+						
+						if (max(tGap, qGap) < 10 * (*matches)[f].l) {
 						break;
-					}						
-				}
-		
-				for (r = matches->size()-1 ; r > f; r--) {
-          tGap = (*matches)[r].t - ((*matches)[r-1].t + (*matches)[r-1].l);
-          qGap = (*matches)[r].q - ((*matches)[r-1].q + (*matches)[r-1].l);
-					if (max(tGap, qGap) < 10*(*matches)[r].l) {
-						break;
+						}						
 					}
-				}
+					
+					for (r = matches->size()-1 ; r > f; r--) {
+						tGap = (*matches)[r].t - ((*matches)[r-1].t + (*matches)[r-1].l);
+						qGap = (*matches)[r].q - ((*matches)[r-1].q + (*matches)[r-1].l);
+						if (max(tGap, qGap) < 10*(*matches)[r].l) {
+							break;
+						}
+					}
 
 				//
 				// Map any unaligned portion of the query prefix to the reference.
 				//
 
-				if (matches->size() > 0) {
+
 					DNALength unalignedQueryPrefixLength = (*matches)[f].q;
 					DNALength unalignedTargetPrefixLength = (*matches)[f].t;
 
@@ -1491,21 +1585,21 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 				// Add the last block.
 				//
- 
-        Block block;
-        block.qPos = (*matches)[r].q;
-        block.tPos = (*matches)[r].t;
-				if (block.tPos > alignment->tAlignedSeq.length) {
-					cout << "ERROR mapping " << read.title << endl;
-					read.PrintSeq(cout);
+				if (matches->size() > 0) {
+					Block block;
+					block.qPos = (*matches)[r].q;
+					block.tPos = (*matches)[r].t;
+					if (block.tPos > alignment->tAlignedSeq.length) {
+						cout << "ERROR mapping " << read.title << endl;
+						read.PrintSeq(cout);
+					}
+					assert(block.tPos <= alignment->tAlignedSeq.length);
+					assert(block.qPos <= alignment->qAlignedSeq.length);
+					
+					block.length = (*matches)[m].l;
+					alignment->blocks.push_back(block);        
+					anchorsOnly.blocks.push_back(block);
 				}
-        assert(block.tPos <= alignment->tAlignedSeq.length);
-        assert(block.qPos <= alignment->qAlignedSeq.length);
-
-        block.length = (*matches)[m].l;
-        alignment->blocks.push_back(block);        
-        anchorsOnly.blocks.push_back(block);
-
 
 				//
 				// Map any unaligned portion of the query prefix to the reference.
@@ -1551,57 +1645,59 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// alignment->tPos,qPos give the start of the alignment.
 				// Modify the block positions so that they are offset by 0.
 				//
-        alignment->tPos = alignment->blocks[0].tPos;
-        alignment->qPos = alignment->blocks[0].qPos;
-        int b;
-        int blocksSize = alignment->blocks.size();
-        for (b = 0; b < blocksSize ; b++) {
-          assert(alignment->tPos <= alignment->blocks[b].tPos);
-          assert(alignment->qPos <= alignment->blocks[b].qPos);
-          alignment->blocks[b].tPos -= alignment->tPos;
-          alignment->blocks[b].qPos -= alignment->qPos;
-        }
-        for (b = 0; b < anchorsOnly.blocks.size(); b++) {
-          anchorsOnly.blocks[b].tPos -= alignment->tPos;
-          anchorsOnly.blocks[b].qPos -= alignment->qPos;
-        }
-        anchorsOnly.tPos = alignment->tPos;
-        anchorsOnly.qPos = alignment->qPos;
-
-				//
-				// Adjacent blocks without gaps (e.g. 50M50M50M) are not yet merged.  Do the merging now.
-				//
-				int cur = 0, next = 1;
-				while (next < alignment->blocks.size()) {
-					while (next < alignment->blocks.size() and 
-								 alignment->blocks[cur].tPos + alignment->blocks[cur].length == alignment->blocks[next].tPos and 
-								 alignment->blocks[cur].qPos + alignment->blocks[cur].length == alignment->blocks[next].qPos) {
+				if (alignment->blocks.size() > 0) {
+					alignment->tPos = alignment->blocks[0].tPos;
+					alignment->qPos = alignment->blocks[0].qPos;
+					int b;
+					int blocksSize = alignment->blocks.size();
+					for (b = 0; b < blocksSize ; b++) {
+						assert(alignment->tPos <= alignment->blocks[b].tPos);
+						assert(alignment->qPos <= alignment->blocks[b].qPos);
+						alignment->blocks[b].tPos -= alignment->tPos;
+						alignment->blocks[b].qPos -= alignment->qPos;
+					}
+					for (b = 0; b < anchorsOnly.blocks.size(); b++) {
+						anchorsOnly.blocks[b].tPos -= alignment->tPos;
+						anchorsOnly.blocks[b].qPos -= alignment->qPos;
+					}
+					anchorsOnly.tPos = alignment->tPos;
+					anchorsOnly.qPos = alignment->qPos;
+					
+					//
+					// Adjacent blocks without gaps (e.g. 50M50M50M) are not yet merged.  Do the merging now.
+					//
+					int cur = 0, next = 1;
+					while (next < alignment->blocks.size()) {
+						while (next < alignment->blocks.size() and 
+									 alignment->blocks[cur].tPos + alignment->blocks[cur].length == alignment->blocks[next].tPos and 
+									 alignment->blocks[cur].qPos + alignment->blocks[cur].length == alignment->blocks[next].qPos) {
 						alignment->blocks[cur].length += alignment->blocks[next].length;
 						alignment->blocks[next].length = 0;
 						next +=1;
+						}
+						cur = next;
+						next += 1;
 					}
-					cur = next;
-					next += 1;
-				}
-				cur = 0; next = 0;
-				while (next < alignment->blocks.size()) {
-					while (next < alignment->blocks.size() and alignment->blocks[next].length == 0) {
-						next +=1;
-					}
-					if (next < alignment->blocks.size()) {
+					cur = 0; next = 0;
+					while (next < alignment->blocks.size()) {
+						while (next < alignment->blocks.size() and alignment->blocks[next].length == 0) {
+							next +=1;
+						}
+						if (next < alignment->blocks.size()) {
 						alignment->blocks[cur] = alignment->blocks[next];
 						cur+=1;
 						next+=1;
+						}
 					}
-				}
-				alignment->blocks.resize(cur);
-
-				alignment->gaps.clear();
+					alignment->blocks.resize(cur);
+					
+					alignment->gaps.clear();
 
 
 				
-        ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
-                              distScoreFn, params.affineAlign);
+					ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
+																distScoreFn, params.affineAlign);
+				}
 			}
       else {
         alignScore = SDPAlign(alignment->qAlignedSeq, alignment->tAlignedSeq, distScoreFn, 
@@ -1610,7 +1706,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               Local, 
                               params.detailedSDPAlignment, 
 															params.extendFrontAlignment,
-															params.sdpPrefix, params.recurse, params.recurseOver);
+															params.sdpPrefix, params.recurse, params.recurseOver, params.sdpMaxAnchorsPerPosition);
 
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);

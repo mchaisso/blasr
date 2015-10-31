@@ -240,7 +240,7 @@ class PrioritySearchTree {
 					 (*treePtr)[curVertexIndex].isALeaf == 0) {
 			assert(itIndex < (*treePtr).size());
 			if ((*treePtr)[curVertexIndex].maxScoreNode == -1 or 
-					points[(*treePtr)[curVertexIndex].maxScoreNode].GetScore() < pointScore) {
+					points[(*treePtr)[curVertexIndex].maxScoreNode].GetScore() <= pointScore) {
 				int tmpPMaxIndex = (*treePtr)[curVertexIndex].maxScoreNode;
 				(*treePtr)[curVertexIndex].maxScoreNode = pointIndex;
 				pointIndex = tmpPMaxIndex;

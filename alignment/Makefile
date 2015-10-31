@@ -114,7 +114,6 @@ ifneq ($(shell uname -s),Darwin)
     LRT = -lrt
 endif
 
-
 bin/blasr: bin/Blasr.o
 	$(CPP) $(STATIC) 	$(CPPOPTS) $< -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(LINK_PROFILER) $(HDF_REQ_LIBS) -lrt -o $@
 

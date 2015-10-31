@@ -172,7 +172,7 @@ bin/normgc: bin/NormalizeGCContent.o
 bin/excrep: bin/ExciseRepeats.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
-bin/printrc: bin/ReverseComplements.o
+bin/printrc: bin/ReverseComplement.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/makeBarcodeDatabase: bin/MakeBarcodeDatabase.o

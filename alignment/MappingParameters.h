@@ -329,8 +329,10 @@ class MappingParameters {
     forwardOnly = false;
     printOnlyBest = false;
     affineAlign = true;
-    affineExtend = 30;
-    affineOpen   = 0;
+    affineExtend = 0;
+    affineOpen   = 50;
+		insertion    = 25;
+		deletion     = 25;
     scaleMapQVByNumSignificantClusters = false;
     limsAlign = 0;
 		minAlignLength = 0;
@@ -438,14 +440,15 @@ class MappingParameters {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
 			
-			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 30);
+			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 40);
 			anchorParameters.advanceExactMatches = advanceExactMatches = 0;
 
-			anchorParameters.maxLCPLength = max(minMatchLength, max(31, anchorParameters.maxLCPLength+1));
+			anchorParameters.maxLCPLength = max(minMatchLength, max(50, anchorParameters.maxLCPLength+1));
 			
 			affineAlign = true;
 			affineExtend = 0;
 			affineOpen   = 20;
+			sdpMaxAnchorsPerPosition = 20;
 			anchorParameters.maxAnchorsPerPosition = 30;
 			indelRate = 0.1;
 			clipping = SAMOutput::soft;
@@ -454,6 +457,7 @@ class MappingParameters {
 			//			maxAnchorGap = 40000;
 			insertion = 8;
 			deletion  = 8;
+			//			globalChainType = 1;
 		}
 
 		if (emulateNucmer) {

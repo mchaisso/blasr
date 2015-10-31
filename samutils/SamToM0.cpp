@@ -2,6 +2,7 @@
 #include "datastructures/alignmentset/SAMAlignment.h"
 #include "datastructures/alignmentset/SAMToAlignmentCandidateAdapter.h"
 #include "FASTAReader.h"
+//#include "datastructures/sequence/FAITable.h"
 #include "datastructures/alignment/AlignmentCandidate.h"
 #include "algorithms/alignment/printers/StickAlignmentPrinter.h"
 #include "CommandLineParser.h"
@@ -84,16 +85,17 @@ int main(int argc, char* argv[]) {
 	int expand = 0;
 	int maxMerge = 0;
 	int format = 0;
-
+	int minLength = 0;
   clp.RegisterStringOption("genome", &genomeFileName, "Genome.", true);
   clp.RegisterStringListOption("sam", &samFileNames, "Alignments.", true);
   clp.RegisterPreviousFlagsAsHidden();
   clp.RegisterStringOption("out", &outFileName, "Output file. Default to stdout", false);
   clp.RegisterIntOption("format", &format, "Format (supports 0 only, formats 1,4,5 to be added)", CommandLineParser::NonNegativeInteger, false);
+	clp.RegisterIntOption("minLength", &minLength, "Skip alignments under this length.", CommandLineParser::NonNegativeInteger, false);
   clp.ParseCommandLine(argc, argv);
 
   FASTAReader fastaReader;
-
+	//	FAITable reference;
   fastaReader.Initialize(genomeFileName);
 
   ostream *outPtr;
@@ -108,6 +110,7 @@ int main(int argc, char* argv[]) {
   ifstream roiIn;
   RegionMap regions;
   vector<FASTASequence> references;
+
 
   fastaReader.ReadAllSequences(references);
   int i;
@@ -143,7 +146,9 @@ int main(int argc, char* argv[]) {
 			int a;
 			for (a = 0; a < convertedAlignments.size(); a++) {
 				if (format == 0) {
-					StickPrintAlignment(convertedAlignments[a], convertedAlignments[a].qAlignedSeq, convertedAlignments[a].tAlignedSeq, outFile, convertedAlignments[a].qAlignedSeqPos,convertedAlignments[a].tAlignedSeqPos  );
+					if (convertedAlignments[a].qAlignedSeq.length >= minLength) {
+						StickPrintAlignment(convertedAlignments[a], convertedAlignments[a].qAlignedSeq, convertedAlignments[a].tAlignedSeq, outFile, convertedAlignments[a].qAlignedSeqPos,convertedAlignments[a].tAlignedSeqPos  );
+					}
 				}
 				else {
 					cout << "Other formats than 0 coming soon!" << endl;

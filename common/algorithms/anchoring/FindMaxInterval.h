@@ -107,7 +107,7 @@ void ScreenSpuriousMatches(T_MatchList &matchList,
 			j++;
 		}
 	}
-	//	cerr << "Removed " << matchList.size() - j << " spurious matches." << endl;
+
 	matchList.resize(j);
 }
 template<typename T_MatchList>
@@ -586,6 +586,17 @@ template<typename T_MatchList,
 	}
 }
 
+template <typename T_MatchList>
+void SwapXY(T_MatchList &pos, int start, int end) {
+	int i;
+	int q;
+	for (i = start; i < end;i++){
+		q=pos[i].q;
+		pos[i].q=pos[i].t;
+		pos[i].t=q;
+	}
+}
+
 template<typename T_MatchList>
 	void StoreLIS(T_MatchList &pos, vector<VectorIndex> lisIndices, DNALength cur, T_MatchList &lis) {
 	int i;
@@ -696,9 +707,10 @@ template<typename T_MatchList,
       //
 
 			if (params.globalChainType == 0) {
+				SwapXY(pos, cur, endIndex);
 				lisSize = GlobalChain<ChainedMatchPos, BasicEndpoint<ChainedMatchPos> >(pos, cur, endIndex, 
 																																								lisIndices, chainEndpointBuffer);
-
+				SwapXY(pos, cur, endIndex);
 			}
 			else {
         //
@@ -741,6 +753,7 @@ template<typename T_MatchList,
 			//
 			T_MatchList *lisPtr = &contiguousMatches[cm];
 			lisSize = MatchListWeight(*lisPtr);
+
 			if (lisPtr->size() > 0) {
 				lisPValue = MatchPValueFunction.ComputePValue(*lisPtr,
 																											noOvpLisNBases, 
@@ -762,7 +775,6 @@ template<typename T_MatchList,
 			WeightedIntervalSet::iterator lastIt = intervalQueue.begin();
 			MatchWeight lisWeight = MatchWeightFunction(*lisPtr);
 			VectorIndex lisEnd    = lisPtr->size() - 1;
-
 
 			if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
 				WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 

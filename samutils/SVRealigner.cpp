@@ -34,7 +34,10 @@ int main(int argc, char* argv[]) {
   CommandLineParser clp;
 	int maxAlignScore = 50;
 	int maxRealignLength = 500;
+	string trimmedCoordinatesFileName = "";
 	vector<string> samHeader;
+	map<string, int> fivePrimeTrim, threePrimeTrim, fullTrim;
+
   clp.RegisterStringOption("genome", &genomeFileName, "Genome.", true);
   clp.RegisterStringOption("sam", &samFileName, "Alignments.", true);
   clp.RegisterPreviousFlagsAsHidden();
@@ -47,10 +50,31 @@ int main(int argc, char* argv[]) {
 
   clp.RegisterIntOption("gap", &minGapLength, "Minimum ", 
 												CommandLineParser::NonNegativeInteger, false);
-
+	clp.RegisterStringOption("trimmed", &trimmedCoordinatesFileName, "A file with coordinates of low-quality sequences to remove.");
   clp.ParseCommandLine(argc, argv);
 
   FASTAReader fastaReader;
+
+	
+	if (trimmedCoordinatesFileName != "") {
+		ifstream trimmedIn(trimmedCoordinatesFileName.c_str());
+		while (trimmedIn) {
+			string chrom, category;
+			int start, end, length;
+			if (!(trimmedIn >> chrom >> start >> end >> length >> category)) {
+				break;
+			}
+			if (category == "5p") {
+				fivePrimeTrim[chrom] = end;
+			}
+			if (category == "3p") {
+				threePrimeTrim[chrom] = start;
+			}
+			if (category == "full"){ 
+				fullTrim[chrom] =1;
+			}
+		}
+	}
 
   fastaReader.Initialize(genomeFileName);
 	DistanceMatrixScoreFunction<DNASequence, DNASequence> scoreFn(LocalAlignLowMutationMatrix, 10, 10);
@@ -117,7 +141,7 @@ int main(int argc, char* argv[]) {
 															references, refToIndex,
 															convertedAlignments, false);
 			
-		int i;
+		int i=0;
 		for (i = 0; i < convertedAlignments.size(); i++) {
 			//
 			// Look for a region of high identity.
@@ -127,21 +151,40 @@ int main(int argc, char* argv[]) {
 
 			AlignmentCandidate<> &aln =convertedAlignments[i];
 			int b = 0;
-			while (b < aln.blocks.size()-1) {
+			while (b < aln.blocks.size() - 1) {
 				int blockStart = b;
-				while (b < aln.blocks.size() -1 and 
+				while (b < aln.blocks.size() - 1 and 
 							 NotInGap(aln.blocks[b], aln.blocks[b+1], minGapLength)) {
-//					cout << "NOT:  q, " << aln.blocks[b].qPos << " " << aln.blocks[b+1].qPos << " " << aln.blocks[b+1].qPos- aln.blocks[b].qPos << " ," << aln.blocks[b].tPos << " " << aln.blocks[b+1].tPos << " " << aln.blocks[b+1].tPos- aln.blocks[b].tPos << endl;
 					b++;
 				}
 
 				int blockEnd = b;
 				int gapStart = b;
+				//
+				// Advance until the next contiguous sequence.
 				while (b < aln.blocks.size() - 1 and 
 							 NotInGap(aln.blocks[b], aln.blocks[b+1], minGapLength, minMatchLength) == false) {
 					b++;
 				}
+
+				int b2 = b;
 				int gapEnd = b;
+
+				while (b2 < aln.blocks.size() -1 and 
+							 NotInGap(aln.blocks[b2], aln.blocks[b2+1], minGapLength)) {
+					b2++;
+				}
+				// Advance to past the next gap.
+				int nextBlockEnd = b2;
+				while (b2 < aln.blocks.size() - 1 and 
+							 NotInGap(aln.blocks[b2], aln.blocks[b2+1], minGapLength, minMatchLength) == false) {
+					b2++;
+				}
+				int nextGapEnd = b2;
+
+
+
+
 				if (gapEnd - gapStart > 1) {
 
 					//
@@ -284,10 +327,10 @@ int main(int argc, char* argv[]) {
 					if (r < newReplacementBlockIndex.size() and b == newReplacementBlockIndex[r]) {
 						int tOffset = 0;
 						int qOffset = 0;
-						if (b > 0) {
-							tOffset = aln.blocks[b].tPos + aln.blocks[b].length;
-							qOffset = aln.blocks[b].qPos + aln.blocks[b].length;
-						}
+
+						tOffset = aln.blocks[b].tPos + aln.blocks[b].length;
+						qOffset = aln.blocks[b].qPos + aln.blocks[b].length;
+
 						for (n = 0; n < replacementAlignments[r].blocks.size(); n++) {
 							replacementAlignments[r].blocks[n].tPos += tOffset;
 							replacementAlignments[r].blocks[n].qPos += qOffset;
@@ -299,6 +342,57 @@ int main(int argc, char* argv[]) {
 				aln.blocks = newBlocks;
 
 			}
+
+			//
+			// Now process the first and last block, since this tends to be wrong with -alignContigs.
+			//
+			int last = aln.blocks.size() - 1;
+			bool endsNotInGap = NotInGap(aln.blocks[last-1], aln.blocks[last], minGapLength, minMatchLength);
+			while (last > 0 and aln.blocks[last].length < minMatchLength) {
+				last--;
+			}
+			if (threePrimeTrim.find(aln.qName) != threePrimeTrim.end()) {
+				int initialLast = last;
+				int trimQPos = threePrimeTrim[aln.qName];
+				while (last > 0 and aln.blocks[last].qPos > trimQPos) {
+					last--;
+				}
+				cerr << "Used trimmed file to remove 3p: " << initialLast - last << " " << aln.blocks[initialLast].tPos - aln.blocks[last].tPos  << " " << trimQPos << endl; ;
+			}
+			if (aln.blocks.size() >= 2 and (endsNotInGap == false or last < aln.blocks.size()-1)) {
+				aln.blocks.resize(last);
+			}
+			
+			bool startsNotInGap =  NotInGap(aln.blocks[0], aln.blocks[1], minGapLength, minMatchLength);
+			int startBlock = 0;
+			while (startBlock < aln.blocks.size() and aln.blocks[startBlock].length < minMatchLength) {
+				startBlock ++;
+			}
+			if (startBlock == 0 and startsNotInGap == false) {
+				startBlock = 1;
+			}
+			if (fivePrimeTrim.find(aln.qName) != fivePrimeTrim.end()) {
+				int trimStart = fivePrimeTrim[aln.qName];
+				int initialStartBlock = startBlock;
+				cerr << "5p: " << trimStart << " " 
+						 << aln.blocks[startBlock].qPos << " " << aln.blocks[0].qPos << " " 
+						 << aln.blocks[startBlock].qPos - aln.blocks[0].qPos << " " << endl;
+
+				while (startBlock < aln.blocks.size() and aln.blocks[startBlock].qPos < trimStart) {
+					startBlock++;
+				}
+				cerr << "Used trimmed file to remove 5p: " << startBlock - initialStartBlock << endl;
+			}
+				
+			if (aln.blocks.size() >= 2 and startBlock > 0) {
+				for (b = 0; b < aln.blocks.size()-startBlock; b++) {
+					aln.blocks[b] = aln.blocks[b+startBlock];
+				}
+				cerr << "Trimming " << startBlock << endl;
+				aln.blocks.resize(aln.blocks.size()-startBlock);
+			}
+
+
 			SMRTSequence seq;
 			seq.seq = (Nucleotide*) samAlignment.seq.c_str();
 			seq.length = samAlignment.seq.size();
