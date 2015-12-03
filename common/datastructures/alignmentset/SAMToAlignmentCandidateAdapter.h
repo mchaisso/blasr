@@ -394,6 +394,12 @@ void SAMAlignmentsToCandidates(SAMAlignment &sam,
     // Assign candidate sequences.
     //
     // First, the query sequence is straight from the SAM line.
+		if (qAlignStart + alignment.qAlignedSeqLength > querySeq.length) {
+			cerr << "Could not create query sequence." << endl;
+			candidates.clear();
+			return;
+		}
+
     ((DNASequence*)&alignment.qAlignedSeq)->Copy(querySeq, qAlignStart, alignment.qAlignedSeqLength);
     
     // The SAM Alignments a

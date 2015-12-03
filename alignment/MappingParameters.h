@@ -182,6 +182,8 @@ class MappingParameters {
 	int sdpMaxAnchorsPerPosition;
 	int maxRefine;
 	int maxAnchorGap;
+	bool extendEnds;
+	bool piecewiseMatch;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -320,7 +322,7 @@ class MappingParameters {
     globalDeletionPrior = 13;
     outputByThread = false;
 		recurse = 2;
-    recurseOver = 100000;
+    recurseOver = 1000;
     forPicard = false;
     separateGaps = false;
     scoreMatrixString = "";
@@ -331,8 +333,8 @@ class MappingParameters {
     affineAlign = true;
     affineExtend = 0;
     affineOpen   = 50;
-		insertion    = 25;
-		deletion     = 25;
+		insertion    = 5;
+		deletion     = 5;
     scaleMapQVByNumSignificantClusters = false;
     limsAlign = 0;
 		minAlignLength = 0;
@@ -344,6 +346,8 @@ class MappingParameters {
 		sdpMaxAnchorsPerPosition = 0; // default to any number
 		maxRefine = 1000000;
 		maxAnchorGap = 0;
+		extendEnds = true;
+		piecewiseMatch = false;
 	}
 
 	MappingParameters() {
@@ -441,7 +445,7 @@ class MappingParameters {
 			refineBetweenAnchorsOnly = true;
 			
 			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 40);
-			anchorParameters.advanceExactMatches = advanceExactMatches = 0;
+			anchorParameters.advanceExactMatches = advanceExactMatches = 1;
 
 			anchorParameters.maxLCPLength = max(minMatchLength, max(50, anchorParameters.maxLCPLength+1));
 			
@@ -449,14 +453,17 @@ class MappingParameters {
 			affineExtend = 0;
 			affineOpen   = 20;
 			sdpMaxAnchorsPerPosition = 20;
-			anchorParameters.maxAnchorsPerPosition = 30;
+			anchorParameters.maxAnchorsPerPosition = 5;
 			indelRate = 0.1;
 			clipping = SAMOutput::soft;
 			removeContainedIntervals = true;
+			sdpTupleSize = 15;
 			// Good for human alignments
 			//			maxAnchorGap = 40000;
 			insertion = 8;
 			deletion  = 8;
+			preserveReadTitle = true;
+			extendEnds = false;
 			//			globalChainType = 1;
 		}
 

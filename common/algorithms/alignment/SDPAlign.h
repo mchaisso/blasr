@@ -19,6 +19,7 @@
 #define SDP_DETAILED_WORD_SIZE 5
 #define SDP_PREFIX_LENGTH 50
 #define SDP_SUFFIX_LENGTH 50
+#include "printers/StickAlignmentPrinter.h"
 
 template<typename T_QuerySequence, typename T_TargetSequence, typename T_ScoreFn>
 int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
@@ -195,11 +196,6 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   // Store in fragmentSet the tuples that match between the target
   // and query.
   //
-  /*
-  StoreMatchingPositions(query, tmSmall, targetPrefixTupleList, prefixFragmentSet);
-  StoreMatchingPositions(query, tmSmall, targetSuffixTupleList, suffixFragmentSet);
-	StoreMatchingPositions(query, tm, targetTupleList, fragmentSet); 
-  */
 
   StoreMatchingPositions(qPrefix, tmSmall, targetPrefixTupleList, prefixFragmentSet, maxMatchesPerPosition);
   StoreMatchingPositions(qSuffix, tmSmall, targetSuffixTupleList, suffixFragmentSet, maxMatchesPerPosition);
@@ -230,10 +226,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   // of the matches do not have the correct position because of the
   // offsets.  Fix that here.
 
-  /*	for (f = 0; f < fragmentSet.size(); f++) {
+	for (f = 0; f < fragmentSet.size(); f++) {
     (fragmentSet)[f].x += qMiddlePos;
     (fragmentSet)[f].y += middlePos;
-    }*/
+	}
 	for (f = 0; f < suffixFragmentSet.size(); f++) {
     (suffixFragmentSet)[f].x += qSuffixPos;
     (suffixFragmentSet)[f].y += suffixPos;
@@ -430,76 +426,58 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
     T_TargetSequence tFragment;
 		Alignment fragAlignment;			
 		unsigned int fb;
-		if (alignType == Global) {
-			//
-			// For Global alignment, refine the alignment from the beginnings of the
-			// sequences to the start of the first block.
-			//
-			if (chainAlignment.blocks[0].qPos > 0 and
-					chainAlignment.blocks[0].tPos > 0) {
-				
-				qFragment.seq = &query.seq[0];
-				qFragment.length = chainAlignment.blocks[0].qPos;
-				tFragment.seq = &target.seq[0];
-				tFragment.length = chainAlignment.blocks[0].tPos;
-				for (fb = 0; fb < alignment.blocks.size(); fb++) {
-					alignment.blocks.push_back(fragAlignment.blocks[b]);
-				}
-			}
-		}
-		else if (alignType == Local) {
-			// Perform a front-anchored alignment to extend the alignment to
-			// the beginning of the read.
-			if (chainAlignment.blocks[0].qPos > 0 and 
-					chainAlignment.blocks[0].tPos > 0) {
-				qFragment.seq = (Nucleotide*) &query.seq[0];
-				qFragment.length = chainAlignment.blocks[0].qPos;
 
-				tFragment.seq = (Nucleotide*) &target.seq[0];
-				tFragment.length = chainAlignment.blocks[0].tPos;
-				Alignment frontAlignment;
-				int frontAlignmentScore;
-				// Currently, there might be some space between the beginning
-				// of the alignment and the beginning of the read.  Run an
-				// EndAnchored alignment that allows free gaps to the start of
-				// where the alignment begins, but normal, ungapped alignment
-				// otherwise. 
-				if (extendFrontByLocalAlignment) {
-          if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
-            frontAlignmentScore  = 
-              SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, frontAlignment, scoreFn, smithWatermanAlignType);
-          }
-          else {
-						if (recurse != 0) {
-							vector<int> recurseFragmentChain;
-							SDPAlign(qFragment, tFragment, scoreFn,
-											 max(wordSize-4, 5),
-											 sdpIns, sdpDel,  indelRate,
-											 frontAlignment,
-											 fragmentSet,
-											 prefixFragmentSet,
-											 suffixFragmentSet,
-											 targetTupleList,
-											 targetPrefixTupleList,
-											 targetSuffixTupleList,
-											 recurseFragmentChain,
-											 Global, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, smithWatermanAlignType);
-						}
+		// Perform a front-anchored alignment to extend the alignment to
+		// the beginning of the read.
+		if (chainAlignment.blocks[0].qPos > 0 and 
+				chainAlignment.blocks[0].tPos > 0) {
+			qFragment.seq = (Nucleotide*) &query.seq[0];
+			qFragment.length = chainAlignment.blocks[0].qPos;
+			
+			tFragment.seq = (Nucleotide*) &target.seq[0];
+			tFragment.length = chainAlignment.blocks[0].tPos;
+			Alignment frontAlignment;
+			int frontAlignmentScore;
+			// Currently, there might be some space between the beginning
+			// of the alignment and the beginning of the read.  Run an
+			// EndAnchored alignment that allows free gaps to the start of
+			// where the alignment begins, but normal, ungapped alignment
+			// otherwise. 
+			if (alignType == Global or extendFrontByLocalAlignment) {
+				if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
+					frontAlignmentScore  = 
+						SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, frontAlignment, scoreFn, Global);
+				}
+				else {
+					if (recurse != 0) {
+						vector<int> recurseFragmentChain;
+						SDPAlign(qFragment, tFragment, scoreFn,
+										 max(wordSize-4, 5),
+										 sdpIns, sdpDel,  indelRate,
+										 frontAlignment,
+										 fragmentSet,
+										 prefixFragmentSet,
+										 suffixFragmentSet,
+										 targetTupleList,
+										 targetPrefixTupleList,
+										 targetSuffixTupleList,
+										 recurseFragmentChain,
+										 Global, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, smithWatermanAlignType);
 					}
+				}
 					
-					int anchorBlock;
-					for (anchorBlock = 0; anchorBlock < frontAlignment.blocks.size(); anchorBlock++) {
-						//
-						// The front alignment needs to be transformed to the
-						// coordinate offsets that the chain alignment is in.  This
-						// is an alignment starting at position 0 in the target and
-						// query.  Currently, the front alignment is offset into the
-						// sequences by frontAlignment.[q/t]Pos.
-						//
-						frontAlignment.blocks[anchorBlock].tPos += frontAlignment.tPos;
-						frontAlignment.blocks[anchorBlock].qPos += frontAlignment.qPos;
-						alignment.blocks.push_back(frontAlignment.blocks[anchorBlock]);
-					}
+				int anchorBlock;
+				for (anchorBlock = 0; anchorBlock < frontAlignment.blocks.size(); anchorBlock++) {
+					//
+					// The front alignment needs to be transformed to the
+					// coordinate offsets that the chain alignment is in.  This
+					// is an alignment starting at position 0 in the target and
+					// query.  Currently, the front alignment is offset into the
+					// sequences by frontAlignment.[q/t]Pos.
+					//
+					frontAlignment.blocks[anchorBlock].tPos += frontAlignment.tPos;
+					frontAlignment.blocks[anchorBlock].qPos += frontAlignment.qPos;
+					alignment.blocks.push_back(frontAlignment.blocks[anchorBlock]);
 				}
 			}
 		}
@@ -530,11 +508,11 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 					tFragment.length > 0 and
 					detailedAlignment == true) {
 
-        if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
+        if (qFragment.length * tFragment.length < noRecurseUnder) {
           alignScore = SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, Global);
         }
         else {
-          //          cout << "running recursive sdp alignment on " << qFragment.length * tFragment.length << endl;
+
 					if (recurse != 0) {
 						vector<int> recurseFragmentChain;
 						SDPAlign(qFragment, tFragment, scoreFn,
@@ -548,15 +526,9 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 										 targetPrefixTupleList,
 										 targetSuffixTupleList,
 										 recurseFragmentChain,
-										 alignType, detailedAlignment, false, sdpPrefixLength, recurse-1, noRecurseUnder);
+										 Global, detailedAlignment, false, 0, recurse-1, noRecurseUnder);
 					}
         }
-        /*
-        if (noRecurseUnder and qFragment.length * tFragment.length > noRecurseUnder) {
-          cout << "uh oh " << qFragment.length << " " << tFragment.length << " " << (1.0*qFragment.length) / tFragment.length << endl; 
-          StickPrintAlignment(fragAlignment, qFragment, tFragment, cout);
-        }
-        */
 				fragAlignment.qPos = 0;
 				fragAlignment.tPos = 0;
 
@@ -576,7 +548,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 			if (chainAlignment.size() > 0) {
 				// Add the last block.
 				alignment.blocks.push_back(chainAlignment.blocks[lastBlock]);
-				if (alignType == Global and detailedAlignment == true) {
+				if (alignType == Global or extendFrontByLocalAlignment) {
 					//
 					// When doing a global alignment, the sequence from the end of
 					// the last block of the query should be aligned to the end of 
@@ -584,9 +556,9 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 					//
 					
           qFragment.ReferenceSubstring(query, chainAlignment.blocks[lastBlock].qPos + chainAlignment.blocks[lastBlock].length,
-                                      query.length -  
-                                      (chainAlignment.blocks[lastBlock].qPos + chainAlignment.blocks[lastBlock].length));
-
+																			 query.length -  
+																			 (chainAlignment.blocks[lastBlock].qPos + chainAlignment.blocks[lastBlock].length));
+					
 					tFragment.seq    = &(target.seq[chainAlignment.blocks[lastBlock].tPos + chainAlignment.blocks[lastBlock].length]);
 					tFragment.length = (target.length - 
 														(chainAlignment.blocks[lastBlock].tPos + chainAlignment.blocks[lastBlock].length));
@@ -597,7 +569,8 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 
               fragAlignment.Clear();
               if (recurse == 0 and qFragment.length * tFragment.length < noRecurseUnder) {
-                SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, smithWatermanAlignType);
+                SWAlign(qFragment, tFragment, fragScoreMat, fragPathMat, fragAlignment, scoreFn, Global);
+								
               }
               else {
 								if (recurse != 0) {
@@ -613,13 +586,13 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 													 targetPrefixTupleList,
 													 targetSuffixTupleList,
 													 recurseFragmentChain,
-													 alignType, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, maxMatchesPerPosition, smithWatermanAlignType);
+													 Global, detailedAlignment, extendFrontByLocalAlignment, sdpPrefixLength, recurse-1, noRecurseUnder, maxMatchesPerPosition, smithWatermanAlignType);
 								}
-
+								
               }
+							
 
-
-
+							
               int qOffset = chainAlignment.blocks[lastBlock].qPos + chainAlignment.blocks[lastBlock].length;
               int tOffset = chainAlignment.blocks[lastBlock].tPos + chainAlignment.blocks[lastBlock].length;
               unsigned int fb;

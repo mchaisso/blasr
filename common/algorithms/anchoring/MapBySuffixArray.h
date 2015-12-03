@@ -200,13 +200,12 @@ int LocateAnchorBoundsInSuffixArray(T_RefSequence &reference,
       matchHigh[m]   = 0;
       matchLength[m] = 0;
 		}
-		//
-		// Possibly advance a bunch of steps.
-		//
 		if (params.advanceExactMatches) {
-      int advance =MAX( ((int)lcpLength - (int)params.expand) - params.advanceExactMatches, 0);
-			p += advance;
-      m += advance;
+			//
+			// Advance to past the mismatch.
+			//
+			p += lcpLength;
+      m += lcpLength;
 		}
 	}
 	return 1;

@@ -446,7 +446,7 @@ template<typename T_MatchList,
 		DNALength maxStart = cur, maxEndIndex = endIndex;
 		int maxSize = SumAnchors(pos, cur, endIndex);
 		int curSize = maxSize;
-
+		//		cout << "cursize " << curSize << endl;
 		if (curSize > minSize) {
 			start.push_back(cur);
 			end.push_back(endIndex);
@@ -455,7 +455,7 @@ template<typename T_MatchList,
 			// 
 			// This interval overlaps with a possible max start
 			//
-
+			//			cout << "loop start " << pos[cur].t << " " << pos[maxStart].t << " " << curSize << " " << maxSize << endl;
 			if (pos[cur].t >= pos[maxStart].t and 
 					maxEndIndex > 0 and 
 					pos[cur].t < pos[maxEndIndex].t and 
@@ -507,6 +507,7 @@ template<typename T_MatchList,
 				}
 				// Reset the sliding window size.
 				maxSize = curSize = SumAnchors(pos, cur, endIndex);
+				//				cout << "advanced to " << cur << " " << pos[cur].t << " " << curSize << endl;
 			}
 			else {
 				
@@ -555,7 +556,7 @@ template<typename T_MatchList,
 				endIndex++;
 			}
 
-
+			//			cout << "scan: " << endIndex << " " << curSize << endl;
 			if (endIndex > nPos) {
 				//
 				// Searched last interval, done.
@@ -705,12 +706,17 @@ template<typename T_MatchList,
       //
       // Find the largest set of increasing intervals that do not overlap.
       //
-
+			string name;
+			/*
+			ContigStartPos.seqDB->GetName(ContigStartPos.GetIndex(pos[cur].t),name);
+					cout << name << " " << pos[cur].t - ContigStartPos.GetStartPos(ContigStartPos.GetIndex(pos[cur].t)) 
+				<< " " << pos[endIndex].t - ContigStartPos.GetStartPos(ContigStartPos.GetIndex(pos[cur].t)) 
+				<< " opt: " << pos[cur].q << " " << pos[endIndex].q << "  " << pos[endIndex].q - pos[cur].q << endl;*/
 			if (params.globalChainType == 0) {
-				SwapXY(pos, cur, endIndex);
+				//				SwapXY(pos, cur, endIndex);
 				lisSize = GlobalChain<ChainedMatchPos, BasicEndpoint<ChainedMatchPos> >(pos, cur, endIndex, 
 																																								lisIndices, chainEndpointBuffer);
-				SwapXY(pos, cur, endIndex);
+				//				SwapXY(pos, cur, endIndex);
 			}
 			else {
         //
@@ -777,6 +783,7 @@ template<typename T_MatchList,
 			VectorIndex lisEnd    = lisPtr->size() - 1;
 
 			if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
+
 				WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
 																					(*lisPtr)[0].t, (*lisPtr)[lisEnd].t + (*lisPtr)[lisEnd].GetLength(), 
 																					readDir, lisPValue, 

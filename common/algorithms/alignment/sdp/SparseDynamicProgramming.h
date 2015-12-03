@@ -16,7 +16,7 @@
 /*******************************************************************************
  *  Sparse dynamic programming implementation of Longest Common Subsequence
  *  
- *  Implementation of method described in Baker and Giancarlo, Journal of
+ *  Implementation of method described in                                           Baker and Giancarlo, Journal of
  *  Algorithms 42, 231-254, 2002.
  * 
  *  5/7/09 -- Modified to incorporate different linear cost functions, and 
@@ -182,6 +182,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 					(alignType == Global or
 					 (alignType == Local and minCost < 0))) {
 				fragmentSet[fSweep].cost = minCost - fragmentSet[fSweep].weight;
+
 				if (minCost == cp) {
 					fragmentSet[fSweep].chainPrev = predCol.optFragment;
 				}

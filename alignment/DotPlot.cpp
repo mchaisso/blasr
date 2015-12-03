@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	for (i = 0; i < rcMatchPosList.size(); i++) {
-		dotOut << query.length - rcMatchPosList[i].q << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t0\t1" << endl;
+		dotOut << query.length - rcMatchPosList[i].q << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t1\t1" << endl;
 	}
 
 	

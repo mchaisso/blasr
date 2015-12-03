@@ -38,7 +38,7 @@
 #include "algorithms/anchoring/LISPValueWeightor.h"
 #include "algorithms/anchoring/LISSizeWeightor.h"
 #include "algorithms/anchoring/LISQValueWeightor.h"
-#include "algorithms/anchoring/FindMaxInterval.h"
+#include "algorithms/anchoring/FindMaxInterval.h" 
 #include "algorithms/anchoring/MapBySuffixArray.h"
 #include "algorithms/anchoring/ClusterProbability.h"
 #include "algorithms/anchoring/BWTSearch.h"
@@ -64,12 +64,14 @@
 #include "data/hdf/HDFRegionTableReader.h"
 #include "datastructures/bwt/BWT.h"
 #include "datastructures/sequence/PackedDNASequence.h"
-#include "CommandLineParser.h"
+#include "CommandLineParser.h" 
 #include "qvs/QualityValue.h"
 #include "statistics/pdfs.h"
 #include "statistics/cdfs.h"
 #include "statistics/statutils.h"
 #include "statistics/LookupAnchorDistribution.h"
+
+#include "algorithms/anchoring/PiecewiseMatch.h"
 
 #define MAX_PHRED_SCORE 254
 #define MAPQV_END_ALIGN_WIGGLE 5
@@ -759,7 +761,7 @@ int SDPAlignLite(DNASequence &query, DNASequence &target, int wordSize, int maxM
   }
 	
 	std::sort(fragmentSet.begin(), fragmentSet.end(), LexicographicFragmentSort<Fragment>());
-
+	cerr << fragmentSet.size() << " sdp lite matches." << endl;
 	//
 	// Assume inversion will be in rc max frament chain set.
 	//
@@ -803,11 +805,6 @@ void RefineAlignment(T_Sequence &query,
                               mappingBuffers.scoreMat, mappingBuffers.pathMat,
                               refinedAlignment, distScoreFn, Global);
     refinedAlignment.RemoveEndGaps();
-    ComputeAlignmentStats(refinedAlignment, 
-                          subread.seq, 
-                          alignmentCandidate.tAlignedSeq.seq, 
-                          distScoreFn);
-
     
     alignmentCandidate.blocks = refinedAlignment.blocks;
     alignmentCandidate.gaps   = refinedAlignment.gaps;
@@ -1229,21 +1226,25 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
       subreadStart = read.MakeRCCoordinate(read.subreadEnd-1);
     }
 
-    DNALength lengthBeforeFirstMatch = ((*intvIt).qStart - subreadStart) * params.approximateMaxInsertionRate ;
-    DNALength lengthAfterLastMatch   = (subreadEnd - (*intvIt).qEnd) * params.approximateMaxInsertionRate;
-    if (matchIntervalStart < lengthBeforeFirstMatch  or params.doGlobalAlignment) {
-      matchIntervalStart = 0;
-    }
-    else {
-      matchIntervalStart -= lengthBeforeFirstMatch;
-    }
+		if (params.extendEnds) {
+			DNALength lengthBeforeFirstMatch = ((*intvIt).qStart - subreadStart) * params.approximateMaxInsertionRate ;
+			DNALength lengthAfterLastMatch   = (subreadEnd - (*intvIt).qEnd) * params.approximateMaxInsertionRate;
+			if (matchIntervalStart < lengthBeforeFirstMatch  or params.doGlobalAlignment) {
+				matchIntervalStart = 0;
+			}
+			else {
+				matchIntervalStart -= lengthBeforeFirstMatch;
+			}
+			
+			if (genome.length < matchIntervalEnd + lengthAfterLastMatch or params.doGlobalAlignment) {
+				matchIntervalEnd = genome.length;
+			}
+			else {
+				matchIntervalEnd += lengthAfterLastMatch;
+			}
+		}
 
-    if (genome.length < matchIntervalEnd + lengthAfterLastMatch or params.doGlobalAlignment) {
-      matchIntervalEnd = genome.length;
-    }
-    else {
-      matchIntervalEnd += lengthAfterLastMatch;
-    }
+			
 
 		bool trimMatches = false;
     DNALength intervalContigStartPos, intervalContigEndPos;
@@ -1372,9 +1373,34 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 
 				vector<Fragment> sdpMatches;
-				SDPAlignLite(alignment->qAlignedSeq, alignment->tAlignedSeq, params.sdpTupleSize, params.sdpMaxAnchorsPerPosition, sdpMatches);
-				// Hack to avoid having to allocate
+				int i;
 
+				
+				DNASequence qAlignedSeq;
+				qAlignedSeq.Copy(alignment->qAlignedSeq);
+				int strand = (*intvIt).GetStrandIndex();
+				int qStart, qEnd;
+			 if (strand == 0) {
+					qStart = (*intvIt).qStart;
+					qEnd   = (*intvIt).qEnd;
+				}
+				else {
+					qStart = alignment->qAlignedSeq.length - (*intvIt).qEnd;
+					qEnd   = alignment->qAlignedSeq.length - (*intvIt).qStart;
+				}
+				cerr << "on " << (int) strand << " Masking " << alignment->qAlignedSeq.length << " up to " << qStart << " then from " << qEnd << endl;
+
+				for (i = 0; i < qStart; i++) {
+					qAlignedSeq.seq[i] = 'N';
+				}
+				for (i = qEnd; i < alignment->qAlignedSeq.length; i++) {
+					qAlignedSeq.seq[i] = 'N';
+				}
+				
+				SDPAlignLite(qAlignedSeq, alignment->tAlignedSeq, params.sdpTupleSize, 4, sdpMatches);
+				qAlignedSeq.Free();
+				// Hack to avoid having to allocate
+				cerr << " sdp lite: " << sdpMatches.size() << endl;
 				vector<ChainedMatchPos> matchesImpl;
 				matches=&matchesImpl;
 				matchesImpl.resize(sdpMatches.size());
@@ -1470,6 +1496,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// around this, for now be very sloppy but remove these
 				// anchors if there is too large of a gap.
 				//
+					/*
 				if (matches->size() > 0) {
 					for (f = 0; f < matches->size() - 1; f++) {
 						//
@@ -1526,10 +1553,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
 						}
 					}
-				}
+					*/
 
-				
-        for (m = f; matches->size() > 0 and m < r; m++) {
+
+			
+				for (m = 0; matches->size() > 0 and m < matches->size()-1; m++) {
           Block block;
           block.qPos = (*matches)[m].q;
           block.tPos = (*matches)[m].t;
@@ -1585,10 +1613,11 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				//
 				// Add the last block.
 				//
+
 				if (matches->size() > 0) {
 					Block block;
-					block.qPos = (*matches)[r].q;
-					block.tPos = (*matches)[r].t;
+					block.qPos = (*matches)[matches->size()-1].q;
+					block.tPos = (*matches)[matches->size()-1].t;
 					if (block.tPos > alignment->tAlignedSeq.length) {
 						cout << "ERROR mapping " << read.title << endl;
 						read.PrintSeq(cout);
@@ -1599,8 +1628,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					block.length = (*matches)[m].l;
 					alignment->blocks.push_back(block);        
 					anchorsOnly.blocks.push_back(block);
-				}
-
+					}
+				/*
 				//
 				// Map any unaligned portion of the query prefix to the reference.
 				//
@@ -1639,6 +1668,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						}
 					}
 				}
+				*/
 
 				//
 				// By convention, blocks start at 0, and the
@@ -1707,7 +1737,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
                               params.detailedSDPAlignment, 
 															params.extendFrontAlignment,
 															params.sdpPrefix, params.recurse, params.recurseOver, params.sdpMaxAnchorsPerPosition);
-
         ComputeAlignmentStats(*alignment, alignment->qAlignedSeq.seq, alignment->tAlignedSeq.seq,
                               distScoreFn, params.affineAlign);
       }
@@ -1939,6 +1968,16 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 		if (params.progress) {
 			cout << "done with interval " << alignmentIndex << endl;
 		}
+		if (params.verbosity > 0) {
+      cout << "interval align score: " << alignScore << endl;
+      StickPrintAlignment(*alignment,
+                          (DNASequence&) alignment->qAlignedSeq,
+                          (DNASequence&) alignment->tAlignedSeq,
+                          cout,
+                          0, alignment->tAlignedSeqPos);
+
+    }
+
   } while (intvIt != weightedIntervals.end());
 }
 
@@ -2030,8 +2069,8 @@ int RemoveLowQualityAlignments(T_Sequence &read, vector<T_AlignmentCandidate*> &
     }
     else {
       if (params.verbosity > 0) {
-        cout << "Keeping alignment " << i << " " << alignmentPtrs[i]->qPos << " " << alignmentPtrs[i]->qLength
-             << " " << alignmentPtrs[i]->tName << " " << alignmentPtrs[i]->tPos << " " << alignmentPtrs[i]->tLength 
+        cout << "Keeping alignment " << i << " " << alignmentPtrs[i]->qPos << " " << alignmentPtrs[i]->qPos + alignmentPtrs[i]->qLength
+             << " " << alignmentPtrs[i]->tName << " " << alignmentPtrs[i]->tPos << " " << alignmentPtrs[i]->tPos + alignmentPtrs[i]->tLength << " " << alignmentPtrs[i]->tStrand
              << " from score: " << alignmentPtrs[i]->score << endl;
       }
     }
@@ -2075,7 +2114,7 @@ int RemoveOverlappingAlignments(vector<T_AlignmentCandidate*> &alignmentPtrs, Ma
         // alignment.
         if (aref->GenomicTBegin() <= alignmentPtrs[j]->GenomicTBegin() and
             aref->GenomicTEnd() >= alignmentPtrs[j]->GenomicTEnd() and 
-            alignmentPtrs[i]->tIndex == alignmentPtrs[j]->tIndex) {
+            alignmentPtrs[i]->tStrand == alignmentPtrs[j]->tStrand) {
           //
           // Alignment i is contained in j is only true if it has a worse score.
           //
@@ -2091,7 +2130,7 @@ int RemoveOverlappingAlignments(vector<T_AlignmentCandidate*> &alignmentPtrs, Ma
         }
         else if (alignmentPtrs[j]->GenomicTBegin() <= aref->GenomicTBegin() and
                  alignmentPtrs[j]->GenomicTEnd()   >= aref->GenomicTEnd() and 
-                 alignmentPtrs[i]->tIndex == alignmentPtrs[j]->tIndex) {
+                 alignmentPtrs[i]->tStrand == alignmentPtrs[j]->tStrand) {
           if (params.verbosity >= 2) {
             cout << "ALIGNMENT " << j << " is contained in " << i << endl;
             cout << alignmentPtrs[j]->tAlignedSeqPos << " " <<  aref->tAlignedSeqPos << " "
@@ -2365,29 +2404,35 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 			if (intervalLength  - (read.subreadEnd - read.subreadStart) > maxGapLength) {
 				intervalLength = (read.subreadEnd - read.subreadStart) + maxGapLength;
 			}
-			
-      FindMaxIncreasingInterval(Forward,
-                                mappingBuffers.matchPosList,
-                                // allow for indels to stretch out the mapping of the read.
-                                intervalLength, params.nCandidates,
-                                seqBoundary,
-                                lisPValue,//lisPValue2,
-                                lisWeightFn,
-                                topIntervals, genome, read, intervalSearchParameters,
-                                &mappingBuffers.globalChainEndpointBuffer, 
-                                &mappingBuffers.sdpFragmentSet, read.title);
-      // Uncomment when the version of the weight functor needs the sequence.
-      
-      FindMaxIncreasingInterval(Reverse, mappingBuffers.rcMatchPosList,
-                                (DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates, 
-                                seqBoundary,
-                                lisPValue,//lisPValue2
-                                lisWeightFn,
-                                topIntervals, genome, readRC, intervalSearchParameters,
-                                &mappingBuffers.globalChainEndpointBuffer,
-                                &mappingBuffers.sdpFragmentSet, read.title);
-    }
-		/*    else if (params.pValueType == 1) {
+			if ( params.piecewiseMatch) {
+				PiecewiseMatch(mappingBuffers.matchPosList,
+											 mappingBuffers.rcMatchPosList,
+											 seqBoundary, topIntervals, read.subreadEnd - read.subreadStart);
+			}
+			else {
+				FindMaxIncreasingInterval(Forward,
+																	mappingBuffers.matchPosList,
+																	// allow for indels to stretch out the mapping of the read.
+																	intervalLength, params.nCandidates,
+																	seqBoundary,
+																	lisPValue,//lisPValue2,
+																	lisWeightFn,
+																	topIntervals, genome, read, intervalSearchParameters,
+																	&mappingBuffers.globalChainEndpointBuffer, 
+																	&mappingBuffers.sdpFragmentSet, read.title);
+				// Uncomment when the version of the weight functor needs the sequence.
+				
+				FindMaxIncreasingInterval(Reverse, mappingBuffers.rcMatchPosList,
+																	(DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates, 
+																	seqBoundary,
+																	lisPValue,//lisPValue2
+																	lisWeightFn,
+																	topIntervals, genome, readRC, intervalSearchParameters,
+																	&mappingBuffers.globalChainEndpointBuffer,
+																	&mappingBuffers.sdpFragmentSet, read.title);
+			}
+		}
+			/*    else if (params.pValueType == 1) {
       FindMaxIncreasingInterval(Forward,
                                 mappingBuffers.matchPosList,
                                 // allow for indels to stretch out the mapping of the read.
@@ -2452,12 +2497,13 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 
     if (params.verbosity > 0) {
       int topintind = 0;
-      cout << " intv: index start end qstart qend seq_boundary_start seq_boundary_end pvalue " << endl;
+      cout << " intv: index start end qstart qend seq_boundary_start seq_boundary_end strand pvalue " << endl;
       for (topIntIt = topIntervals.begin();topIntIt != topIntEnd ; ++topIntIt) {
         cout << " intv: " << topintind << " " << (*topIntIt).start << " " 
              << (*topIntIt).end << " " 
              << (*topIntIt).qStart << " " << (*topIntIt).qEnd << " "
              << seqBoundary((*topIntIt).start) << " " << seqBoundary((*topIntIt).end) << " "
+						 << (*topIntIt).GetStrandIndex() << " " 
              << (*topIntIt).pValue << endl;
         if (params.verbosity > 2) {
           int m;
@@ -2496,7 +2542,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     //
       
     matchFound = CheckForSufficientMatch(read, alignmentPtrs, params);
-      
+
     //
     // When no proper alignments are found, the loop will resume.
     // Delete all alignments because they are bad.
@@ -4086,6 +4132,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("minMapQV", &params.minMapQV, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterIntOption("maxRefine", &params.maxRefine, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterFlagOption("removeContained", &params.removeContainedIntervals, "", false);
+	clp.RegisterFlagOption("piecewise", &params.piecewiseMatch, "", false);
 	clp.RegisterIntOption("maxAnchorGap", &params.maxAnchorGap, "", CommandLineParser::NonNegativeInteger);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
@@ -4809,3 +4856,4 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
+
