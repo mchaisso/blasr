@@ -250,7 +250,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc43";
+  return "1.MC.rc44";
 }
 
 void GetVersion(string &version) {
@@ -761,7 +761,6 @@ int SDPAlignLite(DNASequence &query, DNASequence &target, int wordSize, int maxM
   }
 	
 	std::sort(fragmentSet.begin(), fragmentSet.end(), LexicographicFragmentSort<Fragment>());
-	cerr << fragmentSet.size() << " sdp lite matches." << endl;
 	//
 	// Assume inversion will be in rc max frament chain set.
 	//
@@ -1388,7 +1387,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					qStart = alignment->qAlignedSeq.length - (*intvIt).qEnd;
 					qEnd   = alignment->qAlignedSeq.length - (*intvIt).qStart;
 				}
-				cerr << "on " << (int) strand << " Masking " << alignment->qAlignedSeq.length << " up to " << qStart << " then from " << qEnd << endl;
 
 				for (i = 0; i < qStart; i++) {
 					qAlignedSeq.seq[i] = 'N';
@@ -1435,49 +1433,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 
 					matches->resize(m);
-					/*
-					for (m = 0; m < matches->size(); m++) {
-						cout << (*matches)[m].q << "\t" << (*matches)[m].t << "\t" << (*matches)[m].l << endl;
-					}
-					cout << "DONE." << endl;
-					*/
 				}
-				/*
-				if (alignment->tStrand == 0) {
-					for (m = 0; m < matches->size(); m++) {
-						if ((*matches)[m].t < alignment->tAlignedSeqPos or (*matches)[m].q < alignment->qAlignedSeqPos) {
-							cout << "Yikes!" << endl;
-						}
-						(*matches)[m].t -= alignment->tAlignedSeqPos;
-						(*matches)[m].q -= alignment->qAlignedSeqPos;
-					}
-				}
-				else {
-					//
-					// Flip the entire alignment if it is on the reverse strand.
-					//
-					DNALength rcSubreadStart  = read.length - read.subreadEnd;
-					DNALength rcAlignedSeqPos = genome.MakeRCCoordinate(alignment->tAlignedSeqPos + alignment->tAlignedSeqLength - 1 );
-
-					for (m = 0; m < matches->size(); m++) {
-						(*matches)[m].t -= rcAlignedSeqPos;
-						(*matches)[m].q -= rcSubreadStart; 
-					}
-
-          rcMatches.resize((*matches).size());
-          //
-          // Make the reverse complement of the match list.
-          //
-																																																									 
-          for (m = 0; m < matches->size(); m++) {
-            int revCompIndex = rcMatches.size() - m - 1;
-            rcMatches[revCompIndex].q = alignment->qAlignedSeq.MakeRCCoordinate((*matches)[m].q + (*matches)[m].l - 1);
-            rcMatches[revCompIndex].t = alignment->tAlignedSeq.MakeRCCoordinate((*matches)[m].t + (*matches)[m].l - 1);
-            rcMatches[revCompIndex].l = (*matches)[m].l;
-          }
-          matches = &rcMatches;
-        }
-				*/
 				DNASequence tSubSeq;
 				FASTQSequence qSubSeq, mSubSeq;
 				
@@ -1488,73 +1444,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				MappingBuffers refinementBuffers;
 				int f = 0, r = matches->size();
 				int tGap, qGap;				
-
-				// 
-				// The accuracy of the very first and very last anchors tends
-				// to be very noisy -- very large gaps between the main
-				// alignment and the first or last anchor may exist.  To get
-				// around this, for now be very sloppy but remove these
-				// anchors if there is too large of a gap.
-				//
-					/*
-				if (matches->size() > 0) {
-					for (f = 0; f < matches->size() - 1; f++) {
-						//
-						// Find the lengths of the gaps between anchors.
-						//
-						int tGap, qGap;
-						tGap = (*matches)[f+1].t - ((*matches)[f].t + (*matches)[f].l);
-						qGap = (*matches)[f+1].q - ((*matches)[f].q + (*matches)[f].l);
-						
-						if (max(tGap, qGap) < 10 * (*matches)[f].l) {
-						break;
-						}						
-					}
-					
-					for (r = matches->size()-1 ; r > f; r--) {
-						tGap = (*matches)[r].t - ((*matches)[r-1].t + (*matches)[r-1].l);
-						qGap = (*matches)[r].q - ((*matches)[r-1].q + (*matches)[r-1].l);
-						if (max(tGap, qGap) < 10*(*matches)[r].l) {
-							break;
-						}
-					}
-
-				//
-				// Map any unaligned portion of the query prefix to the reference.
-				//
-
-
-					DNALength unalignedQueryPrefixLength = (*matches)[f].q;
-					DNALength unalignedTargetPrefixLength = (*matches)[f].t;
-
-					if (unalignedTargetPrefixLength > unalignedQueryPrefixLength * (1+params.indelRate)) {
-						unalignedTargetPrefixLength = unalignedQueryPrefixLength * (1+params.indelRate);
-					}
-					DNASequence targetPrefix;
-					DNASequence queryPrefix;
-					T_AlignmentCandidate alignmentInGap;
-					int as;
-					if (LengthInBounds(unalignedTargetPrefixLength, 0, params.maxRefine) and
-							LengthInBounds(unalignedQueryPrefixLength, 0, params.maxRefine)) {
-						if (params.verbosity) {
-							cerr << "refining prefix: " << unalignedTargetPrefixLength << " " << unalignedQueryPrefixLength << " " << alignmentIndex << endl;
-						}
-						DNALength qPos, tPos;
-						qPos = (*matches)[f].q - unalignedQueryPrefixLength;
-						tPos = (*matches)[f].t - unalignedTargetPrefixLength;
-						as = AlignSubstring(alignment->tAlignedSeq, tPos, unalignedTargetPrefixLength,
-																alignment->qAlignedSeq, qPos, unalignedQueryPrefixLength,
-																params,
-																sdpTupleSize,
-																distScoreFn,
-																refinementBuffers,
-																alignmentInGap);
-						if (as < 0) {
-							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
-						}
-					}
-					*/
-
 
 			
 				for (m = 0; matches->size() > 0 and m < matches->size()-1; m++) {
@@ -1629,46 +1518,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					alignment->blocks.push_back(block);        
 					anchorsOnly.blocks.push_back(block);
 					}
-				/*
-				//
-				// Map any unaligned portion of the query prefix to the reference.
-				//
-				if (r > 0 and r < (*matches).size()) {
-					int lastMatch = r;
-					DNALength unalignedQuerySuffixLength = alignment->qAlignedSeq.length - ((*matches)[lastMatch].q + (*matches)[lastMatch].l);
-					DNALength unalignedTargetSuffixLength = alignment->tAlignedSeq.length - ((*matches)[lastMatch].t + (*matches)[lastMatch].l);
-
-					if (params.verbosity) {
-						cerr << "refining prefix: " << unalignedTargetSuffixLength << " " << unalignedQuerySuffixLength << endl;
-					}
-
-					if (unalignedTargetSuffixLength > unalignedQuerySuffixLength * (1+params.indelRate)) {
-						unalignedTargetSuffixLength = unalignedQuerySuffixLength * (1+params.indelRate);
-					}
-					DNASequence targetSuffix;
-					DNASequence querySuffix;
-					T_AlignmentCandidate alignmentInGap;
-					int as;
-					if (LengthInBounds(unalignedTargetSuffixLength, 0, params.maxRefine) and 
-							LengthInBounds(unalignedQuerySuffixLength, 0, params.maxRefine)) {
-
-						DNALength qPos, tPos;
-						qPos = (*matches)[lastMatch].q + (*matches)[lastMatch].l;
-						tPos = (*matches)[lastMatch].t + (*matches)[lastMatch].l;
-
-						as = AlignSubstring(alignment->tAlignedSeq, tPos, unalignedTargetSuffixLength,
-																alignment->qAlignedSeq, qPos, unalignedQuerySuffixLength, 
-																params,
-																sdpTupleSize,
-																distScoreFn,
-																refinementBuffers,
-																alignmentInGap);
-						if (as < -200) {
-							AppendSubseqAlignment(*alignment, alignmentInGap, qPos, tPos);
-						}
-					}
-				}
-				*/
 
 				//
 				// By convention, blocks start at 0, and the

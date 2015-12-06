@@ -128,8 +128,8 @@ int main(int argc, char* argv[]) {
 	cerr << "done building sa" << endl;
 	AnchorParameters anchorParameters;
 	anchorParameters.minMatchLength = minK;
-	anchorParameters.stopMappingOnceUnique = false;
-	
+	anchorParameters.stopMappingOnceUnique = true;
+ 
 	QuickMatch(target, sarray, query, anchorParameters,matchPosList, maxPerPosition);
 	QuickMatch(target, sarray, queryRC, anchorParameters, rcMatchPosList, maxPerPosition  );
 	

@@ -88,7 +88,7 @@ bin/samodify: bin/SAModify.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
 
 bin/dotPlot: bin/DotPlot.o
-	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@
+	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ 
 
 
 bin/wordCounter: bin/WordCounter.o
