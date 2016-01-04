@@ -25,6 +25,9 @@ class HDFScanDataWriter {
 	HDFAtom<string> movieNameAtom;
 	HDFAtom<string> runCodeAtom;
 	HDFAtom<string> baseMapAtom;
+	HDFAtom<string> sequencingKitAtom;
+	HDFAtom<string> sequencingChemistryAtom;
+	HDFAtom<string> basecallerVersionAtom;
 
 	//
 	// It is useful to cache the movie name in the reader since this is

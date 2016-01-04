@@ -44,18 +44,33 @@ class SAMFullReadGroup : public SAMReadGroup {
   string platform;
   string platformUnit;
   string sample;
+	string bindingKit;
+	string sequencingKit;
+	string basecallerVersion;
+	string movieName;
+	string changelistId;
+	SAMFullReadGroup() {
+		movieName=basecallerVersion=sequencingKit="";
+	}
 
   void StoreValues(vector<SAMKeywordValuePair> &kvPairs, int lineNumber = 0) {
     SAMReadGroup::StoreValues(kvPairs, lineNumber);
     string kwPair;
     string key, valueStr;
     int i;
+
     for (i = 0; i < kvPairs.size(); i++) {
       if (kvPairs[i].key == "CN") {
         centerName = kvPairs[i].value;
       }
       else if (kvPairs[i].key == "DS") {
         description = kvPairs[i].value;
+				vector<SAMKeywordValuePair> descKvPairs;
+				vector<string> kvPairStrings;
+				Tokenize(description, ";", kvPairStrings);
+				KeywordValueStringsToPairs(kvPairStrings, descKvPairs, "=");
+				//				StoreValues(descKvPairs, lineNumber);
+				kvPairs.insert(kvPairs.end(), descKvPairs.begin(), descKvPairs.end());
       }
       else if (kvPairs[i].key == "DT") {
         date = kvPairs[i].value;
@@ -75,6 +90,21 @@ class SAMFullReadGroup : public SAMReadGroup {
       else if (kvPairs[i].key == "SM") {
         sample = kvPairs[i].value;
       }
+			else if (kvPairs[i].key == "CHANGELISTID") {
+				changelistId = kvPairs[i].value;
+			}
+			else if (kvPairs[i].key == "BINDINGKIT") {
+				bindingKit = kvPairs[i].value;
+			}
+			else if (kvPairs[i].key == "SEQUENCINGKIT") {
+				sequencingKit = kvPairs[i].value;
+			}
+			else if (kvPairs[i].key == "BASECALLERVERSION") {
+				basecallerVersion = kvPairs[i].value;
+			}
+			else if (kvPairs[i].key == "PU") {
+				movieName = kvPairs[i].value;
+			}
     }
   }
 };

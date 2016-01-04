@@ -250,7 +250,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc44";
+  return "1.MC.rc45";
 }
 
 void GetVersion(string &version) {
@@ -262,6 +262,21 @@ void GetVersion(string &version) {
   }
 }
 
+void GetSoftwareVersion(string &changelistId, string &softwareVersion) {
+	
+	int nDots = 0;
+	int i;
+	softwareVersion = "";
+	for (i = 0; i < changelistId.size(); i++) {
+		if ( changelistId[i]== '.') {
+			nDots +=1;
+		}
+		if (nDots == 2) {
+			break;
+		}
+	}
+	softwareVersion = changelistId.substr(0,i);
+}
 
 void MakeSAMHDString(string &hdString) {
   stringstream out;
@@ -4457,48 +4472,16 @@ int main(int argc, char* argv[]) {
 		reader->UseCCS();
 	}
 	
-	vector<vector<int >  > holeNumbers;
+	vector<int > holeNumbers;
 	if (params.readIndex != -1 or params.readIndices.size() > 0) {
-		holeNumbers.push_back(vector<int>());
 		if (params.readIndices.size() > 0) {
-			holeNumbers[0] = params.readIndices;
+			holeNumbers = params.readIndices;
 		}
 		else {
-			holeNumbers[0].push_back(params.readIndex);
+			holeNumbers.push_back(params.readIndex);
 		}
 	}
 	
-	if (params.readsFileNames[0].find(".findex") != params.readsFileNames[0].npos) {
-		//
-		// Initialize the findex.
-		//
-		string fileName;
-		int holeNumber;
-		if (params.readsFileNames.size() != 2) {
-			cout << "ERROR. There should just be a .findex and a genome when using a .findex file." << endl;
-			exit(1);
-		}
-		string genome = params.readsFileNames[1];
-
-		ifstream findexIn;
-		CrucialOpen(params.readsFileNames[0], findexIn, std::ios::in);
-		// Reset the reads file names
-		params.readsFileNames = vector<string>();
-		int nFiles = 0;
-		while ( (findexIn >> fileName >> holeNumber) ) {
-			if (fileName == "") {
-				break;
-			}
-			if (holeNumbers.size() == 0 or params.readsFileNames[nFiles-1] != fileName) {
-				params.readsFileNames.push_back(fileName);
-				nFiles++;
-				holeNumbers.push_back(vector<int>());
-			}
-			holeNumbers[nFiles-1].push_back(holeNumber);
-		}
-		params.readsFileNames.push_back(genome);
-	}
-  
   if (params.printSAM) {
     string hdString, sqString, rgString, pgString;
     MakeSAMHDString(hdString);
@@ -4518,6 +4501,11 @@ int main(int argc, char* argv[]) {
 			//
 			// Each movie may only be represented once in the header.
 			//
+			string changelistId;
+			reader->GetChangelistId(changelistId);
+			string softwareVersion;
+			GetSoftwareVersion(changelistId, softwareVersion);
+
 			if (readGroups.find(scanData.movieName) == readGroups.end()) {
 				*outFilePtr << "@RG\t" 
 										<< "ID:" << movieNameMD5 << "\t" 
@@ -4525,9 +4513,10 @@ int main(int argc, char* argv[]) {
 										<< "SM:"<< chipId << "\t" 
 										<< "PL:PACBIO" << "\t"
 										<< "DS:READTYPE=SUBREAD;" 
+					          << "CHANGELISTID="<<changelistId <<";"
 										<< "BINDINGKIT=" << scanData.bindingKit << ";" 
 										<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
-										<< "BASECALLERVERSION=" << "2.1";
+										<< "BASECALLERVERSION=" << softwareVersion;
 
 				int q;
 				for (q = 0; q < params.samQVList.nTags; q++){ 
@@ -4556,7 +4545,7 @@ int main(int argc, char* argv[]) {
 		// 
 		reader->SetReadFileName(params.readsFileNames[params.readsFileIndex]);
 		if (holeNumbers.size() > 0) {
-			reader->InitializeHoleNumbers(holeNumbers[params.readsFileIndex]);
+			reader->InitializeHoleNumbers(holeNumbers);
 		}
 		//
 		// Initialize using already set file names.

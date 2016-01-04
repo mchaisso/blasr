@@ -13,6 +13,9 @@ class HDFMovieInfoGroup {
 	
 	HDFArray<string> whenStartedArray;
 	HDFArray<float> frameRateArray;
+	HDFArray<string> bindingKitArray;
+	HDFArray<string> sequencingKitArray;
+	HDFArray<string> softwareVersionArray;
 
 	~HDFMovieInfoGroup() {
 		movieInfoGroup.Close();
@@ -23,6 +26,9 @@ class HDFMovieInfoGroup {
 		if (movieInfoGroup.Initialize(parentGroup.group, "MovieInfo") == 0) { return 0; }
     idArray.Create(movieInfoGroup, "ID");
     nameArray.Create(movieInfoGroup, "Name");
+		bindingKitArray.Create(movieInfoGroup, "BindingKit");
+		sequencingKitArray.Create(movieInfoGroup, "SequencingKit");
+		softwareVersionArray.Create(movieInfoGroup, "SoftwareVersion");
     return true;
   }
 
@@ -30,6 +36,9 @@ class HDFMovieInfoGroup {
 		if (movieInfoGroup.Initialize(parentGroup.group, "MovieInfo") == 0) { return 0; }
 		if (idArray.Initialize(movieInfoGroup, "ID") == 0) { return 0; }
 		if (nameArray.Initialize(movieInfoGroup, "Name") == 0) { return 0; }
+		if (bindingKitArray.Initialize(movieInfoGroup, "BindingKit") == 0) {return 0;}
+		if (sequencingKitArray.Initialize(movieInfoGroup, "SequencingKit") == 0) {return 0;}
+		if (softwareVersionArray.Initialize(movieInfoGroup, "SoftwareVersion") == 0) { return 0;}
 		return 1;
 	}
 	
@@ -40,14 +49,31 @@ class HDFMovieInfoGroup {
 		
 		int nName = nameArray.arrayLength;
 		movieInfo.name.resize(nName);
+		movieInfo.sequencingKit.resize(nName);
+		movieInfo.bindingKit.resize(nName);
+		movieInfo.softwareVersion.resize(nName);
 		int i;
 		for (i = 0; i < nName; i++ ){
 			nameArray.Read(i,i+1,&movieInfo.name[i]);
+			sequencingKitArray.Read(i,i+1,&movieInfo.sequencingKit[i]);
+			bindingKitArray.Read(i,i+1,&movieInfo.bindingKit[i]);
+			softwareVersionArray.Read(i,i+1,&movieInfo.softwareVersion[i]);
 		}
 	}
 
   int AddMovie(string &movieName) {
     nameArray.Write(&movieName, 1);
+    unsigned int id = nameArray.size();
+    idArray.Write(&id, 1);
+    return id;
+  }
+
+
+  int AddMovie(string &movieName, string &sequencingKit, string &bindingKit, string &softwareVersion) {
+    nameArray.Write(&movieName, 1);
+		sequencingKitArray.Write(&sequencingKit, 1);
+		bindingKitArray.Write(&bindingKit, 1);
+		softwareVersionArray.Write(&softwareVersion, 1);
     unsigned int id = nameArray.size();
     idArray.Write(&id, 1);
     return id;

@@ -86,6 +86,15 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		}
 	}
 
+	void GetChangelistId(string &softwareVersion) {
+		if (fileType == Fasta || fileType == Fastq) {
+			softwareVersion = "";
+		}
+		else if (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS) {
+			hdfBasReader.GetChangelistId(softwareVersion);
+		}
+	}
+
   void GetMovieName(string &movieName) {
     if (fileType == Fasta || fileType == Fastq) {
       movieName = fileName;

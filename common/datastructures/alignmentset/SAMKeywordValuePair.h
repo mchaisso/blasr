@@ -16,8 +16,8 @@ class SAMKeywordValuePair {
   string value;
 };
 
-bool SplitSAMKeyValuePair(string &kvPair, string &key, string &value) {
-  int sepIndex = kvPair.find_first_of(":");
+bool SplitSAMKeyValuePair(string &kvPair, string &key, string &value, string token=":") {
+  int sepIndex = kvPair.find_first_of(token);
   if (sepIndex == kvPair.npos) {
     return false;
   }
@@ -28,9 +28,9 @@ bool SplitSAMKeyValuePair(string &kvPair, string &key, string &value) {
   }
 }
 
-bool SplitSAMTypedKeyValuePair(string kvPair, string &key, string &kvType, string &value) {
+bool SplitSAMTypedKeyValuePair(string kvPair, string &key, string &kvType, string &value, char token=':') {
   vector<string> strValues;
-  ParseSeparatedList(kvPair, strValues, ':', 3);
+  ParseSeparatedList(kvPair, strValues, token, 3);
   if (strValues.size() != 3) {
     return false;
   }
@@ -51,7 +51,7 @@ void StoreValue(string &valueStr, T&value) {
   }
 }
 
-void KeywordValueStringsToPairs(vector<string> &kvStrings, vector<SAMKeywordValuePair> &kvPairs) {
+void KeywordValueStringsToPairs(vector<string> &kvStrings, vector<SAMKeywordValuePair> &kvPairs, string token=":") {
 
   kvPairs.resize(kvStrings.size());
 
@@ -61,7 +61,7 @@ void KeywordValueStringsToPairs(vector<string> &kvStrings, vector<SAMKeywordValu
 
   int i;
   for (i = 0; i < kvStrings.size(); i++ ) {
-    SplitSAMKeyValuePair(kvStrings[i], kvPairs[i].key, kvPairs[i].value);
+    SplitSAMKeyValuePair(kvStrings[i], kvPairs[i].key, kvPairs[i].value, token);
   }
 }
 

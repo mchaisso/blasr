@@ -16,12 +16,39 @@ class AlignmentSet {
   SAMHeader header;
   vector<T_ReferenceSequence> references;
   vector<T_ReadGroup> readGroups;
+  
   vector<T_Alignment> alignments;
   map<string, int> refNameToIndex;
   //
   //  Rearrange references such that they are placed in the same order
   //  as fastaReferences
   //  
+  void GetRepresentativeChangelistId(string &changelistId) {
+		if (readGroups.size() > 0) {
+		  changelistId = readGroups[0].changelistId;
+	  } 
+		else {
+			changelistId = "0";
+		}
+  }
+  void GetRepresentativeSequencingKit(string &sequencingKit) {
+		if (readGroups.size() > 0) {
+		  sequencingKit = readGroups[0].sequencingKit;
+	  } 
+		else {
+			sequencingKit = "0";
+		}
+		
+	}
+  void GetRepresentativeBindingKit(string &bindingKit) {
+		if (readGroups.size() > 0) {
+		  bindingKit = readGroups[0].bindingKit;
+	  } 
+		else {
+			bindingKit = "0";
+		}
+	}
+
   void RearrangeReferences(vector<FASTASequence> & fastaReferences) {
       int i = 0;
       map<string, int> fastaRefToIndex;

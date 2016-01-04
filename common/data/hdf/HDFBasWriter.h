@@ -41,6 +41,7 @@ class HDFBasWriter : public DatasetCollection {
 	BufferedHDFArray<unsigned int> simulatedSequenceIndexArray;
 
 	HDFAtom<string> movieNameAtom, runCodeAtom, platformNameAtom;
+	HDFAtom<string> sequencingKitAtom, bindingKitAtom;
 	HDFAtom<unsigned int> platformIdAtom;
 
 	//
@@ -192,7 +193,7 @@ class HDFBasWriter : public DatasetCollection {
 	 */
 
 	void Initialize(string _hdfFileName, string movieName, string _changeListID) {
-    SetChangeListID(_changeListID);
+		SetChangeListID(_changeListID);
 		Initialize(_hdfFileName, Springfield);
 		AddMovieName(movieName);
     AddPlatformInformation(Springfield);
@@ -227,7 +228,15 @@ class HDFBasWriter : public DatasetCollection {
 		AddMovieName(movieName);
 		runCodeAtom.Create(scanDataWriter.runInfoGroup.group, "RunCode", runCode);
 	}
-	
+
+	void AddSequencingKit(string sequencingKit) {
+		sequencingKitAtom.Create(scanDataWriter.runInfoGroup.group, "SequencingKit", sequencingKit);
+	}
+
+	void AddBindingKit(string bindingKit) {
+		bindingKitAtom.Create(scanDataWriter.runInfoGroup.group, "BindingKit", bindingKit);
+	}
+
 	void AddPlatformName(PlatformType platformId) {
     if (platformId == Springfield) {
       platformNameAtom.Create(scanDataWriter.runInfoGroup.group, "PlatformName", "Springfield");

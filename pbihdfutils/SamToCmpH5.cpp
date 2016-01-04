@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
     
   cerr << "[INFO] " << GetTimestamp() << " [" << program << "] started." << endl;
 
-  SAMReader<SAMFullReferenceSequence, SAMReadGroup, SAMPosAlignment> samReader;
+  SAMReader<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> samReader;
   FASTAReader fastaReader;
   HDFCmpFile<AlignmentCandidate<FASTASequence, FASTASequence> > cmpFile;
 
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
   // This should probably be handled by the alignmentSetAdapter, but
   // time constraints...
   //
-  AlignmentSet<SAMFullReferenceSequence, SAMReadGroup, SAMPosAlignment> alignmentSet;
+  AlignmentSet<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> alignmentSet;
   samReader.ReadHeader(alignmentSet);
  
   //
@@ -166,6 +166,7 @@ int main(int argc, char* argv[]) {
   AlignmentSetToCmpH5Adapter<HDFCmpFile<AlignmentCandidate<FASTASequence, FASTASequence> > > alignmentSetAdapter;
   alignmentSetAdapter.Initialize(references);
 	
+	alignmentSetAdapter.StoreAllMovieInfo(alignmentSet.readGroups, cmpFile);
   
   //
   // Store the alignments.

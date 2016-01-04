@@ -242,6 +242,11 @@ class T_HDFBasReader : public DatasetCollection, public HDFPulseDataFile {
     }
   }
 
+	void GetChangelistId(string &changelistId) {
+      changeListIDAtom.Initialize(baseCallsGroup.group, "ChangeListID");
+      GetChangeListID(changelistId);
+	}
+
 	int InitializeForReadingBases() {
 
 		//

@@ -8,6 +8,7 @@
 #include "datastructures/alignment/ByteAlignment.h"
 #include "algorithms/alignment/ScoreMatrices.h"
 #include "algorithms/alignment/IDSScoreFunction.h"
+#include "datastructures/alignmentset/ReadGroup.h"
 class RefIndex {
  public:
   string name;
@@ -92,6 +93,49 @@ class AlignmentSetToCmpH5Adapter {
       return id;
     }
   }
+	
+	void StoreAllMovieInfo(vector<SAMFullReadGroup> &readGroup, T_CmpFile &cmpFile) {
+		int i;
+		for (i = 0; i < readGroup.size(); i++) {
+			int id;
+			id = cmpFile.movieInfoGroup.AddMovie(readGroup[i].movieName, 
+																					 readGroup[i].sequencingKit, 
+																					 readGroup[i].bindingKit, 
+																					 readGroup[i].basecallerVersion);
+			knownMovies[readGroup[i].movieName] = id;
+		}
+	}
+
+	int GetMovieId(string movieName) {
+    map<string,int>::iterator mapIt;
+    mapIt = knownMovies.find(movieName);
+    if (mapIt != knownMovies.end()) {
+      return mapIt->second;
+    }
+		else {
+			cout <<" ERROR! Missing movie name " << movieName << endl;
+			assert(0);
+			return 0; // silence compiler
+		}
+	}
+		
+  int StoreMovieInfo(string movieName, string sequencingKit, string bindingKit, string softwareVersion, T_CmpFile &cmpFile) {
+    map<string,int>::iterator mapIt;
+    mapIt = knownMovies.find(movieName);
+    if (mapIt != knownMovies.end()) {
+      return mapIt->second;
+    }
+    else {
+      int id;
+      id = cmpFile.movieInfoGroup.AddMovie(movieName, 
+																					 sequencingKit, 
+																					 bindingKit, 
+																					 softwareVersion);
+
+      knownMovies[movieName] = id;
+      return id;
+    }
+  }
 
 
   int StorePath(string path, T_CmpFile &cmpFile) {
@@ -142,7 +186,7 @@ class AlignmentSetToCmpH5Adapter {
     }
   
     int movieId;
-    movieId = StoreMovieInfo(movieName, cmpFile);
+    movieId = GetMovieId(movieName);
   
     map<string, RefIndex>::iterator refToIdIt;
     refToIdIt = refToId.find(alignment.tName);

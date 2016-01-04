@@ -67,12 +67,12 @@ class SAMReader {
     }
   }
  
-  void StoreKVPairs(string line, vector<SAMKeywordValuePair> &kvPairs) {
+  void StoreKVPairs(string line, vector<SAMKeywordValuePair> &kvPairs, string token="\t") {
     //
     // Split on tab delineated line.
     //
     vector<string> kvPairStrings;
-    Tokenize(line, "\t", kvPairStrings);
+    Tokenize(line, token, kvPairStrings);
     KeywordValueStringsToPairs(kvPairStrings, kvPairs);
   }
  

@@ -87,6 +87,12 @@ class HDFAtom : public HDFData {
 		initialized = true;
 		attribute.write(strType, value.c_str());
 	}
+	void Write(string &value) {
+		StrType strType(0, value.size());
+		hsize_t defaultDims[] = {};
+		//		DataSpace defaultDataSpace(1, defaultDims);
+		attribute.write(strType, value.c_str());
+	}
 
   void Create(H5Object &object, string name, vector<int> &vect) {
     hsize_t length = vect.size();
@@ -95,6 +101,9 @@ class HDFAtom : public HDFData {
     attribute = object.createAttribute(name.c_str(), PredType::NATIVE_INT, DataSpace(1, &length));
     attribute.write(PredType::NATIVE_INT, &((vect)[0]));    
   }
+	
+
+	
 	
   void Create(H5Object &object, string name, vector<string> &vect) {
     hsize_t length = vect.size();

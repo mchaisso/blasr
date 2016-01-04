@@ -79,9 +79,9 @@ int main(int argc, char* argv[]) {
 
   clp.ParseCommandLine(argc, argv);
 
-	//  cerr << "[INFO] " << GetTimestamp() << " [" << program << "] started." << endl;
+	cerr << "[INFO] " << GetTimestamp() << " [" << program << "] started." << endl;
 
-  SAMReader<SAMFullReferenceSequence, SAMReadGroup, SAMPosAlignment> samReader;
+  SAMReader<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> samReader;
 	HDFBasReader basReader;
 	HDFBasWriter writer;
   HDFRegionTableWriter regionWriter;
@@ -104,15 +104,20 @@ int main(int argc, char* argv[]) {
 	writer.IncludeField("HoleNumber"); 
 	writer.IncludeField("HoleXY");
 
-	writer.Initialize(basFileName, "pileup_reads", "0.1-beta");
-	regionWriter.Initialize(writer.pulseDataGroup);
 
   //
-  // This is not needed for bas.h5 writing, but in order to get the
-  // file pointer to the right position, read the header.
   //
-  AlignmentSet<SAMFullReferenceSequence, SAMReadGroup, SAMPosAlignment> alignmentSet;
+  AlignmentSet<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> alignmentSet;
   samReader.ReadHeader(alignmentSet);
+	string changelistId, bindingKit, sequencingKit;
+	alignmentSet.GetRepresentativeChangelistId(changelistId);
+	alignmentSet.GetRepresentativeBindingKit(bindingKit);
+	alignmentSet.GetRepresentativeSequencingKit(sequencingKit);
+
+	writer.Initialize(basFileName, "pileup_reads", changelistId);
+	writer.AddBindingKit(bindingKit);
+	writer.AddSequencingKit(sequencingKit);
+	regionWriter.Initialize(writer.pulseDataGroup);
   
   //
   // Convert alignments to reads.  Separate subread information is discarded.
@@ -172,3 +177,4 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
+
