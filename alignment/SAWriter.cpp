@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 	vector<string> inFiles;
 	
 	int doBLT = 1;
-	int bltPrefixLength = 11;
+	int bltPrefixLength = 13;
 	int parsingOptions = 0;
 	SAType saBuildType = larsson;
 	int read4BitCompressed  = 0;

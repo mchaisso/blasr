@@ -16,7 +16,9 @@ class SupplementalQVList {
 	static const QVList qvFlagIndex[];
 	static int nqvTags;
 	static int nTags;
-
+	void ClearQVList() {
+		useqv = 0;
+	}
 	int UseQV(vector<string> &qvList) {
 		int i;
 		useqv = 0;

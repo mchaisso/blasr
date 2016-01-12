@@ -522,6 +522,9 @@ class MappingParameters {
 			if (samqv[0] != "none") {
 				samQVList.UseQV(samqv);
 			}
+			else {
+				samQVList.ClearQVList();
+			}
 		}
 		affineAlign = true;
 		//		affineOpen  = 30;
