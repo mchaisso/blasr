@@ -158,5 +158,6 @@ This alignment format contains the full representation of the pairwise alignment
 
 For reverse strand alignments, the coordinates are reported starting at the 3' end of the forward strand. 
 
+[![Build Status](https://travis-ci.org/zeeev/blasr.svg?branch=master)](https://travis-ci.org/zeeev/blasr.svg?branch=master)
 
 [![githalytics.com alpha](https://cruel-carlota.pagodabox.com/036412483bfb92d2f18c1e62a34586b4 "githalytics.com")](http://githalytics.com/PacificBiosciences/blasr)
