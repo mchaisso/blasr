@@ -156,7 +156,7 @@ This alignment format contains the full representation of the pairwise alignment
 <tr> <td> 20. </td> <td> ref align string </td> </tr>
 </table>
 
-For reverse strand alignments, the coordinates are reported starting at the 3' end of the forward strand. 
+For reverse strand alignments, the coordinates are reported starting at the 5' end of the forward strand. 
 
 [![Build Status](https://travis-ci.org/zeeev/blasr.svg?branch=master)](https://travis-ci.org/zeeev/blasr.svg?branch=master)
 
