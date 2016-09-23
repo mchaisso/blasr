@@ -27,6 +27,7 @@ class FASTAReader {
 	char endOfReadDelim;
 	char readStartDelim;
   bool doToUpper;
+
   unsigned char *convMat;
 	//
 	// Quick check to see how much to read.
@@ -44,7 +45,7 @@ class FASTAReader {
  public:
   bool computeMD5;
   string curReadMD5;
-
+	bool storeName;
   void Init() {
 		padding = 0;
 		fileDes = -1;
@@ -56,6 +57,7 @@ class FASTAReader {
     computeMD5 = false;
     filePtr = NULL;
     curPos = 0;
+		storeName = false;
   }
   FASTAReader() {
     Init();
@@ -126,11 +128,16 @@ FASTAReader(string &fileName) {
 		AdvanceToTitleStart(p);
 		CheckValidTitleStart(p);
 		ReadTitle(p, seq.title, seq.titleLength);
-        if (seq.title == NULL) {
-            cout << "ERROR, sequence must have a nonempty title." << endl;
-            exit(1);
-        }
-        if (seqDBPtr != NULL) {
+		if (seq.title == NULL) {
+			cout << "ERROR, sequence must have a nonempty title." << endl;
+			exit(1);
+		}
+		if (seqDBPtr != NULL) {
+			if (storeName) {
+				string name = seq.GetName();
+				seq.CopyTitle(name);
+			}
+					
 			seqDBPtr->growableName.push_back(seq.title);
 		}
 		long seqLength;
@@ -270,6 +277,10 @@ FASTAReader(string &fileName) {
 		
 		ReadTitle(p, seq.title, seq.titleLength);
 
+		if (storeName) {
+			string name = seq.GetName();
+			seq.CopyTitle(name);
+		}
 		//
 		// Read in the next sequence.
 		//

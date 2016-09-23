@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep storeQualityByContext loadContextOut alchemy  cmpH5StoreQualityByContext sageify
+all: bin make.dep storeQualityByContext loadContextOut alchemy  sageify
 
 BUILTEXECS = $(addprefix bin/, $(EXECS))
 DISTRIB_SET = storeQualityByContext loadContextOut alchemy
@@ -41,7 +41,6 @@ endif
 storeQualityByContext:      bin/storeQualityByContext
 loadContextOut: bin/loadContextOut
 alchemy: bin/alchemy
-cmpH5StoreQualityByContext: bin/cmpH5StoreQualityByContext
 sageify: bin/sageify
 
 #
@@ -71,13 +70,10 @@ install-secondary: $(INSTALL_TARGETS)
 bin/printLengthHistogram: bin/PrintLengthHistogramFromCmph5.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
-bin/cmpH5StoreQualityByContext: bin/StoreQualityByContextFromCmpH5.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
-
 bin/storeQualityByContext: bin/StoreQualityByContext.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
-bin/alchemy: bin/BasH5Simulator.o
+bin/alchemy: bin/Alchemy.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  $(HDF_REQ_LIBS)
 
 bin/loadContextOut: bin/LoadContextOut.o

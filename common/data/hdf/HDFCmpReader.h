@@ -45,8 +45,23 @@ public:
     set<string> includedFields;
     HDFCmpSupportedFields supportedFields;
     HDFAtom<string> readTypeAtom;
+		int curAlignmentIndex;
+		int nAlignments;
 
-    void AstroInitializeColumnNameMap() {
+    unsigned int GetAlignmentIndexSize() {
+        if (alnInfoGroup.alnInfoGroup.groupIsInitialized == false) {
+            cout << "ERROR, getting the size of an index before initializing the cmp.h5 file." << endl;
+            exit(1);
+        }
+        return alnInfoGroup.alnIndexArray.GetNRows();
+    }
+
+    // Add synonym 
+    unsigned int GetNAlignments() {
+        return GetAlignmentIndexSize();
+    }
+
+		void AstroInitializeColumnNameMap() {
         CmpAlignmentBase::columnNameToIndex["AlignmentId"] = 0;
         CmpAlignmentBase::columnNameToIndex["ReadGroupId"] = 1;
         CmpAlignmentBase::columnNameToIndex["MovieId"] = 2;
@@ -111,13 +126,25 @@ public:
 
     }
 
-
-    int Initialize(string &hdfCmpFileName, set<string> includedFieldsP, unsigned int flags=H5F_ACC_RDONLY, const H5::FileAccPropList & fileAccPropList=H5::FileAccPropList::DEFAULT) {
+		//
+		// Initialization for customized field list.
+		//
+    int Initialize(string &hdfCmpFileName,
+									 set<string> includedFieldsP,
+									 unsigned int flags=H5F_ACC_RDONLY,
+									 const H5::FileAccPropList & fileAccPropList=H5::FileAccPropList::DEFAULT) {
+			
         Initialize(hdfCmpFileName, flags, fileAccPropList);
         includedFields = includedFieldsP;
     }
 
-    int Initialize(string &hdfCmpFileName, unsigned int flags=H5F_ACC_RDONLY, const H5::FileAccPropList & fileAccPropList=H5::FileAccPropList::DEFAULT) {
+		//
+		// Initialization for default field list.
+		//
+
+    int Initialize(string &hdfCmpFileName,
+									 unsigned int flags=H5F_ACC_RDONLY,
+									 const H5::FileAccPropList &fileAccPropList=H5::FileAccPropList::DEFAULT) {
         /*
          * Initialize access to the HDF file.
          */
@@ -158,22 +185,12 @@ public:
         }
 
         SpringfieldInitializeColumnNameMap();    
-
+				curAlignmentIndex = 0;
+				nAlignments = GetNAlignments();
+				
         return 1;
     }
 
-    unsigned int GetAlignmentIndexSize() {
-        if (alnInfoGroup.alnInfoGroup.groupIsInitialized == false) {
-            cout << "ERROR, getting the size of an index before initializing the cmp.h5 file." << endl;
-            exit(1);
-        }
-        return alnInfoGroup.alnIndexArray.GetNRows();
-    }
-
-    // Add synonym 
-    unsigned int GetNAlignments() {
-        return GetAlignmentIndexSize();
-    }
 
     static void ParseReadGroupPath(string &path, string &refName, string &readGroupName){ 
         int delimPos;
@@ -395,10 +412,12 @@ public:
             }
         }
 
+		
     void ReadAlignment(int alignmentIndex, CmpAlignment &cmpAlignment) {
         alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
         ReadAlignmentArray(alignmentIndex, cmpAlignment.alignmentArray);
     }
+
 
     void ReadAlignment(int alignmentIndex, AlignmentCandidate<FASTASequence, FASTASequence> &alignment) {
         CmpAlignment cmpAln;
@@ -440,6 +459,31 @@ public:
         alignment.mapQV  = cmpAln.GetMapQV();
     }
 
+		//
+		// Define iterators.
+		//
+		bool ReadNextAlignment(CmpAlignment &cmpAlignment) {
+			if (curAlignmentIndex < nAlignments) {
+				ReadAlignment(curAlignmentIndex, cmpAlignment);
+				curAlignmentIndex +=1;
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		bool ReadNextAlignment(AlignmentCandidate<FASTASequence, FASTASequence> &alignment) {
+			if (curAlignmentIndex < nAlignments) {
+				ReadAlignment(curAlignmentIndex, alignment);
+				curAlignmentIndex +=1;
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		
     void ReadAlignmentArray(int alignmentIndex, ByteAlignment &alignmentArray) {
         CmpAlignment cmpAlignment;
         alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
@@ -489,10 +533,7 @@ public:
                 offsetEnd, 
                 &alignmentArray[0]);
     }
-
-    void ImportReadFromCmpH5(int alignmentIndex, SMRTSequence &read) {
-        CmpAlignment cmpAlignment;
-        alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
+    void ImportReadFromCmpH5(CmpAlignment &cmpAlignment, SMRTSequence &read) {
 
         //
         // Cache some stats about the read, and where it was aligned to.
@@ -535,7 +576,7 @@ public:
         }
 
         //
-        // Read the alignment string.  All alignments 
+        // Read the alignment string.
         //
         refAlignGroups[refGroupIndex]->readGroups[readGroupIndex]->alignmentArray.Read(offsetBegin, 
                 offsetEnd, 
@@ -634,6 +675,12 @@ public:
 
     }
 
+    void ImportReadFromCmpH5(int alignmentIndex, SMRTSequence &read) {
+        CmpAlignment cmpAlignment;
+        alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
+				ImportReadFromCmpH5(cmpAlignment, read);
+		}
+		
     void ReadReadGroupPathTable(CmpIndexedStringTable &readGroupPathTable) {
         UInt numElem = readGroupPathTable.ids.size();
         readGroupPathTable.resize(numElem); // resizes all tables

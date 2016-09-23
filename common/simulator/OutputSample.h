@@ -6,11 +6,11 @@
 
 class OutputSample {
  public:
-  enum Type {Match, Insertion, Deletion, Substitution};
+  enum Type {Match, Insertion, Deletion, Substitution, Merge};
   
   vector<QualitySample> qualities;
   vector<Nucleotide>    nucleotides;
-
+	int nNuc;
 
   void Resize(int size) {
     qualities.resize(size);
@@ -24,36 +24,40 @@ class OutputSample {
     for (i = 0; i < length; i++) {
       qualities[i].CopyFromSequence(seq, pos+i);
       nucleotides[i] = seq.seq[pos+i];
+			assert(nucleotides[i] >= 'A' and nucleotides[i] <= 'T');
     }
+		nNuc = length;
   }
   
   void Write(ofstream &out) {
-
-    out.write((char*) &type, sizeof(type));
-    int nNuc = nucleotides.size();
-
-    out.write((char*)&nNuc, sizeof(int));
+		
+    out.write((char*) &type, sizeof(Type));
+    out.write((char*) &nNuc, sizeof(int));
     int i;
-    for (i = 0; i < qualities.size(); i++) {
-      qualities[i].Write(out);
-    }
-    assert(nNuc == qualities.size());
-    out.write((char*) &nucleotides[0], sizeof(Nucleotide)*nucleotides.size());
-
+		if (type != Deletion) {
+			if (nNuc > 0) {
+				for (i = 0; i < qualities.size(); i++) {
+					qualities[i].Write(out);
+				}
+				out.write((char*) &nucleotides[0], sizeof(Nucleotide)*nucleotides.size());
+			}
+		}
   }
 
   void Read(ifstream &in) {
     in.read((char*) &type, sizeof(Type));
-    int nNuc;
     in.read((char*) &nNuc, sizeof(int));
-    qualities.resize(nNuc);
-    int i;
-    for (i = 0; i < nNuc; i++) {
-      qualities[i].Read(in);
-    }
-    nucleotides.resize(nNuc);
-    in.read((char*) &nucleotides[0], sizeof(Nucleotide)* nNuc);
-
+		if (type != Deletion) {
+			qualities.resize(nNuc);
+			int i;
+			for (i = 0; i < nNuc; i++) {
+				qualities[i].Read(in);
+			}
+			nucleotides.resize(nNuc);
+			if (nNuc > 0) {
+				in.read((char*) &nucleotides[0], sizeof(Nucleotide)* nNuc);
+			}
+		}
   }
 };
 

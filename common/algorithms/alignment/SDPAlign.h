@@ -245,21 +245,36 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   FlatMatrix2D<Arrow> graphPathMat;
   FlatMatrix2D<int> graphBins;
 
-	int nOnOpt = fragmentSet.size();
-
-  if (fragmentSet.size() > 2000) {
-		int nCol = 20;
-		vector<bool> onOptPath(fragmentSet.size(), false);
-    nOnOpt = GraphPaper<Fragment>(fragmentSet, nCol, nCol,
-                                  graphBins, graphScoreMat, graphPathMat,
-                                  onOptPath);
-		int prev = fragmentSet.size();
-		RemoveOffOpt(fragmentSet, onOptPath);
-  }    
+  int nOnOpt = fragmentSet.size();
 	
-	graphScoreMat.Clear();
-	graphPathMat.Clear();
-	graphBins.Clear();
+	//	ofstream before("before.tab");
+	//	int fi;
+	//	for (fi = 0; fi < fragmentSet.size(); fi++) {
+	//		before << fragmentSet[fi].x << "\t" << fragmentSet[fi].y << "\t" << fragmentSet[fi].length << endl;
+	//	}
+	//	before.close();
+	/*
+  if (fragmentSet.size() > 2000) {
+		//
+		// One column every 100bp
+		//
+		bool onDiagonal = true;
+		int binSize = 250;
+		int nCol = query.length / binSize;
+		int nRow = target.length / binSize;
+		vector<bool> onOptPath(fragmentSet.size(), false);
+		if (nRow > 5 and nCol > 5) {
+			nOnOpt = GraphPaper<Fragment>(fragmentSet, nRow, nCol,
+																		graphBins, graphScoreMat, graphPathMat,
+																		onOptPath, binSize*0.5, binSize);
+			int prev = fragmentSet.size();
+			RemoveOffOpt(fragmentSet, onOptPath);
+		}
+  }    
+  graphScoreMat.Clear();
+  graphPathMat.Clear();
+  graphBins.Clear();
+*/
 
   //
   // Because there are fragments from multiple overlapping regions, remove
@@ -317,16 +332,21 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   // Patch the sdp fragments into an alignment, possibly breaking the
   // alignment if the gap between two fragments is too large.
   //
+	//	ofstream after("after.tab");
 
-	for (f = 0; f < maxFragmentChain.size(); f++ ){ 
+
+	for (f = 0; f < maxFragmentChain.size(); f++ ){
+		
 		startF = f;
 		// Condense contiguous stretches.
-		while(f < maxFragmentChain.size()  - 1 and 
+		while(f < maxFragmentChain.size()  - 1 and
 					fragmentSet[maxFragmentChain[f]].x == fragmentSet[maxFragmentChain[f+1]].x - 1 and
 					fragmentSet[maxFragmentChain[f]].y == fragmentSet[maxFragmentChain[f+1]].y - 1) {
+
+			//			after << fragmentSet[maxFragmentChain[f]].x << "\t" << fragmentSet[maxFragmentChain[f]].y << "\t" << endl;											
 			f++;
     }
-			
+
 		block.qPos = fragmentSet[maxFragmentChain[startF]].x;
 		block.tPos = fragmentSet[maxFragmentChain[startF]].y;
 
@@ -344,7 +364,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 		chainAlignment.blocks.push_back(block);
 	}
 
-
+	//	after.close();
 	//
 	// It may be possible that in regions of low similarity, spurious matches fit into the LCS.  
 	// Assume that indels cause the matches to diverge from the diagonal on a random walk.  If they 
@@ -377,6 +397,7 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 		diffDiag--;
 		// compare the alignment distances.  
 	}
+
 
   vector<bool> blockIsGood;
   blockIsGood.resize(chainAlignment.size());

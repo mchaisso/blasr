@@ -39,6 +39,12 @@ public:
   int *pulseIndex;
   DNALength lowQualityPrefix, lowQualitySuffix;
 	unsigned int *IPD;
+	float snr[4];
+	float readQuality;
+	int numPasses;
+	int cx;
+	int subreadContext;
+	int qs, qe;
   void SetNull() {
     pulseIndex    = NULL;
     preBaseFrames = NULL;
@@ -52,6 +58,12 @@ public:
     // By default, allow the entire read.
     lowQualityPrefix = lowQualitySuffix = 0;
 		IPD          = NULL;
+		numPasses = 0;
+		snr[0] = snr[1] = snr[2] = snr[3] = 0;
+		subreadContext = 0;
+		readQuality = 0;
+		subreadContext = 0;
+		qs = qe = 0;
   }
   
   SMRTSequence() : FASTQSequence() {
@@ -83,6 +95,13 @@ public:
     assert(subreadEnd - subreadStart <= length);
     subread.subreadStart= subreadStart;
     subread.subreadEnd  = subreadEnd;
+		//
+		// Set qe & qs for printing purposes.  Only set qe and qs if the main read is not considered a subread.
+		//
+		if (qe == 0) {
+			subread.qe = subreadEnd+1;
+			subread.qs = subreadStart+1;
+		}
     SetSubreadTitle(subread, subreadStart, subreadEnd);
   }
 
@@ -187,6 +206,9 @@ public:
     }
 		subreadStart = rhs.subreadStart;
 		subreadEnd   = rhs.subreadEnd;
+		qs           = rhs.qs;
+		qe           = rhs.qe;
+		memcpy(snr, rhs.snr, sizeof(float)*4);
 		lowQualityPrefix = rhs.lowQualityPrefix;
 		lowQualitySuffix = rhs.lowQualitySuffix;
     zmwData = rhs.zmwData;

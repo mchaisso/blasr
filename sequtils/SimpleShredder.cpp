@@ -92,7 +92,13 @@ int main(int argc, char* argv[]) {
   DNALength origReadLength = readLength;
 	for (i = 0; stratify or i < numReads; i++) {
     if (stratify == 0) {
-      FindRandomPos(reference, seqIndex, seqPos, readLength );
+			int positionFound;
+      positionFound = FindRandomPos(reference, seqIndex, seqPos, readLength );
+			if (positionFound == false) {
+				cout << "Could not simulate a position for a read of length " << readLength << endl;
+				exit(1);
+			}
+
     }
     else {
       //

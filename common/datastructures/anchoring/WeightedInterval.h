@@ -19,12 +19,13 @@ public:
 	float pValue;
 	vector<int> positions;
 	vector<ChainedMatchPos> matches;
-  float pValueVariance, pValueNStdDev;
-  float sizeVariance, sizeNStdDev;
-  int nAnchors;
-  int totalAnchorSize;
-  bool isOverlapping;
-  int GetStrandIndex() const {
+	float pValueVariance, pValueNStdDev;
+	float sizeVariance, sizeNStdDev;
+	int nAnchors;
+	int totalAnchorSize;
+	bool isOverlapping;
+	string tName;
+	int GetStrandIndex() const {
     return readIndex;
   }
 

@@ -2,13 +2,14 @@
 #define ENUMERATIONS_H_
 
 typedef enum T_FileType {  Fasta,
-								 Fastq,
-								 HDFPulse,
-								 Fourbit,
-								 HDFBase,
-								 HDFCCS,
-                                 HDFCCSONLY,
-								 None
+													 Fastq,
+													 HDFPulse,
+													 Fourbit,
+													 HDFBase,
+													 HDFCCS,
+													 HDFCCSONLY,
+													 SAM_READ,
+													 None
 } FileType;
 typedef enum T_Strand {Forward, Reverse} Strand;
 

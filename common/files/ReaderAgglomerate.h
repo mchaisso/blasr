@@ -13,34 +13,46 @@
 #include "data/hdf/HDFBasReader.h"
 #include "data/hdf/HDFCCSReader.h"
 #include "utils/StringUtils.h"
+#include "algorithms/alignment/readers/sam/SAMReader.h"
+#include "datastructures/alignmentset/SAMToSMRTSequence.h"
 
 class ReaderAgglomerate : public BaseSequenceIO {
 	FASTAReader fastaReader;
 	FASTQReader fastqReader;
+	
 	int readQuality;
 	int stride;
 	int start;
 	float subsample;
 	bool useRegionTable;
 	bool ignoreCCS;
-	
-
+	int lineNumber;
+	bool initialized;
 	int holeNumberI;
 
  public:
 	vector<int>    holeNumbers;
-	
+	bool IsInitialized() {
+		return initialized;
+	}
 	bool UseHoleNumbers() {
 		return holeNumbers.size() > 0;
 	}
 
 	//
-	// Create interfaces for reading hdf
+	// Create containers for reading hdf
 	//
 	T_HDFBasReader<SMRTSequence>  hdfBasReader;
 	HDFCCSReader<CCSSequence>     hdfCcsReader;
 	vector<SMRTSequence>          readBuffer;
 	vector<CCSSequence>           ccsBuffer;
+
+
+	//
+	// Container for reading sam
+	//
+  SAMReader<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> samReader;
+	
   string readGroupId;
 
 
@@ -54,9 +66,11 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		readQuality = 1;
 		useRegionTable = true;
 		ignoreCCS = true;
+		initialized = false;
 	}
 
 	ReaderAgglomerate() {
+		
 		InitializeParameters();
 	}
 	
@@ -121,16 +135,21 @@ class ReaderAgglomerate : public BaseSequenceIO {
     hdfBasReader.SetReadBasesFromCCS();
 	}
 
-	int Initialize(string &pFileName) {
-		if (DetermineFileTypeByExtension(pFileName, fileType)) {
+	int Initialize(string &pFileName, string fileTypeSuffix="") {
+		if ((fileTypeSuffix == "" and DetermineFileTypeByExtension(pFileName, fileType, false)) or
+				DetermineFileTypeByExtension("." + fileTypeSuffix, fileType, false)) {
 			fileName = pFileName;
+
 			return Initialize();
 		}
-    return false;
+		else {
+			return false;
+		}
 	}
 	
-	bool SetReadFileName(string &pFileName) {
-		if (DetermineFileTypeByExtension(pFileName, fileType)) {
+	bool SetReadFileName(string &pFileName, string fileTypeSuffix="") {
+		if ((fileTypeSuffix == "" and DetermineFileTypeByExtension(pFileName, fileType, false)) or
+				DetermineFileTypeByExtension("." + fileTypeSuffix, fileType, false)) {
 			fileName = pFileName;
 			return true;
 		}
@@ -141,6 +160,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		
 	int Initialize(FileType &pFileType, string &pFileName) {
 		SetFiles(pFileType, pFileName);
+		
 		return Initialize();
 	}
 
@@ -159,6 +179,9 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		case HDFCCS:
 			return hdfCcsReader.HasRegionTable();
 			break;
+		case SAM_READ:
+			return false;
+			break;
 		}
     return false;
 	}
@@ -170,7 +193,6 @@ class ReaderAgglomerate : public BaseSequenceIO {
 
 	int Initialize() {
 		int init = 1;
-		
 		switch(fileType) {
 		case Fasta:
 			init = fastaReader.Init(fileName);
@@ -208,6 +230,12 @@ class ReaderAgglomerate : public BaseSequenceIO {
 				if (init == 0) return 0;
 			}
 			break;
+
+		case SAM_READ:
+			init = samReader.Initialize(fileName);
+			AlignmentSet<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> alignmentSet;
+			samReader.ReadHeader(alignmentSet);
+			break;
 		}
     readGroupId = "";
 		if (init == 0 || (start > 0 && Advance(start) == 0) ){
@@ -217,7 +245,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
     string movieName;
     GetMovieName(movieName);
     MakeMD5(movieName, readGroupId, 10);
-    
+		initialized = true;    
 		return 1;
 	}
 
@@ -319,6 +347,20 @@ class ReaderAgglomerate : public BaseSequenceIO {
       assert(hdfBasReader.readBasesFromCCS == true);
       numRecords = hdfBasReader.GetNext(seq);
 			break;
+
+		case SAM_READ:
+			SAMAlignment samAlignment;
+			lineNumber = 0;
+			//
+			// Read the SAM header if it exists, but it is not used.
+			//
+			if (samReader.GetNextAlignment(samAlignment, true) == false) {
+				return 0;
+			}
+			
+			ConvertSAMToSMRTSequence(samAlignment, seq);
+			numRecords = 1;
+			break;
 		}
 		if (stride > 1)
 			Advance(stride-1);
@@ -387,7 +429,11 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		case HDFCCS:
 			hdfCcsReader.Close();
 			break;
+		case SAM_READ:
+			samReader.Close();
+			break;
 		}
+		initialized = false;
 	}
 };
 

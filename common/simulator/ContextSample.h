@@ -5,8 +5,8 @@
 #include<vector>
 #include<iostream>
 
-#include "../../common/simulator/QualitySample.h"
-#include "../../common/statistics/statutils.h"
+#include "simulator/QualitySample.h"
+#include "statistics/statutils.h"
 class ContextSample {
  public:
 	vector<QualitySample> samples;

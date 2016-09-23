@@ -86,12 +86,14 @@ int main(int argc, char* argv[]) {
 	int maxMerge = 0;
 	int format = 0;
 	int minLength = 0;
+	bool forward = false;
   clp.RegisterStringOption("genome", &genomeFileName, "Genome.", true);
   clp.RegisterStringListOption("sam", &samFileNames, "Alignments.", true);
   clp.RegisterPreviousFlagsAsHidden();
   clp.RegisterStringOption("out", &outFileName, "Output file. Default to stdout", false);
   clp.RegisterIntOption("format", &format, "Format (supports 0 only, formats 1,4,5 to be added)", CommandLineParser::NonNegativeInteger, false);
-	clp.RegisterIntOption("minLength", &minLength, "Skip alignments under this length.", CommandLineParser::NonNegativeInteger, false);
+  clp.RegisterFlagOption("forward", &forward, "Print ref in forward direction", false);	
+  clp.RegisterIntOption("minLength", &minLength, "Skip alignments under this length.", CommandLineParser::NonNegativeInteger, false);
   clp.ParseCommandLine(argc, argv);
 
   FASTAReader fastaReader;
@@ -113,9 +115,12 @@ int main(int argc, char* argv[]) {
 
 
   fastaReader.ReadAllSequences(references);
+	
   int i;
   map<string,int> refToIndex;
   for (i = 0; i < references.size(); i++) {
+		string name = references[i].GetName();
+		references[i].CopyTitle(name.c_str());
     refToIndex[references[i].title] = i;
   }
 	for (samFileIndex=  0; samFileIndex < samFileNames.size(); samFileIndex++) {
@@ -138,11 +143,14 @@ int main(int argc, char* argv[]) {
 			if (samAlignment.flag & excludeFlag != 0) {
 				continue;
 			}
+			if (forward) {
+				samAlignment.flag = 0;
+			}
 			vector<AlignmentCandidate<> > convertedAlignments;
 			SAMAlignmentsToCandidates(samAlignment, 
 																references, refToIndex,
 																convertedAlignments, false, false);
-
+			
 			int a;
 			for (a = 0; a < convertedAlignments.size(); a++) {
 				if (format == 0) {

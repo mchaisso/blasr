@@ -60,6 +60,8 @@ class MappingData {
 		dest.seqStartPos = seqDBPtr->seqStartPos;
 		dest.nameLengths = seqDBPtr->nameLengths;
 		dest.names       = seqDBPtr->names;
+		dest.startPos    = seqDBPtr->startPos;
+		dest.endPos      = seqDBPtr->endPos;
 		dest.deleteStructures = false;
 	}
 

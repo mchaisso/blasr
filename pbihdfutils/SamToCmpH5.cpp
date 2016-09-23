@@ -106,6 +106,7 @@ int main(int argc, char* argv[]) {
   //
 
   vector<FASTASequence> references;
+	fastaReader.storeName = true;
   fastaReader.ReadAllSequences(references);
   
   //
@@ -199,6 +200,7 @@ int main(int argc, char* argv[]) {
     SAMAlignmentsToCandidates(samAlignment, 
                               references, alignmentSetAdapter.refNameToAllRefIndex,
                               convertedAlignments, parseSmrtTitle, false);
+		
 
     alignmentSetAdapter.StoreAlignmentCandidateList(convertedAlignments, cmpFile, alignIndex);
     int a;

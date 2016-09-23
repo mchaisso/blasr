@@ -21,7 +21,9 @@
 typedef DNASuffixArray T_SuffixArray;
 
 void PrintUsage() {
-	cout << "usage: dotplot query target min_k [-maxCount] " << endl;
+	cout << "usage: dotplot query target min_k [--maxCount] [--useLcp]" << endl;
+	cout << "  --maxCount Limits the number of matches per position." << endl
+			 << "  --useLcp   Use the longest match at every position (will likely not show STR)." << endl;
 }
 
 void QuickMatch(FASTASequence &target, DNASuffixArray &sa, FASTASequence &query, 
@@ -88,16 +90,23 @@ int main(int argc, char* argv[]) {
 	ofstream outFile;
 	int argi = 4;
 	int maxPerPosition=0;
+	bool useLCP = false;
 	while (argi < argc){ 
 		if (strcmp(argv[argi], "-o") == 0) {
 			++argi;
 			cerr << "opening " << argv[argi] << endl;
 			outFileName = argv[argi];
 		}
-		if (strcmp(argv[argi], "-m") == 0) {
+		if (strcmp(argv[argi], "-m") == 0 or strcmp(argv[argi], "--maxCount") == 0) {
 			++argi;
 			maxPerPosition = atoi(argv[argi]);
 		}
+		if (strcmp(argv[argi], "--useLCP") == 0) {
+			++argi;
+			useLCP = true;
+		}
+		
+		
 		++argi;
 	}
 
@@ -127,7 +136,14 @@ int main(int argc, char* argv[]) {
 	target.ConvertThreeBitToAscii();
 	cerr << "done building sa" << endl;
 	AnchorParameters anchorParameters;
-	anchorParameters.minMatchLength = minK;
+	anchorParameters.minMatchLength        = minK;
+	if (useLCP == false) {
+		anchorParameters.maxLCPLength          = minK+1;
+	}
+	else {
+		anchorParameters.maxLCPLength          = 0;
+	}
+	
 	anchorParameters.stopMappingOnceUnique = true;
  
 	QuickMatch(target, sarray, query, anchorParameters,matchPosList, maxPerPosition);

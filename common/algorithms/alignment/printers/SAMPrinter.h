@@ -515,9 +515,9 @@ namespace SAMOutput {
 			samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
 			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
 			samFile << "XE:i:" << xe + 1 << "\t";
-			samFile << "qs:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
+			samFile << "qs:i:" << read.qs << "\t"; // add 1 for 1-based indexing in sam
 			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
-			samFile << "qe:i:" << xe + 1 << "\t";
+			samFile << "qe:i:" << read.qe << "\t";
 
 		}
 		samFile << "zm:i:" << read.holeNumber << "\t";
@@ -528,13 +528,23 @@ namespace SAMOutput {
     samFile << "NM:i:" << context.editDist << "\t";
     samFile << "FI:i:" << alignment.qAlignedSeqPos + 1;
     // Add query sequence length
-    samFile << "\t" << "XQ:i:" << alignment.qLength;
+    samFile << "\t" << "XQ:i:" << alignment.qLength << "\t";
 
 		//
 		// Write out optional quality values.  If qvlist does not 
 		// have any qv's signaled to print, this is a no-op.
 		//
 		// First transform characters that are too large to printable ones.
+		samFile.precision(4);
+		samFile << "rq:f:" << read.readQuality << "\t";
+		samFile << "np:i:" << read.numPasses << "\t";
+		samFile << "cx:i:" << read.subreadContext << "\t";
+		samFile << "sn:B:f,"
+						<< read.snr[0] << ","
+						<< read.snr[1] << ","
+						<< read.snr[2] << ","
+						<< read.snr[3];
+		
 		qvlist.FormatQVOptionalFields(alignedSequence);
 		qvlist.PrintQVOptionalFields(alignedSequence, samFile);
 
@@ -594,8 +604,8 @@ namespace SAMOutput {
 			DNALength xe = read.subreadEnd;
 			samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
 			samFile << "XE:i:" << xe + 1 << "\t";
-			samFile << "qs:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
-			samFile << "qe:i:" << xe + 1 << "\t";
+			samFile << "qs:i:" << read.qs << "\t"; // add 1 for 1-based indexing in sam
+			samFile << "qe:i:" << read.qe << "\t";
 		}
 		else {
 			samFile << "XS:i:1\t"
@@ -605,7 +615,15 @@ namespace SAMOutput {
 		}
 		samFile << "zm:i:" << read.holeNumber << "\t";
     samFile << "XL:i:" << 0 << "\t";
-
+		samFile.precision(4);
+		samFile << "rq:f:" << read.readQuality << "\t";
+		samFile << "np:i:" << read.numPasses << "\t";
+		samFile << "cx:i:" << read.subreadContext << "\t";
+		samFile << "sn:B:f,"
+						<< read.snr[0] << ","
+						<< read.snr[1] << ","
+						<< read.snr[2] << ","
+						<< read.snr[3] << "\t";
     samFile << "XT:i:1"; // reads are allways continuous reads, not
                         // referenced based circular consensus when
                         // output by blasr.

@@ -124,7 +124,7 @@ bin/computeRefCoverage: bin/ComputeRefCoverage.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR)   -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/samtoh5: bin/SamToCmpH5.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR)   -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
+	$(CPP) -g $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR)   -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)
 
 bin/samtobas: bin/SamToBasH5.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@  -L$(HDF5LIBDIR)   -l$(HDF5LIBCPP) -l$(HDF5LIB) $(HDF_REQ_LIBS)

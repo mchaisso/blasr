@@ -85,6 +85,7 @@ class OutputSampleListSet {
   }
   
   void AppendOutputSample(string key, OutputSample &sample) {
+
     if (listMap[key].size() < minSamples) {
 			if (listMap[key].size() < maxSamples) {
 				listMap[key].push_back(sample);
@@ -92,12 +93,28 @@ class OutputSampleListSet {
       if (listMap[key].size() == minSamples) {
         nSufficient++;
         cout << nSufficient << " / " << sampleSpaceSize << endl;
+				if (sampleSpaceSize - nSufficient == 10) {
+					int i;
+					const char nucs[] = {'A','C','G','T'};
+					for (i = 0; i < sampleSpaceSize; i++) {
+						string s;
+						int j;
+						int v = i;
+						for (j = 0; j < 5; j++) {
+							s.push_back(nucs[v & 3]);
+							v >>=2;
+						}
+						if (listMap.find(s) == listMap.end()) {
+							cout << "Last 10: " << s << endl;
+						}
+					}
+				}
       }
     }
   }
 
   bool Sufficient() {
-    return nSufficient == sampleSpaceSize;
+    return nSufficient + 1 >= sampleSpaceSize;
   }
 
   void SampleRandomSample(string key, OutputSample &sample) {

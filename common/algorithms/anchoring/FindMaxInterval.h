@@ -393,20 +393,21 @@ template<typename T_MatchList,
 template<typename T_MatchList,
       	 typename T_SequenceBoundaryDB>
 	void StoreLargestIntervals(T_MatchList &pos, 
-														 // End search for intervals at boundary positions
-														 // stored in seqBoundaries
-														 T_SequenceBoundaryDB & ContigStartPos,
+							   // End search for intervals at boundary positions
+							   // stored in seqBoundaries
+							   T_SequenceBoundaryDB & ContigStartPos,
 										
-														 //
-														 // parameters
-														 // How many values to search through for a max set.
+							   //
+							   // parameters
+							   // How many values to search through for a max set.
 
-														 DNALength intervalLength,  
-														 // How many sets to keep track of
-														 int minSize,
-														 vector<DNALength> &start,
-														 vector<DNALength> &end,
-														 IntervalSearchParameters &params) {
+							   DNALength intervalLength,  
+							   // How many sets to keep track of
+							   int minSize,
+							   vector<DNALength> &start,
+							   vector<DNALength> &end,
+							   IntervalSearchParameters &params,
+							   const char* name=NULL) {
 	if (pos.size() == 0) {
 		return;
 	}
@@ -418,12 +419,19 @@ template<typename T_MatchList,
 	VectorIndex nPos = pos.size();
 	VectorIndex endIndex = cur + 1;
 	DNALength curBoundary = 0, endIndexBoundary = 0;
+	
+	DNALength selfStart = 0;
+	DNALength selfEnd   = 0;
+	  
+	if (params.noSelf == true) {
+	  ContigStartPos.GetBoundaries(name, selfStart, selfEnd);
+	}
 
 	if (params.overlap == true) {
 		AdvanceOverlap(pos, nPos, 
-									 intervalLength, minSize, 
-									 ContigStartPos, 
-									 params, cur, endIndex, curBoundary, endIndexBoundary, start, end);
+					   intervalLength, minSize, 
+					   ContigStartPos, 
+					   params, cur, endIndex, curBoundary, endIndexBoundary, start, end);
 	}
 	else { 
 		curBoundary = ContigStartPos(pos[cur].t);
@@ -436,9 +444,19 @@ template<typename T_MatchList,
 		//
 
 		DNALength curIntervalLength = NumRemainingBases(pos[cur].q, intervalLength);
-
+		if (params.noSelf) { 
+		  DNALength beforeSelfAdvance=cur;
+		  while ( cur < nPos and pos[cur].t >= selfStart and pos[cur].t <= selfEnd) {
+			cur+=1;
+		  }
+		  endIndex = cur+1;
+		  curBoundary = ContigStartPos(pos[cur].t);
+		  endIndexBoundary = ContigStartPos(pos[endIndex].t);
+		  
+		}
 		AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
-															 cur, curBoundary, endIndex, endIndexBoundary);
+								   cur, curBoundary, endIndex, endIndexBoundary);
+
 
 
 		DNALength prevStart = cur, prevEndIndex = endIndex ;
@@ -447,6 +465,9 @@ template<typename T_MatchList,
 		int maxSize = SumAnchors(pos, cur, endIndex);
 		int curSize = maxSize;
 
+
+		  
+		
 		if (curSize > minSize) {
 			start.push_back(cur);
 			end.push_back(endIndex);
@@ -499,6 +520,16 @@ template<typename T_MatchList,
 				//
 				if (endIndex < nPos) {
 					endIndex++;
+					if (params.noSelf) { 
+					  DNALength beforeSelfAdvance=cur;
+					  while ( cur < nPos and pos[cur].t >= selfStart and pos[cur].t <= selfEnd) {
+						cur+=1;
+					  }
+					  endIndex = cur+1;
+					  curBoundary = ContigStartPos(pos[cur].t);
+					  endIndexBoundary = ContigStartPos(pos[endIndex].t);
+					}
+
 					AdvanceIndexToPastInterval(pos, nPos, intervalLength, ContigStartPos,
 																		 cur, curBoundary, endIndex, endIndexBoundary);
 					maxSize = 0;
@@ -685,7 +716,7 @@ template<typename T_MatchList,
 
 	vector<DNALength> start, end;
 	
-	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params);
+	StoreLargestIntervals(pos, ContigStartPos, intervalLength, params.minInterval, start, end, params, titlePtr);
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;

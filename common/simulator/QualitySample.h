@@ -6,7 +6,7 @@
 #include "Types.h"
 #include "qvs/QualityValue.h"
 using namespace std;
-#define NQV 4
+#define NQV 5
 #define NFV 3
 #define NT  2
 class QualitySample {
@@ -20,6 +20,9 @@ class QualitySample {
     qv[1] = seq.deletionQV[pos];
     qv[2] = seq.insertionQV[pos];
     qv[3] = seq.substitutionQV[pos];
+		qv[4] = seq.mergeQV[pos];
+		assert(qv[3] != 0);
+		
     tags[0] = seq.deletionTag[pos];
     tags[1] = seq.substitutionTag[pos];
     frameValues[0] = seq.pulseIndex[pos];
@@ -47,6 +50,7 @@ class QualitySample {
 		 * 1 DeletionQV
 		 * 2 InsertionQV
 		 * 3 SubstitutionQV
+		 * 4 MergeQV
 		 * tags:
 		 * 0 DeletionTag
 		 * 1 SubstitutionTag
@@ -68,6 +72,9 @@ class QualitySample {
 		}
 		if (seq.substitutionQV.Empty() == false){ 
 			qv[3] = seq.substitutionQV[pos];
+		}
+		if (seq.mergeQV.Empty() == false){ 
+			qv[4] = seq.mergeQV[pos];
 		}
 		fill(&tags[0], &tags[NT], 0);
 		if (seq.deletionTag){ 

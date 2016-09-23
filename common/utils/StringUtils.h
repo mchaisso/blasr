@@ -169,5 +169,20 @@ int AssignUntilFirstSpace(char *orig, int origLength, string &result) {
 	return i;
 }
 
+string GetBaseTitle(string &title) {
+	string base = "";
+		if (title == "") {
+			return base;
+		}
+		vector<string> parts;
+		Tokenize(title, "/", parts);
+		if (parts.size() > 1) {
+			base = parts[0] + "/" + parts[1];
+		}
+		else {
+			base = parts[0];
+		}
+		return base;
+	}
 
 #endif

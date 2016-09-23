@@ -1,3 +1,4 @@
+
 #ifndef SAMSUPPLEMENTALQVLIST
 #define SAMSUPPLEMENTALQVLIST
 #include "SMRTSequence.h"

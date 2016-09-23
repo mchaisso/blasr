@@ -184,6 +184,10 @@ class MappingParameters {
 	int maxAnchorGap;
 	bool extendEnds;
 	bool piecewiseMatch;
+	bool noSelf;
+	int maxGap;
+	string fileType;
+	bool streaming;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -348,6 +352,10 @@ class MappingParameters {
 		maxAnchorGap = 0;
 		extendEnds = true;
 		piecewiseMatch = false;
+		noSelf = false;
+		maxGap=0;
+		fileType = "";
+		streaming = false;
 	}
 
 	MappingParameters() {
@@ -529,6 +537,9 @@ class MappingParameters {
 		affineAlign = true;
 		//		affineOpen  = 30;
 		//		affineExtend = 0;
+		if (noSelf == true) {
+			preserveReadTitle = true;
+		}
   }
 
   void SetEmulateNucmer() {
@@ -567,6 +578,8 @@ class MappingParameters {
 		intervalSearchParameters.minMatch        = minMatchLength;
 		intervalSearchParameters.minInterval     = minInterval;
 		intervalSearchParameters.maxAnchorGap    = maxAnchorGap;
+		intervalSearchParameters.noSelf          = noSelf;
+		
 	}
 
 	void InitializeScoreFunction(BaseScoreFunction &f) {

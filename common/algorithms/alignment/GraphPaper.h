@@ -52,10 +52,12 @@ int GraphPaper(vector<T_Point> &points,
                FlatMatrix2D<int> &bins,
                FlatMatrix2D<int> &scoreMat,
                FlatMatrix2D<Arrow> &pathMat,
-               vector<bool> &onOptPath) {
+               vector<bool> &onOptPath, 
+			   int minScore,
+			   int maxScore) {
 
   bins.Resize(nRows, nCols);
-	bins.Fill(0);
+  bins.Fill(0);
   scoreMat.Resize(nRows+1, nCols+1);
   pathMat.Resize(nRows+1, nCols+1);
   scoreMat.Fill(0);
@@ -73,42 +75,35 @@ int GraphPaper(vector<T_Point> &points,
   // First set up the grid to optimize over.
   //
   int i;
+
   for (i = 0; i < points.size(); i++) {
     int rowIndex = GetIndex(points[i].GetX(), xMin, xMax, nRows);
     int colIndex = GetIndex(points[i].GetY(), yMin, yMax, nCols);
     bins[rowIndex][colIndex]+= points[i].length;
   }
-
+  
+	//
+	// Compute the average bin size.
+	//
 	
+	float averageBinSize = points.size() * points[0].length / (nRows*nCols  + 1);
+	float indelPenalty = averageBinSize;
   //
   // Now optimize using DP.
   //
 
   // First handle boundary strips
-  int r, c;
-	/*
-		// 
-		// test code to examine the distribution of # anchors/bin
-		//
-	int minBin = bins[0][0];
-	int maxBin = bins[0][0];
+	int r, c;
 	for (r = 0; r < nRows; r++) {
-		for (c = 0; c < nCols; c++) {
-			minBin = min(minBin, bins[r][c]);
-			maxBin = max(maxBin, bins[r][c]);
+	  for (c = 0; c < nCols;c++) {
+		bins[r][c] = min(maxScore, bins[r][c]);
+		if (bins[r][c] < minScore) {
+		  bins[r][c] = 0;
 		}
+	  }
 	}
-	vector<int> hist(100,0);
-	for (r = 0; r < nRows; r++) {
-		for (c = 0; c < nCols; c++) {
-			hist[ (int) (((bins[r][c]-minBin)/float(maxBin-minBin))*100)] +=1;
-		}
-	}
-	for (i = 0; i < hist.size(); i++) {
-		cout << hist[i] << " ";
-	}
-	cout << endl;
-	*/
+	
+	
   for (r = 1; r < nRows+1; r++) {
     scoreMat[r][0] = 0;
     pathMat[r][0]  = Up;
@@ -118,13 +113,17 @@ int GraphPaper(vector<T_Point> &points,
     pathMat[0][c]  = Left;
   }
   scoreMat[0][0] = 0;
+	/*
+  ofstream binsOut("bins.tab");
+	*/
   for (r = 1; r < nRows + 1; r++) {
     for (c = 1; c < nCols + 1; c++) {
       int diagScore, leftScore, upScore;
+			//	  binsOut << r << "\t" << c << "\t" << bins[r][c] << endl;
       diagScore = scoreMat[r-1][c-1] + bins[r-1][c-1];
-      leftScore = scoreMat[r][c-1];
-      upScore   = scoreMat[r-1][c];
-      
+	  leftScore = scoreMat[r][c-1] - indelPenalty;
+	  upScore   = scoreMat[r-1][c] - indelPenalty;
+
       int optScore;
       Arrow optDir;
       if (diagScore >= leftScore and
@@ -146,7 +145,21 @@ int GraphPaper(vector<T_Point> &points,
       pathMat[r][c]   = optDir;
     }
   }
-
+	//  binsOut.close();
+/*
+  ofstream matScores("matscores.tab");
+  for (r = 1; r < nRows; r++) {
+	int alnLength = min(r, nCols);
+	int lastScore = scoreMat[r][nCols];
+	matScores << r << "\t" << nCols << "\t" << lastScore << "\t" << float(lastScore)/alnLength << endl;
+  }
+  for (c = 1; c < nCols-1; c++) {
+	int alnLength = min(c, nRows);
+	int lastScore = scoreMat[nRows][c];
+	matScores << nRows << "\t" << c << "\t" << lastScore << "\t" << float(lastScore)/alnLength << endl;
+  }
+  matScores.close();
+ */ 
   r = nRows; c = nCols;
   while (r > 0 or c > 0) {
     Arrow dir = pathMat[r][c];

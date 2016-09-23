@@ -11,7 +11,7 @@
 #include "Types.h"
 #include "DNASequence.h"
 #include "utils/StringUtils.h"
-
+#include <map>
 using namespace std;
 
 #define SEQUENCE_INDEX_DATABASE_MAGIC 1233211233
@@ -29,6 +29,8 @@ class SequenceIndexDatabase {
 	bool deleteNameLengths;
 	int nSeqPos;
 	bool deleteStructures;
+	map<string, DNALength> startPos;
+	map<string, DNALength> endPos;
   //
   // This is stored after reading in the sequence.
   //
@@ -45,6 +47,24 @@ class SequenceIndexDatabase {
 		deleteStructures = false;
 	}
 
+	void BuildNameMaps() {
+	  int i;
+	  for (i = 0; i < nSeqPos-1; i++) {
+		startPos[names[i]] = seqStartPos[i];
+		endPos[names[i]] = seqStartPos[i+1]-1;
+	  }
+	}
+	
+	void GetBoundaries(string name, DNALength &queryStartPos, DNALength &queryEndPos) {
+	  if (startPos.find(name) != startPos.end()) {
+		queryStartPos = startPos[name];
+		queryEndPos = endPos[name];
+	  }
+	  else {
+		queryStartPos = 0;
+		queryEndPos = 0;
+	  }
+	}
 
   DNALength GetLengthOfSeq(int seqIndex) {
     assert(seqIndex < nSeqPos-1);
@@ -306,7 +326,11 @@ class SeqBoundaryFtr {
     assert(index < seqDB->nSeqPos);
     return seqDB->seqStartPos[index];
   }
-  
+
+  void GetBoundaries(const char * name, DNALength &queryStart, DNALength &queryEnd) {
+	seqDB->GetBoundaries(name, queryStart, queryEnd);
+  }
+
 	DNALength operator()(DNALength pos) {
 		return seqDB->SearchForStartBoundary(pos);
 	}

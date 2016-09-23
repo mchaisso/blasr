@@ -51,7 +51,8 @@ public:
     HDFCmpSupportedFields supportedFields;
     HDFAtom<string> readTypeAtom;
     HDFFileLogGroup fileLogGroup;
-
+		int curAlignmentIndex;
+		int nAlignments;
     void AstroInitializeColumnNameMap() {
         CmpAlignmentBase::columnNameToIndex["AlignmentId"] = 0;
         CmpAlignmentBase::columnNameToIndex["ReadGroupId"] = 1;
@@ -117,10 +118,11 @@ public:
 
     }
 
-
     int Initialize(string &hdfCmpFileName, set<string> includedFieldsP, unsigned int flags=H5F_ACC_RDONLY, const H5::FileAccPropList & fileAccPropList = H5::FileAccPropList::DEFAULT) {
         Initialize(hdfCmpFileName, flags, fileAccPropList);
         includedFields = includedFieldsP;
+				curAlignmentIndex = 0;
+				nAlignments = alnInfoGroup.GetNAlignments();				
     }
 
     void Create(string &hdfCmpFileName) {
@@ -494,13 +496,23 @@ public:
                 qv[i] = fieldValues[baseToAlignmentMap[i]];
             }
         }
-    /*
-       void ReadAlignment(int alignmentIndex, CmpAlignment &cmpAlignment) {
-       alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
-       ReadAlignmentArray(alignmentIndex, cmpAlignment.alignmentArray);
-       }
-       */
-    void ReadAlignment(int alignmentIndex, T_Alignment &alignment) {
+
+		void ReadCmpAlignment(int alignmentIndex, CmpAlignment &alignment) {
+        ReadCmpAlignment(alignmentIndex, alignment);
+		}
+
+		bool ReadNextCmpAlignment(CmpAlignment &alignment) {
+			if (curAlignmentIndex < nAlignments) {
+				ReadCmpAlignment(curAlignmentIndex, alignment);
+				++curAlignmentIndex;
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+
+		void ReadAlignment(int alignmentIndex, T_Alignment &alignment) {
         CmpAlignment cmpAln;
         ReadAlignment(alignmentIndex, cmpAln);
 
@@ -540,6 +552,16 @@ public:
         alignment.mapQV  = cmpAln.GetMapQV();
     }
 
+		bool ReadNextAlignment( T_Alignment &alignment) {
+			if (curAlignmentIndex < nAlignments) {
+				ReadAlignment(curAlignmentIndex, alignment);
+				++curAlignmentIndex;
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
     void ReadAlignmentArray(int alignmentIndex, ByteAlignment &alignmentArray) {
         CmpAlignment cmpAlignment;
         alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
@@ -590,8 +612,7 @@ public:
                 &alignmentArray[0]);
     }
 
-    void ImportReadFromCmpH5(int alignmentIndex, CmpAlignment &cmpAlignment, SMRTSequence &read) {
-        alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
+    void ImportReadFromCmpH5(CmpAlignment &cmpAlignment, SMRTSequence &read) {
 
         //
         // Cache some stats about the read, and where it was aligned to.
@@ -612,7 +633,7 @@ public:
         if (refAlignGroups[refGroupIndex]->experimentNameToIndex.find(readGroupName) ==
                 refAlignGroups[refGroupIndex]->experimentNameToIndex.end()) {
             cout << "Internal ERROR! The read group name " << readGroupName << " is specified as part of "
-                << " the path in alignment " << alignmentIndex
+                << " the path in alignment " << curAlignmentIndex
                 << " though it does not exist in the ref align group specified for this alignment." << endl;
             assert(0);
         }
@@ -733,6 +754,11 @@ public:
 
     }
 
+    void ImportReadFromCmpH5(int alignmentIndex, CmpAlignment &cmpAlignment, SMRTSequence &read) {
+        alnInfoGroup.ReadCmpAlignment(alignmentIndex, cmpAlignment);
+				ImportReadFromCmpH5(cmpAlignment, read);
+		}
+		
     void ReadReadGroupPathTable(CmpIndexedStringTable &readGroupPathTable) {
         UInt numElem = readGroupPathTable.ids.size();
         readGroupPathTable.resize(numElem); // resizes all tables

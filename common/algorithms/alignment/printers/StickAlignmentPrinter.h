@@ -6,7 +6,6 @@
 #include <fstream>
 #include "algorithms/alignment/Alignment.h"
 #include "algorithms/alignment/AlignmentUtils.h"
-
 template<typename T_Alignment, typename T_QuerySequence, typename T_TargetSequence>
 void StickPrintAlignment(T_Alignment &alignment, 
 												 T_QuerySequence &query, T_TargetSequence &text, ostream &out,

@@ -183,7 +183,7 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 
 
 		vector<ChainedMatchPos> emptyMatches;
-		cerr << matches[start].t << " " << matches[end].t << " " << matches[end].t - matches[start].t << " " << qStart << " " << qEnd << " " << (unsigned int) matches[start].s << endl;
+
 		WeightedInterval weightedInterval(end-start, (unsigned int) end - start, (unsigned int) matches[end].q - matches[start].q,
 																			matches[start].t,  matches[end].t + matches[end].len,
 																			(int) matches[start].s, 1.0/(end-start),

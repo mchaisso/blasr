@@ -148,7 +148,7 @@ bin/tabulateAlignment: bin/TabulateAlignment.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/buildQualityValueProfile: bin/BuildQualityValueProfile.o
-	$(CPP) -O3 $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
 
 #
 # Set up a default value for the install dir if one does

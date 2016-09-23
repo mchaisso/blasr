@@ -9,6 +9,7 @@ class IntervalSearchParameters {
 	int   minMatch;
 	int   minInterval;
 	int   maxAnchorGap;
+	bool  noSelf;
 	IntervalSearchParameters() {
 		globalChainType = 0;
 		maxPValue       = log(0.1);
@@ -16,6 +17,7 @@ class IntervalSearchParameters {
 		minMatch        = 0;
 		minInterval     = 0;
 		maxAnchorGap    = 0;
+		noSelf          = false;
 	}
 };
 

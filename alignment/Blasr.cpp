@@ -280,7 +280,7 @@ void GetSoftwareVersion(string &changelistId, string &softwareVersion) {
 
 void MakeSAMHDString(string &hdString) {
   stringstream out;
-  out << "@HD\t" << "VN:" << GetMajorVersion() << "\t" << "pb:3.0b7";
+  out << "@HD\t" << "VN:" << GetMajorVersion() << "\t" << "pb:3.0.1";
   hdString = out.str();
 }
 
@@ -1413,7 +1413,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				SDPAlignLite(qAlignedSeq, alignment->tAlignedSeq, params.sdpTupleSize, 4, sdpMatches);
 				qAlignedSeq.Free();
 				// Hack to avoid having to allocate
-				cerr << " sdp lite: " << sdpMatches.size() << endl;
+
 				vector<ChainedMatchPos> matchesImpl;
 				matches=&matchesImpl;
 				matchesImpl.resize(sdpMatches.size());
@@ -1909,6 +1909,22 @@ int RemoveLowQualityAlignments(T_Sequence &read, vector<T_AlignmentCandidate*> &
     if (params.verbosity > 0) {
       cout << "Quality check  " << i << " " << alignmentPtrs[i]->score << endl;
     }
+	if (params.maxGap > 0) {
+	  UInt j;
+	  for (j = 1; j < alignmentPtrs[i]->blocks.size(); j++) {
+		int gq, gt;
+		gq = alignmentPtrs[i]->blocks[j].qPos - alignmentPtrs[i]->blocks[j-1].qPos - alignmentPtrs[i]->blocks[j].length;
+		gt = alignmentPtrs[i]->blocks[j].tPos - alignmentPtrs[i]->blocks[j-1].tPos - alignmentPtrs[i]->blocks[j].length;
+		if ((gq >= params.maxGap and gt < params.maxGap) or 
+			(gt > params.maxGap and gq < params.maxGap) ) {
+		  // 
+		  // Flag alignment to be deleted.
+		  //
+		  alignmentPtrs[i]->score = params.maxScore;
+		  break;
+		}
+	  }
+	}
     if (alignmentPtrs[i]->blocks.size() == 0 or
         alignmentPtrs[i]->score > params.maxScore) {
       //
@@ -1923,6 +1939,7 @@ int RemoveLowQualityAlignments(T_Sequence &read, vector<T_AlignmentCandidate*> &
       if (params.verbosity  > 0) { 
         cout << alignmentPtrs[i]->qName << " alignment " << i << " is too low of a score." << alignmentPtrs[i]->score << endl;
       }
+	  
       int deletedIndex = i;
       for (; deletedIndex < alignmentPtrs.size(); deletedIndex++) {
         delete alignmentPtrs[deletedIndex];
@@ -2144,8 +2161,8 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
       params.anchorParameters.lcpBoundsOutPtr = mapData->lcpBoundsOutPtr;
       numKeysMatched   = 
         MapReadToGenome(genome, sarray, read, 
-												params.lookupTableLength, 
-												mappingBuffers.matchPosList,
+						params.lookupTableLength, 
+						mappingBuffers.matchPosList,
                         params.anchorParameters);
       
       //
@@ -2226,6 +2243,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
       }
     }
 
+	
     metrics.clocks.findMaxIncreasingInterval.Tick();
     
     //
@@ -2244,9 +2262,9 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     RemoveOverlappingAnchors(mappingBuffers.matchPosList);
     RemoveOverlappingAnchors(mappingBuffers.rcMatchPosList);
 
-		if (params.progress != 0) {
-			cout << "anchors " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
-		}
+	if (params.progress != 0) {
+	  cout << "anchors " << mappingBuffers.matchPosList.size() << " " << mappingBuffers.rcMatchPosList.size() << endl;
+	}
 
     if (params.pValueType == 0) {
       int original = mappingBuffers.matchPosList.size();
@@ -2263,39 +2281,39 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
         dotPlotOut.close();
       }
 
-			DNALength maxGapLength = 50000;
-			DNALength intervalLength = (read.subreadEnd - read.subreadStart) * (1 + params.indelRate);
-			if (intervalLength  - (read.subreadEnd - read.subreadStart) > maxGapLength) {
-				intervalLength = (read.subreadEnd - read.subreadStart) + maxGapLength;
-			}
-			if ( params.piecewiseMatch) {
-				PiecewiseMatch(mappingBuffers.matchPosList,
-											 mappingBuffers.rcMatchPosList,
-											 seqBoundary, topIntervals, read.subreadEnd - read.subreadStart);
-			}
-			else {
-				FindMaxIncreasingInterval(Forward,
-																	mappingBuffers.matchPosList,
-																	// allow for indels to stretch out the mapping of the read.
-																	intervalLength, params.nCandidates,
-																	seqBoundary,
-																	lisPValue,//lisPValue2,
-																	lisWeightFn,
-																	topIntervals, genome, read, intervalSearchParameters,
-																	&mappingBuffers.globalChainEndpointBuffer, 
-																	&mappingBuffers.sdpFragmentSet, read.title);
-				// Uncomment when the version of the weight functor needs the sequence.
-				
-				FindMaxIncreasingInterval(Reverse, mappingBuffers.rcMatchPosList,
-																	(DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates, 
-																	seqBoundary,
-																	lisPValue,//lisPValue2
-																	lisWeightFn,
-																	topIntervals, genome, readRC, intervalSearchParameters,
-																	&mappingBuffers.globalChainEndpointBuffer,
-																	&mappingBuffers.sdpFragmentSet, read.title);
-			}
-		}
+	  DNALength maxGapLength = 50000;
+	  DNALength intervalLength = (read.subreadEnd - read.subreadStart) * (1 + params.indelRate);
+	  if (intervalLength  - (read.subreadEnd - read.subreadStart) > maxGapLength) {
+		intervalLength = (read.subreadEnd - read.subreadStart) + maxGapLength;
+	  }
+	  if ( params.piecewiseMatch) {
+		PiecewiseMatch(mappingBuffers.matchPosList,
+					   mappingBuffers.rcMatchPosList,
+					   seqBoundary, topIntervals, read.subreadEnd - read.subreadStart);
+	  }
+	  else {
+		FindMaxIncreasingInterval(Forward,
+								  mappingBuffers.matchPosList,
+								  // allow for indels to stretch out the mapping of the read.
+								  intervalLength, params.nCandidates,
+								  seqBoundary,
+								  lisPValue,//lisPValue2,
+								  lisWeightFn,
+								  topIntervals, genome, read, intervalSearchParameters,
+								  &mappingBuffers.globalChainEndpointBuffer, 
+								  &mappingBuffers.sdpFragmentSet, read.title);
+		// Uncomment when the version of the weight functor needs the sequence.
+		
+		FindMaxIncreasingInterval(Reverse, mappingBuffers.rcMatchPosList,
+								  (DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates, 
+								  seqBoundary,
+								  lisPValue,//lisPValue2
+								  lisWeightFn,
+								  topIntervals, genome, readRC, intervalSearchParameters,
+								  &mappingBuffers.globalChainEndpointBuffer,
+								  &mappingBuffers.sdpFragmentSet, read.title);
+	  }
+	}
 			/*    else if (params.pValueType == 1) {
       FindMaxIncreasingInterval(Forward,
                                 mappingBuffers.matchPosList,
@@ -2351,9 +2369,10 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     WeightedIntervalSet::iterator topIntIt, topIntEnd;
     topIntEnd = topIntervals.end();
 		
-		if (params.removeContainedIntervals) {
-			topIntervals.RemoveContained();
-		}
+	if (params.removeContainedIntervals) {
+	  topIntervals.RemoveContained();
+	}
+	
     //
     // Allocate candidate alignments on the stack.  Each interval is aligned.
     //
@@ -3997,7 +4016,11 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("maxRefine", &params.maxRefine, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterFlagOption("removeContained", &params.removeContainedIntervals, "", false);
 	clp.RegisterFlagOption("piecewise", &params.piecewiseMatch, "", false);
+	clp.RegisterFlagOption("noSelf", &params.noSelf, "", false);
 	clp.RegisterIntOption("maxAnchorGap", &params.maxAnchorGap, "", CommandLineParser::NonNegativeInteger);
+	clp.RegisterIntOption("maxGap", &params.maxGap, "", CommandLineParser::NonNegativeInteger);
+	clp.RegisterStringOption("fileType", &params.fileType, "");
+	clp.RegisterFlagOption("streaming", &params.streaming, "", false);
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
 	
@@ -4116,10 +4139,12 @@ int main(int argc, char* argv[]) {
 
 	//  The input reads files must have file extensions.
 	for (int i = 0; i < params.readsFileNames.size()-1; i++) {
-		size_t dotPos = params.readsFileNames[i].find_last_of('.');
-		if (dotPos == string::npos) {
-			cout<<"ERROR, the input reads files must include file extensions."<<endl;
-			exit(1);
+		if (params.readsFileNames[i] != "/dev/stdin") {
+			size_t dotPos = params.readsFileNames[i].find_last_of('.');
+			if (dotPos == string::npos) {
+				cout<<"ERROR, the input reads files must include file extensions."<<endl;
+				exit(1);
+			}
 		}
 	}
 
@@ -4188,6 +4213,9 @@ int main(int argc, char* argv[]) {
 	if (!params.useSeqDB) {
 		genomeReader.ReadAllSequencesIntoOne(fastaGenome, &seqdb);
 		params.useSeqDB = true;
+		if (params.noSelf) {
+		  seqdb.BuildNameMaps();
+		}
 	}
 	else {
 		genomeReader.ReadAllSequencesIntoOne(fastaGenome);
@@ -4489,8 +4517,8 @@ int main(int argc, char* argv[]) {
     seqdb.MakeSAMSQString(sqString);
     *outFilePtr << sqString; // this already outputs endl
 		set<string> readGroups;
-    for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size()-1; readsFileIndex++ ) {    
-      reader->SetReadFileName(params.readsFileNames[readsFileIndex]);
+    for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size() - 1; readsFileIndex++ ) {    
+      reader->SetReadFileName(params.readsFileNames[readsFileIndex], params.fileType);
       reader->Initialize();
       string movieNameMD5;
 			ScanData scanData;
@@ -4516,6 +4544,7 @@ int main(int argc, char* argv[]) {
 					          << "CHANGELISTID="<<changelistId <<";"
 										<< "BINDINGKIT=" << scanData.bindingKit << ";" 
 										<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
+					          << "FRAMERATEHZ=100;" 
 										<< "BASECALLERVERSION=" << softwareVersion;
 
 				int q;
@@ -4527,7 +4556,9 @@ int main(int argc, char* argv[]) {
 				*outFilePtr << endl;
 			}
 			readGroups.insert(scanData.movieName);
-      reader->Close();
+			if (params.streaming == false) {
+				reader->Close();
+			}
     }
     string commandLineString;
     clp.CommandLineToString(argc, argv, commandLineString);
@@ -4536,21 +4567,35 @@ int main(int argc, char* argv[]) {
   }
 
 	
-	for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size()-1; readsFileIndex++ ){ 
+	for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size() - 1; readsFileIndex++ ){ 
 		params.readsFileIndex = readsFileIndex;
 
 		//
 		// Configure the reader to use the correct read and region
 		// file names.
 		// 
-		reader->SetReadFileName(params.readsFileNames[params.readsFileIndex]);
+		reader->SetReadFileName(params.readsFileNames[params.readsFileIndex], params.fileType);
 		if (holeNumbers.size() > 0) {
 			reader->InitializeHoleNumbers(holeNumbers);
 		}
 		//
 		// Initialize using already set file names.
 		//
-		int initReturnValue = reader->Initialize();		
+		
+		int initReturnValue = 1;
+		//
+		// Not the best approach.  When writing SAM output, all the input
+		// files must be scanned for read groups so that the header may be
+		// written.  When streaming, we don't want to close this since the
+		// streaming pipe will be killed, so during header initialization
+		// of streamed files, the reader is not closed.  This is ok since
+		// only one file is ever read from (stdin).
+		//
+		if (params.streaming == false or reader->IsInitialized() == false) {
+			 initReturnValue = reader->Initialize();
+		} else {
+			initReturnValue = reader->IsInitialized();
+		}
     string changeListIdString;
     reader->hdfBasReader.GetChangeListID(changeListIdString);
     ChangeListID changeListId(changeListIdString);

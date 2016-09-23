@@ -3,9 +3,9 @@
 #include "utils/FileOfFileNames.h"
 #include "simulator/ContextSet.h"
 #include "simulator/OutputSampleListSet.h"
-#include "datastructures/alignment/CmpFile.h"
-#include "data/hdf/HDFCmpFile.h"
-#include "algorithms/alignment/printers/StickAlignmentPrinter.h"
+#include "algorithms/alignment/readers/sam/SAMReader.h"
+#include "algorithms/alignment/AlignmentUtils.h"
+#include "datastructures/alignmentset/SAMToAlignmentCandidateAdapter.h"
 
 class ScoredLength {
 public:
@@ -18,16 +18,107 @@ public:
 };
 
 void PrintUsage() {
-	cout << "cmpH5StoreQualityByContext - grab quality values from cmp.h5 files until minimum requirements for the number of times a context has been sampled are met." << endl;
-	cout << "usage: cmpH5StoreQualityByContext aligned_reads.cmp.h5  output.qbc  [options] " << endl;
+	cout << "storeQualityByContext - grab quality values from sam files until minimum requirements for the number of times a context has been sampled are met." << endl;
+	cout << "usage: storeQualityByContext input.sam  output.qbc  [options] " << endl;
 	cout << "options: " << endl
 			 << " -contextlength L  The length of the context to sample" << endl << endl
+		   << " -reference  ref   The reference file. Necessary when reading from SAM" << endl << endl
 			 << " -minSamples S(500)Report pass if all contexts are sampled" <<endl
 			 << "                   at least S times." << endl << endl
 			 << " -maxSamples S(1000)Stop sampling a context once it has reached"
 			 << "                   S samples." << endl << endl
        << " -onlyMaxLength" <<endl
        << "                   Store only the length of the longest subread as part of the length model." << endl;
+}
+
+void RemoveGaps(string &src, string &dest) {
+	int i;
+	for (i = 0; i< src.size(); i++) { if (src[i] != '-') dest.push_back(src[i]);}
+}
+int CopyFieldValues(unsigned char* dest, string src) {
+	if (src.size() == 0) {
+		return 0;
+	}
+	else {
+		memcpy(dest, src.c_str(), src.size());
+		return src.size();
+	}
+}
+
+int AssignData( unsigned char* &field, string src) {
+	if (field == NULL) {
+		if (src.size() > 0) {
+			cout << "ERROR. Copying into unallocated field." << endl;
+			assert(0);
+		}
+		else {
+			return 0;
+		}
+	}
+	int res = CopyFieldValues(field, src);
+	return res;
+}
+
+int AssignQualityData( unsigned char* &field, string src) {
+	int res = AssignData(field, src);
+
+	if (res == 0) {
+		field = NULL;
+	}		
+	else {
+		QualityStringToStored(field, src.size());
+	}
+	return res;
+}
+
+int SamReadAlignment(  SAMReader<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> &samReader,
+											 vector<FASTASequence> &references,
+											 map<string, int> &refNameToIndex,
+											 string &refAln, string &queryAln,
+											 SMRTSequence &read) {
+
+  SAMAlignment samAlignment;
+
+	if (samReader.GetNextAlignment(samAlignment) == false) {
+		return 0;
+	}
+
+	read.Allocate(samAlignment.seq.size());
+	read.length = samAlignment.seq.size();
+	AssignData(read.seq, samAlignment.seq);
+	AssignQualityData(read.qual.data, samAlignment.qual);
+	AssignQualityData(read.deletionQV.data, samAlignment.qd);
+	AssignQualityData(read.insertionQV.data, samAlignment.qi);
+	AssignQualityData(read.substitutionQV.data, samAlignment.qs);
+	AssignQualityData(read.mergeQV.data, samAlignment.qm);
+	AssignData((unsigned char*&) read.substitutionTag, samAlignment.ts);
+	AssignData((unsigned char*&) read.deletionTag, samAlignment.td);
+
+	read.CopyTitle(samAlignment.qName);
+	string baseName;
+	baseName = GetBaseTitle(samAlignment.qName);
+	read.CopyTitle(baseName);
+	//
+	// To fit with other methods, this has to read a vector of alignments, even
+	// though the first is the only real alignment.
+	//
+	vector<AlignmentCandidate<> > convertedAlignments;
+	SAMAlignmentsToCandidates(samAlignment, 
+														references, refNameToIndex,
+														convertedAlignments);
+
+	if (convertedAlignments.size() == 0) {
+		return 0;
+	}
+
+	string alignStr;
+
+	CreateAlignmentStrings(convertedAlignments[0],
+												 convertedAlignments[0].qAlignedSeq, convertedAlignments[0].tAlignedSeq,
+												 refAln, alignStr, queryAln);
+
+	return refAln.size();
+
 }
 
 int main(int argc, char* argv[]) {
@@ -41,12 +132,16 @@ int main(int argc, char* argv[]) {
 	}
 	
 	int argi = 1;
-  string cmpH5FileName;
-	cmpH5FileName = argv[argi++];
+  string alignmentFileName;
+	alignmentFileName = argv[argi++];
 	outFileName   = argv[argi++];
 	int minAverageQual = 0;
   bool onlyMaxLength = false;
 
+	int SAM_FILE   = 1;
+		
+	string referenceName = "";
+	
 	while (argi < argc) {
 		if (strcmp(argv[argi], "-contextLength") == 0) {
 			contextLength = atoi(argv[++argi]);
@@ -60,6 +155,9 @@ int main(int argc, char* argv[]) {
     else if (strcmp(argv[argi], "-onlyMaxLength") == 0) {
       onlyMaxLength = true;
     }
+		else if (strcmp(argv[argi], "-reference") == 0) {
+			referenceName = argv[++argi];
+		}
 		else {
 			PrintUsage();
 			cout << "ERROR, bad option: " << argv[argi] << endl;
@@ -67,10 +165,21 @@ int main(int argc, char* argv[]) {
 		}
 		++argi;
 	}
-  map<string, ScoredLength> maxLengthMap;
+  map<string, int> maxLengthMap;
+	map<string, int> nameToIndex;
   OutputSampleListSet samples(contextLength);
 	SMRTSequence read;
-
+	vector<FASTASequence> reference;
+	if (referenceName != "") {
+		FASTAReader reader;
+		reader.Initialize(referenceName);
+		reader.storeName = true;
+		reader.ReadAllSequences(reference);
+		int i;
+		for (i = 0; i < reference.size(); i++) {
+			nameToIndex[reference[i].title] = i;
+		}
+	}
 	ofstream sampleOut;
 	CrucialOpen(outFileName, sampleOut, std::ios::out|std::ios::binary);
 	int fileNameIndex;
@@ -79,92 +188,53 @@ int main(int argc, char* argv[]) {
 	int numContexts = 1 << (contextLength*2);
 	ReaderAgglomerate reader;
 	samples.keyLength = contextLength;
-	HDFCmpFile<CmpAlignment> cmpReader;
-  cmpReader.IncludeField("QualityValue");
-  cmpReader.IncludeField("DeletionQV");
-  cmpReader.IncludeField("InsertionQV");
-  cmpReader.IncludeField("SubstitutionQV");
-  cmpReader.IncludeField("SubstitutionTag");
-  cmpReader.IncludeField("DeletionTag");
-  cmpReader.IncludeField("PulseIndex");
-  cmpReader.IncludeField("WidthInFrames");
-  cmpReader.IncludeField("PreBaseFrames");
 
-	if (cmpReader.Initialize(cmpH5FileName, H5F_ACC_RDWR) == 0) {
-		cout << "ERROR, could not open the cmp file." << endl;
-		exit(1);
-	}
-	cout << "Reading cmp file." << endl;
+  SAMReader<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> samReader;
+  AlignmentSet<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> alignmentSet;
 
-	CmpFile cmpFile;
+	samReader.Initialize(alignmentFileName);
+	samReader.ReadHeader(alignmentSet);
 
-  cmpReader.ReadAlignmentDescriptions(cmpFile);
-  cmpReader.ReadStructure(cmpFile);
-  cout << "done reading structure."<<endl;
+	
   int alignmentIndex;
-  int nAlignments = cmpReader.alnInfoGroup.GetNAlignments();
+
   vector<int> alignmentToBaseMap;
 
+	string refSeq, querySeq;
+	string refAln, queryAln;
 	for (alignmentIndex = 0; 
-       alignmentIndex < nAlignments and
-         !samples.Sufficient();
+			 samples.Sufficient() == false;
        alignmentIndex++) {
     //
     // For ease of use, store the length of the alignment to make another model.
     //
+		int readSize = 0;		
+		readSize = SamReadAlignment(samReader,
+																reference,
+																nameToIndex,
+																refAln, queryAln, read);
 
-    ByteAlignment alignmentArray;
-    cmpReader.ReadAlignmentArray(alignmentIndex, alignmentArray);
-    Alignment alignment;
-    ByteAlignmentToAlignment(alignmentArray, alignment);
-    string readSequence, refSequence;
-    readSequence.resize(alignmentArray.size());
-    refSequence.resize(alignmentArray.size());
-    DNASequence readDNA, refDNA;
-
-    ByteAlignmentToQueryString(&alignmentArray[0], alignmentArray.size(), &readSequence[0]);
-    ByteAlignmentToRefString(&alignmentArray[0], alignmentArray.size(), &refSequence[0]);				
-    RemoveGaps(readSequence, readSequence);
-    RemoveGaps(refSequence, refSequence);
-
-    readDNA.seq = (Nucleotide*) readSequence.c_str();
-    readDNA.length = readSequence.size();
-    refDNA.seq = (Nucleotide*) refSequence.c_str();
-    refDNA.length = refSequence.size();
-    CmpAlignment cmpAlignment;
-
-    cmpReader.ImportReadFromCmpH5(alignmentIndex, cmpAlignment, read);
-
-    CreateAlignmentToSequenceMap(alignmentArray, alignmentToBaseMap);
-
-    if (read.length < contextLength) {
-      continue;
-    }
-    int subreadLength = (cmpFile.alnInfo.alignments[alignmentIndex].GetQueryEnd() - 
-                         cmpFile.alnInfo.alignments[alignmentIndex].GetQueryStart());
-    if (onlyMaxLength == false) {
-      samples.lengths.push_back(subreadLength);
-    }
-    else {
-      int score = (cmpAlignment.GetNMatch() - 
-                   cmpAlignment.GetNMismatch() - 
-                   cmpAlignment.GetNInsertions() - 
-                   cmpAlignment.GetNDeletions());
-      stringstream nameStrm;
-      nameStrm << cmpAlignment.GetMovieId() << "_" << cmpAlignment.GetHoleNumber();
-      string nameStr = nameStrm.str();
-      if (maxLengthMap.find(nameStr) == maxLengthMap.end()) {
-        maxLengthMap[nameStr] = ScoredLength(score, subreadLength);
-      }
-    }
-
-    int sampleEnd = alignmentArray.size() - contextLength/2;
+		RemoveGaps(refAln, refSeq);
+		RemoveGaps(queryAln, querySeq);
+		alignmentToBaseMap.resize(queryAln.size());
+		
+		int i=0, p=0;
+		for (i =0;i < queryAln.size(); i++) {
+			alignmentToBaseMap[i] = p;			
+			if (queryAln[i] != ' ') { p++; }
+		}
+				
+		if (readSize == 0) {
+			break;
+		}
+    int sampleEnd = refAln.size() - contextLength/2;
     int a;
     for (a = contextLength/2; a < sampleEnd; a++) {
 
       // Make sure the context begins on a real nucleotide.
-      while (a < sampleEnd and 
-             ((RefChar[alignmentArray[a]] == ' '))) {a++;}
+      while (a < sampleEnd and
+						 refAln[a] == ' ') {a++;}
+
 
 			//
 			// Move ab back to an index where there are contextLength/2 non-gap characters, counted by nb
@@ -174,7 +244,7 @@ int main(int argc, char* argv[]) {
       ab = a-1;
       int nb = 0, ne = 0;
       while (true) {
-        if (RefChar[alignmentArray[ab]] != ' ') {
+        if (refAln[ab] != ' ') {
           nb++;
         }
         if (ab == 0 or nb == contextLength/2) break;
@@ -185,8 +255,8 @@ int main(int argc, char* argv[]) {
 			// Advance ae to an index where there are contextLength/2 non-gap characters, counted by ne.
 			//
       ae = a + 1;
-      while (ae < alignmentArray.size() and ne < contextLength/ 2) {
-        if (RefChar[alignmentArray[ae]] != ' ') {
+      while (ae < refAln.size() and ne < contextLength/ 2) {
+        if (refAln[ae] != ' ') {
           ne++;
         }
         ae++;
@@ -201,12 +271,12 @@ int main(int argc, char* argv[]) {
       int ai;
       string context;
       for (ai = ab; ai < ae; ai++) {
-        if (RefChar[alignmentArray[ai]] != ' ') {
-          context.push_back(RefChar[alignmentArray[ai]]);
+        if (refAln[ai] != ' ') {
+          context.push_back(refAln[ai]);
         }
       }
       assert(context.size() == contextLength);
-      //      cout << "got context: " << context << endl;
+
       //
       // Now create the context.
       //
@@ -225,20 +295,20 @@ int main(int argc, char* argv[]) {
       int aq = a-1;
       int sampleLength;
 			
-      if (QueryChar[alignmentArray[a]] == ' ') {
+      if (queryAln[a] == ' ') {
         sample.type = OutputSample::Deletion;
 				sampleLength = 0;
       }
-			else if (RefChar[alignmentArray[aq]] == ' ') {
+			else if (refAln[aq] == ' ') {
         while (aq > 0 
-               and RefChar[alignmentArray[aq]] == ' ' 
-               and QueryChar[alignmentArray[aq]] != ' ') {
+               and refAln[aq] == ' ' 
+               and queryAln[aq] != ' ') {
           aq--;
         }
         sample.type = OutputSample::Insertion;
 				sampleLength = a - aq;
       }
-      else if (QueryChar[alignmentArray[a]] == RefChar[alignmentArray[aq]]) {
+      else if (queryAln[a] == refAln[aq]) {
         sample.type = OutputSample::Match;
 				sampleLength = 1;
       }
@@ -253,25 +323,28 @@ int main(int argc, char* argv[]) {
 				int seqPos = alignmentToBaseMap[aq];
 				if (seqPos < read.length) {
 					sample.CopyFromSeq(read, seqPos, sampleLength);
-					string nucs;
-					int n;
-					for (n = 0; n < sample.nucleotides.size(); n++) { 
-						char c = sample.nucleotides[n];
-						assert(c == 'A' or c == 'T' or c == 'G' or c == 'C');
-						nucs.push_back(sample.nucleotides[n]); 
-					}
 				}
 			}
 			samples.AppendOutputSample(context, sample);
+
+			
     }
-    read.Free();
+
+		if (onlyMaxLength) {
+			if (maxLengthMap.find(read.title) == maxLengthMap.end()){
+				maxLengthMap[read.title] = refSeq.size();
+			}
+		}
+		else {
+			samples.lengths.push_back(refSeq.size());
+		}
+    read.Free();		
   }
 
   if (onlyMaxLength) {
-    map<string, ScoredLength>::iterator maxScoreIt;
+    map<string, int>::iterator maxScoreIt;
     for (maxScoreIt = maxLengthMap.begin(); maxScoreIt != maxLengthMap.end(); ++maxScoreIt) {
-      cout << maxScoreIt->second.length << endl;
-      samples.lengths.push_back(maxScoreIt->second.length); 
+      samples.lengths.push_back(maxScoreIt->second); 
     }
   }
 

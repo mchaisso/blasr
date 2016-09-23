@@ -1,8 +1,8 @@
 #ifndef SIMULATOR_LENGTH_HISTOGRAM_H_
 #define SIMULATOR_LENGTH_HISTOGRAM_H_
 
-#include "../../common/simulator/CDFMap.h"
-#include "../../common/datastructures/alignment/CmpAlignment.h"
+#include "simulator/CDFMap.h"
+#include "datastructures/alignment/CmpAlignment.h"
 #include "utils.h"
 #include <iostream>
 #include <string>
@@ -12,8 +12,13 @@ using namespace std;
 
 class LengthHistogram {
  public:
+	bool interpolate;
 	CDFMap<int> lengthHistogram;
 
+	LengthHistogram() {
+		interpolate = false;
+	}
+	
 	int Read(string &inName) {
 		ifstream in;
 		CrucialOpen(inName, in, std::ios::in);
@@ -36,23 +41,25 @@ class LengthHistogram {
 	}
 
 	void GetRandomLength(int &length) {
-		lengthHistogram.SelectRandomValue(length);
+		int index = lengthHistogram.SelectRandomValue(length);
+		if (interpolate == true) {
+			if (index < lengthHistogram.data.size() - 1) {
+				int nextLength = lengthHistogram.data[index+1];
+				length += RandomInt(nextLength - length);
+			}
+		}
 	}
 
   void BuildFromAlignmentLengths(vector<int> &lengths) {
     int i;
     sort(lengths.begin(), lengths.end());
     int f;
-    for (f = 0, i = 1; i < lengths.size(); i++) {
-      if (lengths[i] != lengths[f]) {
-        lengthHistogram.data.push_back(lengths[f]);
-        lengthHistogram.cdf.push_back(i);
-        f = i;
-      }
-    }
-    if (lengths.size() != 0) {
-        lengthHistogram.data.push_back(lengths[lengths.size()-1]);
-        lengthHistogram.cdf.push_back(lengths.size());
+		//
+		// For now, just use all lengths.
+		//
+    for (f = 0, i = 1; i < lengths.size(); i++, f++) {
+			lengthHistogram.data.push_back(lengths[f]);
+			lengthHistogram.cdf.push_back(i);
     }
     /* Tests:
      * indices                0 1 2 3 4  5  6

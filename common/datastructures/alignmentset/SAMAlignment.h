@@ -35,6 +35,10 @@ class SAMAlignment {
   string rNext;
   int pNext;
   int tLen;
+	int zmw;
+	int numPasses;
+	float readQuality;
+	int subreadContext;
   string seq;
   string qual;
 
@@ -51,6 +55,11 @@ class SAMAlignment {
     //
   float score;
   int   xs, xe;
+	//
+	// qs and qe are the positions in the original sequence, though the
+	// read record should not contain the entire orginal
+	// "polymerase-read".
+	int qStart, qEnd;
   int xl;
   int xq;
 
@@ -66,7 +75,7 @@ class SAMAlignment {
 	//
   string qi, qd, qs, qm, ts, td;	
 
-
+	float snr[4];
   SAMAlignment() {
     //
     // Initialize all optional fields.  Required fields will be
@@ -74,6 +83,9 @@ class SAMAlignment {
     //
     score = xs = xe = as = xt = xq = nm = fi = xl = 0;
     rg = optTagStr = "";
+		readQuality = 0;
+		numPasses = 0;
+		snr[0] = snr[1] = snr[2] = snr[3] = 0;
   }
 
   void PrintSAMAlignment(ostream & out = cout) {
@@ -110,7 +122,21 @@ class SAMAlignment {
     return newStr;
   }
 
-  bool StoreValues(string &line,  int lineNumber=0) {
+	bool StoreSNR(istream &strm) {
+		strm.get();
+		strm.get();
+		if (!(strm >> snr[0])) return false;
+		strm.get();
+		if (!(strm >> snr[1])) return false;
+		strm.get();
+		if (!(strm >> snr[2])) return false;
+		strm.get();
+		if (!(strm >> snr[3])) return false;
+
+		return true;
+	}
+	
+  bool StoreValues(string &line,  int lineNumber=0, bool allowUnaligned=false) {
     stringstream strm(line);
     vector<bool> usedFields;
     usedFields.resize(S_QUAL);
@@ -176,7 +202,7 @@ class SAMAlignment {
     //
     // If not aligned, stop trying to read in elements from the sam string.
     //
-    if (rName == "*") {
+    if (allowUnaligned == false and rName == "*") {
       return true;
     }
 
@@ -224,6 +250,31 @@ class SAMAlignment {
         else if (kvName == "XQ") {
           strm >> xq;
         }
+				else if (kvName == "zm") {
+					strm >> zmw;
+				}
+				else if (kvName == "qs") {
+					strm >> qStart;
+				}
+				else if (kvName == "qe") {
+					strm >> qEnd;
+				}
+				else if (kvName == "np") {
+					strm >> numPasses;
+				}
+				else if (kvName == "rq") {
+					strm >> readQuality;
+				}
+				else if (kvName == "cx") {
+					strm >> subreadContext;
+				}
+				else if (kvName == "sn") {
+					if (StoreSNR(strm) == false) {
+						cout << "ERROR. Could not store SNR " << typedKVPair << endl;;
+					}
+				}
+				
+				
 				else if (kvName == SupplementalQVList::qvTags[SupplementalQVList::I_Insertion-1]) {
 					strm >> qi;
 				}

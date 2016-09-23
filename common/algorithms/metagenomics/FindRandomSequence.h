@@ -1,18 +1,18 @@
 #ifndef ALGORITHMS_METAGENOMICS_RANDOM_POS_GENERATOR_H_
 #define ALGORITHMS_METAGENOMICS_RANDOM_POS_GENERATOR_H_
 
-#include "../../DNASequence.h"
-#include "../../statistics/statutils.h"
+#include "DNASequence.h"
+#include "statistics/statutils.h"
 
 #include <vector>
 
 template<typename T_Sequence>
-void FindRandomPos(vector<T_Sequence> &sequences, DNALength &seqIndex, DNALength &seqPos, DNALength seqLength=0 ) {
+int FindRandomPos(vector<T_Sequence> &sequences, DNALength &seqIndex, DNALength &seqPos, DNALength seqLength=0 ) {
 	vector<UInt> cumulativeLengths;
 	cumulativeLengths.resize(sequences.size());
 	int i;
 	if (sequences.size() == 0) {
-		return;
+		return 0;
 	}
 	DNALength cumulativeLength;
 	cumulativeLengths[0] = sequences[0].length;
@@ -60,9 +60,10 @@ void FindRandomPos(vector<T_Sequence> &sequences, DNALength &seqIndex, DNALength
 		}
 	}
 	if (iter == max_iter) {
-		cout << "ERROR! Unable to generate a random seq/pos pair!, maybe length " << seqLength << endl
-         << " is too high, or there are too many N's in the references." << endl;
-		exit(1);
+		return 0;
+	}
+	else {
+		return 1;
 	}
 }
 

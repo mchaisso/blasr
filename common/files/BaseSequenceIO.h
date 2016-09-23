@@ -22,7 +22,7 @@ class BaseSequenceIO {
 		return fileType;
 	}
 
-	static int DetermineFileTypeByExtension(string &fileName, FileType &type, bool exitOnFailure=true) {
+	static int DetermineFileTypeByExtension(string fileName, FileType &type, bool exitOnFailure=true) {
 		string::size_type dotPos = fileName.rfind(".");
 		if (dotPos != string::npos) {
 			string extension;
@@ -67,6 +67,11 @@ class BaseSequenceIO {
 				assert("Four bit reading is not yet implemented for the reader agglomerate!" == 0);
 				return 1;
 			}
+			else if (extension == "sam") {
+				type = SAM_READ;
+				return 1;
+			}
+			
 			else {
 				type = None;
 				if (exitOnFailure) {

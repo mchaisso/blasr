@@ -18,6 +18,7 @@ class SAMReader {
   ifstream samFile;
   bool Initialize(string samFileName) {
     CrucialOpen(samFileName, samFile, std::ios::in);
+		return true;
   }
 
   void Close() {
@@ -151,7 +152,7 @@ class SAMReader {
     }
     return allHeaders;
   }
- 
+
   void Read(AlignmentSet<T_ReferenceSequence, T_ReadGroup, T_SAMAlignment> &alignments) {
     string line;
     LineType lineType;
@@ -175,11 +176,11 @@ class SAMReader {
     }
   }
 
-  bool GetNextAlignment( SAMAlignment& alignment) {
+  bool GetNextAlignment( SAMAlignment& alignment, bool allowUnaligned=false) {
     if (samFile) {
       string line;
       if (getline(samFile, line)) {
-        alignment.StoreValues(line, lineNumber);
+        alignment.StoreValues(line, lineNumber, allowUnaligned);
         ++lineNumber;
         return true;
       }
