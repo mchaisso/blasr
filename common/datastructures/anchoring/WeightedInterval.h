@@ -8,7 +8,7 @@
 
 
 using namespace std;
-
+template<typename T_ChainedMatch> 
 class WeightedInterval {
 public:
 	DNALength size; // not necessarily end - start + 1
@@ -18,7 +18,7 @@ public:
 	int readIndex;
 	float pValue;
 	vector<int> positions;
-	vector<ChainedMatchPos> matches;
+	vector<T_ChainedMatch> matches;
 	float pValueVariance, pValueNStdDev;
 	float sizeVariance, sizeNStdDev;
 	int nAnchors;
@@ -45,7 +45,7 @@ public:
     sizeNStdDev = v;
   }
 
-	int operator<(const WeightedInterval &intv) const {
+	int operator<(const WeightedInterval<T_ChainedMatch> &intv) const {
 		if (size == intv.size) {
 			return start > intv.start;
 		}
@@ -53,10 +53,10 @@ public:
 			return size < intv.size;
 		}
 	}
-	int operator==(const WeightedInterval &intv) const {
+	int operator==(const WeightedInterval<T_ChainedMatch> &intv) const {
 		return size == intv.size;
 	}
-	WeightedInterval(){}
+	WeightedInterval<T_ChainedMatch>(){}
 	void Init(int _size, int _start, int _end, int _readIndex, float _pValue) {
 		size      = _size; 
 		start     = _start; 
@@ -74,11 +74,11 @@ public:
       sizeNStdDev = 0;
 	}
 
-	WeightedInterval(int _size, int _start, int _end, int _readIndex, float _pValue =0.0) {
+	WeightedInterval<T_ChainedMatch>(int _size, int _start, int _end, int _readIndex, float _pValue =0.0) {
 		Init(_size, _start, _end, _readIndex, _pValue);
 	}
 	
-	WeightedInterval(int _size, int _start, int _end, int _readIndex, float _pValue, int _qStart, int _qEnd, int _qLength){
+	WeightedInterval<T_ChainedMatch>(int _size, int _start, int _end, int _readIndex, float _pValue, int _qStart, int _qEnd, int _qLength){
 		Init(_size, _start, _end, _readIndex, _pValue);
 		qStart    = _qStart;
 		qEnd      = _qEnd;
@@ -88,7 +88,7 @@ public:
 	WeightedInterval(int _size, unsigned int _nAnchors, unsigned int _totalAnchorSize, 
 									 int _start, int _end, int _readIndex, float _pValue, 
 									 int _qStart, int _qEnd, int _qLength, 
-									 vector<ChainedMatchPos> &_matches) {
+									 vector<T_ChainedMatch> &_matches) {
 		Init(_size, _start, _end, _readIndex, _pValue);
 		qStart    = _qStart;
 		qEnd      = _qEnd;
@@ -106,9 +106,10 @@ public:
 	}
 };
 
+template<typename T_ChainedMatch>
 class CompareWeightedIntervalByPValue {
  public:
-	int operator()(const WeightedInterval &a, const WeightedInterval &b) const {
+	int operator()(const WeightedInterval<T_ChainedMatch> &a, const WeightedInterval<T_ChainedMatch> &b) const {
     if (a.PValue() != b.PValue()) {
 			return a.PValue() < b.PValue();
 		}
@@ -118,16 +119,15 @@ class CompareWeightedIntervalByPValue {
 	}
 };
 
-typedef vector<WeightedInterval> WeightedIntervalVector;
-typedef multiset<WeightedInterval, CompareWeightedIntervalByPValue> T_WeightedIntervalMultiSet;
-
-class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
+template<typename T_Chained_Anchor>
+class WeightedIntervalSet :
+  public multiset<WeightedInterval<T_Chained_Anchor>, CompareWeightedIntervalByPValue<T_Chained_Anchor> >  {
  public:
   int  maxSize;
 	
 	void RemoveContained(float maxRatio = 0.9) {
-		WeightedIntervalSet::iterator it = (*this).begin();
-		WeightedIntervalSet::iterator endIt = (*this).end();
+		typename WeightedIntervalSet<T_Chained_Anchor>::iterator it = (*this).begin();
+		typename WeightedIntervalSet<T_Chained_Anchor>::iterator endIt = (*this).end();
 		bool isContained = false;
 		while (it != endIt and isContained == false) {
 			DNALength curStart = (*it).qStart;
@@ -139,7 +139,7 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 				curStart = (*it).qLength - (*it).qEnd;
 				curEnd   = (*it).qLength - (*it).qStart;
 			}
-			WeightedIntervalSet::iterator nextIt = it;
+			typename WeightedIntervalSet<T_Chained_Anchor>::iterator nextIt = it;
 			++nextIt;
 			while (nextIt != endIt) {
 				float overlap = 0;
@@ -167,7 +167,7 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 				
 				float anchorSizeRatio = ((float)(*nextIt).totalAnchorSize)/curAnchorSize;
 				if (nextStart >= curStart and nextEnd <= curEnd and (overlapRatio > maxRatio or anchorSizeRatio < 0.25)) {
-					WeightedIntervalSet::iterator skip = nextIt;
+					typename WeightedIntervalSet<T_Chained_Anchor>::iterator skip = nextIt;
 					++skip;
 					this->erase(nextIt);
 					nextIt = skip;
@@ -180,13 +180,13 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 		}
 	}
 
-  WeightedIntervalSet() {
+  WeightedIntervalSet<T_Chained_Anchor>() {
     maxSize = 0;
   }
 
-  WeightedIntervalSet(int maxSizeP) : maxSize(maxSizeP) {} 
+  WeightedIntervalSet<T_Chained_Anchor>(int maxSizeP) : maxSize(maxSizeP) {} 
  
-	bool insert(WeightedInterval &intv) {
+	bool insert(WeightedInterval<T_Chained_Anchor> &intv) {
 
     intv.isOverlapping = false;
 
@@ -195,8 +195,8 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 		// weighted intervals.  
 		//
 
-		WeightedIntervalSet::iterator it = (*this).begin();
-		WeightedIntervalSet::iterator endIt = (*this).end();
+		typename WeightedIntervalSet<T_Chained_Anchor>::iterator it = (*this).begin();
+		typename WeightedIntervalSet<T_Chained_Anchor>::iterator endIt = (*this).end();
 		bool isContained = false;
 
 
@@ -217,7 +217,7 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 							 (*it).qStart >= intv.qStart and (*it).qEnd <= intv.qEnd and
                (*it).readIndex == intv.readIndex and
                (*it).pValue >= intv.pValue) {
-				WeightedIntervalSet::iterator next = it;
+				typename WeightedIntervalSet<T_Chained_Anchor>::iterator next = it;
 				++next;
 				this->erase(it);
 				it = next;
@@ -231,8 +231,8 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
     // Take a peek to see if this interval is too low of a score to
     // bother attempting to add at all. 
     //
-    if (size() >= maxSize and maxSize > 0) {
-      WeightedIntervalSet::iterator last = (*this).end();
+    if (this->size() >= maxSize and maxSize > 0) {
+      typename WeightedIntervalSet<T_Chained_Anchor>::iterator last = (*this).end();
       last--;
  
       if (last->pValue < intv.pValue) {
@@ -243,24 +243,24 @@ class WeightedIntervalSet : public T_WeightedIntervalMultiSet {
 
 		if (isContained == false) {
       bool addInsert = false;
-      if (size() == 0) {
+      if (this->size() == 0) {
         addInsert = true;
       }
       else {
-        it = end();
+        it = this->end();
         --it;
-        if (size() < maxSize or (*it).pValue > intv.pValue) {
+        if (this->size() < maxSize or (*it).pValue > intv.pValue) {
           addInsert = true;
           //
           // Keep the size of the stack the same if it is at the limit.
           //
-          if (maxSize != 0 and size() >= maxSize and size() > 0) { 
+          if (maxSize != 0 and this->size() >= maxSize and this->size() > 0) { 
             erase(it);
           }
         }
       }
       if (addInsert) {
-        ((T_WeightedIntervalMultiSet*)this)->insert(intv);
+        ((multiset<WeightedInterval<T_Chained_Anchor>, CompareWeightedIntervalByPValue<T_Chained_Anchor> >*)this)->insert(intv);
       }
       return true;
 		}

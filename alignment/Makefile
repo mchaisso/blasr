@@ -19,7 +19,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter buildQualityValueProfile sals pbmask findLongestRepeat dotPlot
+EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter sals findLongestRepeat dotPlot
 
 EXTENDED = guidedalign extendAlign
 

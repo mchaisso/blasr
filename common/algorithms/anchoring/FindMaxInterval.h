@@ -644,6 +644,8 @@ template<typename T_MatchList,
 	       typename T_WeightFunction,
       	 typename T_SequenceBoundaryDB,
          typename T_ReferenceSequence,
+	       typename T_WeightedIntervalSet,
+	       typename T_Chained_Anchor,
 	       typename T_Sequence>
 	int FindMaxIncreasingInterval(//
 																// Input
@@ -676,15 +678,16 @@ template<typename T_MatchList,
 																// Output.
 																// The increasing interval coordinates, 
 																// in order by queue weight.
-																WeightedIntervalSet &intervalQueue, T_ReferenceSequence &reference, T_Sequence &query,
+																T_WeightedIntervalSet &intervalQueue,
+																T_ReferenceSequence &reference, T_Sequence &query,
 																IntervalSearchParameters &params,
-																vector<BasicEndpoint<ChainedMatchPos> > *chainEndpointBuffer,
+																vector<BasicEndpoint<T_Chained_Anchor> > *chainEndpointBuffer,
 																vector<Fragment> *fragmentBuffer,
                                 const char *titlePtr=NULL
 																) {
 
 	int nRectangles;
-	WeightedIntervalSet sdpiq;
+	multiset<WeightedInterval<T_Chained_Anchor>, CompareWeightedIntervalByPValue<T_Chained_Anchor> > sdpiq;
 	VectorIndex cur = 0;
 	VectorIndex nPos = pos.size();
 	vector<VectorIndex> lisIndices;
@@ -740,7 +743,7 @@ template<typename T_MatchList,
 			string name;
 
 			if (params.globalChainType == 0) {
-				lisSize = GlobalChain<ChainedMatchPos, BasicEndpoint<ChainedMatchPos> >(pos, cur, endIndex, 
+				lisSize = GlobalChain<T_Chained_Anchor, BasicEndpoint<T_Chained_Anchor> >(pos, cur, endIndex, 
 																																								lisIndices, chainEndpointBuffer);
 			}
 			else {
@@ -803,13 +806,13 @@ template<typename T_MatchList,
 			// top 'nBest' intervals. 
 			//
 	
-			WeightedIntervalSet::iterator lastIt = intervalQueue.begin();
+			typename WeightedIntervalSet<T_Chained_Anchor>::iterator lastIt = intervalQueue.begin();
 			MatchWeight lisWeight = MatchWeightFunction(*lisPtr);
 			VectorIndex lisEnd    = lisPtr->size() - 1;
 
 			if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
 
-				WeightedInterval weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
+				WeightedInterval<T_Chained_Anchor> weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
 																					(*lisPtr)[0].t, (*lisPtr)[lisEnd].t + (*lisPtr)[lisEnd].GetLength(), 
 																					readDir, lisPValue, 
 																					(*lisPtr)[0].q, (*lisPtr)[lisEnd].q + (*lisPtr)[lisEnd].GetLength(), query.length,

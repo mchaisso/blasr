@@ -8,10 +8,10 @@
 #include "BaseTuple.h"
 #include "TupleOperations.h"
 
-#include "../Types.h"
-#include "../DNASequence.h"
-#include "../SeqUtils.h"
-#include "../NucConversion.h"
+#include "Types.h"
+#include "DNASequence.h"
+#include "SeqUtils.h"
+#include "NucConversion.h"
 using namespace std;
 
 

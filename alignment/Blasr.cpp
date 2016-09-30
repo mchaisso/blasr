@@ -8,6 +8,7 @@
 #include <time.h>
 #include <signal.h>
 #include <execinfo.h>
+#include <algorithm>
 
 #include "MappingIPC.h"
 #include "MappingSemaphores.h"
@@ -1147,7 +1148,7 @@ bool LengthInBounds(DNALength len, DNALength min, DNALength max) {
 
 template<typename T_TargetSequence, typename T_QuerySequence, typename TDBSequence>
 void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequence &rcRead,
-                    WeightedIntervalSet &weightedIntervals,
+                    WeightedIntervalSet<ChainedMatchPos> &weightedIntervals,
                     int mutationCostMatrix[][5], 
                     int ins, int del, int sdpTupleSize,
                     int useSeqDB, SequenceIndexDatabase<TDBSequence> &seqDB,
@@ -1178,7 +1179,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
   if (weightedIntervals.size() == 0) 
     return;
 
-  WeightedIntervalSet::iterator intvIt = weightedIntervals.begin();
+  WeightedIntervalSet<ChainedMatchPos>::iterator intvIt = weightedIntervals.begin();
   int alignmentIndex = 0;
   
 	if (params.progress) {
@@ -1342,8 +1343,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 		// It may be too low to bother refining.
 		// 
     int intervalSize = 0;
-    int m;
-    for (m = 0; m < intvIt->matches.size(); m++) {
+    for (int m = 0; m < intvIt->matches.size(); m++) {
 			intervalSize += intvIt->matches[m].l;
 		} 
 
@@ -1385,7 +1385,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// The first step to refining between anchors only is to make
 				// the anchors relative to the tAlignedSeq.
 				//
-
+				/*
 				vector<Fragment> sdpMatches;
 				int i;
 
@@ -1394,7 +1394,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				qAlignedSeq.Copy(alignment->qAlignedSeq);
 				int strand = (*intvIt).GetStrandIndex();
 				int qStart, qEnd;
-			 if (strand == 0) {
+				if (strand == 0) {
 					qStart = (*intvIt).qStart;
 					qEnd   = (*intvIt).qEnd;
 				}
@@ -1423,6 +1423,32 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					matchesImpl[m].l = sdpMatches[m].length;
 				}
 
+				*/
+
+				matches=&intvIt->matches;
+
+				//
+				// Flip the target.
+				//
+
+				DNALength targetOffset = alignment->tAlignedSeqPos;
+				if (alignment->tStrand == 1) {
+					targetOffset = genome.MakeRCCoordinate(alignment->tAlignedSeqPos+ alignment->tAlignedSeq.length- 1);
+				}
+				for (m = 0; m < matches->size(); m++) {
+					(*matches)[m].t -= targetOffset;
+				}
+
+				//
+				// If the alignment was on the reverse strand, swap the coordinates so they are on the forward strand of the read.
+				//
+				if (alignment->tStrand == 1) {
+					for (m = 0; m < (*matches).size(); m++) {
+						(*matches)[m].q = alignment->qAlignedSeq.length - ((*matches)[m].q + (*matches)[m].l);
+						(*matches)[m].t = alignment->tAlignedSeq.length - ((*matches)[m].t + (*matches)[m].l);						
+					}
+					std::reverse(matches->begin(), matches->end());
+				}
 
 				vector<bool> toRemove(matches->size(), false);
 				if (matches->size() > 0) {
@@ -2139,7 +2165,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 
 
   bool matchFound;
-  WeightedIntervalSet topIntervals(params.nCandidates);
+  WeightedIntervalSet<ChainedMatchPos> topIntervals(params.nCandidates);
   int numKeysMatched=0, rcNumKeysMatched=0;
   int expand = params.minExpand;
   metrics.clocks.total.Tick();
@@ -2287,31 +2313,39 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
 		intervalLength = (read.subreadEnd - read.subreadStart) + maxGapLength;
 	  }
 	  if ( params.piecewiseMatch) {
-		PiecewiseMatch(mappingBuffers.matchPosList,
-					   mappingBuffers.rcMatchPosList,
-					   seqBoundary, topIntervals, read.subreadEnd - read.subreadStart);
+			LISPValueWeightor<T_GenomeSequence, DNATuple, vector<DirMatch > > pwPValue(read, genome, ct.tm, &ct);
+			LISSizeWeightor<vector<DirMatch> > pwWeightFn;			
+			PiecewiseMatch(mappingBuffers.matchPosList,
+										 mappingBuffers.rcMatchPosList,
+										 params.nCandidates,
+										 seqBoundary,
+										 pwPValue,
+										 pwWeightFn,
+										 topIntervals, genome, read, intervalSearchParameters);
+
+
 	  }
 	  else {
-		FindMaxIncreasingInterval(Forward,
-								  mappingBuffers.matchPosList,
-								  // allow for indels to stretch out the mapping of the read.
-								  intervalLength, params.nCandidates,
-								  seqBoundary,
-								  lisPValue,//lisPValue2,
-								  lisWeightFn,
-								  topIntervals, genome, read, intervalSearchParameters,
-								  &mappingBuffers.globalChainEndpointBuffer, 
-								  &mappingBuffers.sdpFragmentSet, read.title);
+			FindMaxIncreasingInterval(Forward,
+															mappingBuffers.matchPosList,
+															// allow for indels to stretch out the mapping of the read.
+															intervalLength, params.nCandidates,
+															seqBoundary,
+															lisPValue,//lisPValue2,
+															lisWeightFn,
+															topIntervals, genome, read, intervalSearchParameters,
+															&mappingBuffers.globalChainEndpointBuffer, 
+															&mappingBuffers.sdpFragmentSet, read.title);
 		// Uncomment when the version of the weight functor needs the sequence.
 		
 		FindMaxIncreasingInterval(Reverse, mappingBuffers.rcMatchPosList,
-								  (DNALength) ((read.subreadEnd - read.subreadStart) * (1 + params.indelRate)), params.nCandidates, 
-								  seqBoundary,
-								  lisPValue,//lisPValue2
-								  lisWeightFn,
-								  topIntervals, genome, readRC, intervalSearchParameters,
-								  &mappingBuffers.globalChainEndpointBuffer,
-								  &mappingBuffers.sdpFragmentSet, read.title);
+															intervalLength, params.nCandidates, 
+															seqBoundary,
+															lisPValue,//lisPValue2
+															lisWeightFn,
+															topIntervals, genome, readRC, intervalSearchParameters,
+															&mappingBuffers.globalChainEndpointBuffer,
+															&mappingBuffers.sdpFragmentSet, read.title);
 	  }
 	}
 			/*    else if (params.pValueType == 1) {
@@ -2366,7 +2400,7 @@ void MapRead(T_Sequence &read, T_Sequence &readRC, T_RefSequence &genome,
     // Print verbose output.
     //
 
-    WeightedIntervalSet::iterator topIntIt, topIntEnd;
+    WeightedIntervalSet<ChainedMatchPos>::iterator topIntIt, topIntEnd;
     topIntEnd = topIntervals.end();
 		
 	if (params.removeContainedIntervals) {

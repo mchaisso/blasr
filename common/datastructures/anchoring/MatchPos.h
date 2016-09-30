@@ -25,7 +25,7 @@ class MatchPos {
 	MatchWeight Size() {
 		return l;
 	}
-
+	
 	MatchPos() {
 		t = q = -1;
 		l = 0;
@@ -57,6 +57,7 @@ class MatchPos {
 	UInt GetT() {
 		return t;
 	}
+
 	UInt GetQ() {
 		return (UInt) q;
 	}
@@ -95,6 +96,7 @@ class ChainedMatchPos : public MatchPos {
 	int GetScore() {
 		return score;
 	}
+		
 	int SetScore(int _score) {
 		return (score = _score);
 	}
