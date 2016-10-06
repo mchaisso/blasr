@@ -65,7 +65,7 @@ and a genome.
 
 +    Map assembled contigs (multiple megabases) to a reference
 
-		 blasr human.ctg.fasta  hg19.fasta -alignContigs 
+		 blasr human.ctg.fasta  hg19.fasta -alignContigs -sam -out alignments.sam
 
 +    Use a precomputed BWT-FM index for smaller runtime memory footprint, but slower alignments.
 
