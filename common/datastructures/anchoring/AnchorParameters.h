@@ -3,8 +3,8 @@
 
 #include <fstream>
 #include <iostream>
-#include "../../qvs/QualityValue.h"
-#include "../../DNASequence.h"
+#include "qvs/QualityValue.h"
+#include "DNASequence.h"
 
 class AnchorParameters {
  public:

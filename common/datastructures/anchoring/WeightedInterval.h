@@ -15,15 +15,15 @@ public:
 	DNALength start;
 	DNALength end;
 	DNALength qStart, qEnd, qLength;
-	int readIndex;
+	mutable int readIndex;
 	float pValue;
 	vector<int> positions;
-	vector<T_ChainedMatch> matches;
+	mutable vector<T_ChainedMatch> matches;
 	float pValueVariance, pValueNStdDev;
 	float sizeVariance, sizeNStdDev;
-	int nAnchors;
+	 int nAnchors;
 	int totalAnchorSize;
-	bool isOverlapping;
+	mutable bool isOverlapping;
 	string tName;
 	int GetStrandIndex() const {
     return readIndex;
@@ -186,7 +186,7 @@ class WeightedIntervalSet :
 
   WeightedIntervalSet<T_Chained_Anchor>(int maxSizeP) : maxSize(maxSizeP) {} 
  
-	bool insert(WeightedInterval<T_Chained_Anchor> &intv) {
+	bool insert( WeightedInterval<T_Chained_Anchor> &intv) {
 
     intv.isOverlapping = false;
 
@@ -255,7 +255,7 @@ class WeightedIntervalSet :
           // Keep the size of the stack the same if it is at the limit.
           //
           if (maxSize != 0 and this->size() >= maxSize and this->size() > 0) { 
-            erase(it);
+            this->erase(it);
           }
         }
       }

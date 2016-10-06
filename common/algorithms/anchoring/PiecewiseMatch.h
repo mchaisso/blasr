@@ -73,8 +73,17 @@ class DirMatch {
 	}
 
 };
+template<typename T_MatchPos>
+int ScoreIntervalSet(WeightedIntervalSet<T_MatchPos> &intervals) {
+	typename WeightedIntervalSet<T_MatchPos>::iterator intv;
+	int score = 0;
+	for (intv = intervals.begin(); intv != intervals.end(); ++intv) {
+		score += (*intv).matches.size();
+	}
+	return score;
+}
+
 		
-	
 template<typename T_SequenceBoundaryDB,
 	typename T_PValueFunction,
 	typename T_WeightFunction,
@@ -103,7 +112,78 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 											T_ReferenceSequence &genome,
 											T_ReadSequence &read,
 											IntervalSearchParameters &intervalSearchParameters) {
+	//
+	// First try forward orientation
+	//
+	WeightedIntervalSet<ChainedMatchPos> forwardIntervals(nBest);
+	WeightedIntervalSet<ChainedMatchPos> reverseIntervals(nBest);
 
+	PiecewiseMatchDir(forwardMatches, reverseMatches,
+										nBest, seqBoundary, lisPValue, lisWeightFn,
+										forwardIntervals,
+										genome, read, intervalSearchParameters);
+
+	PiecewiseMatchDir(reverseMatches, forwardMatches, 
+										nBest, seqBoundary, lisPValue, lisWeightFn,
+										reverseIntervals,
+										genome, read, intervalSearchParameters);
+
+
+
+	//
+	// Score the intervals.
+	//
+	int forwardScore = ScoreIntervalSet<ChainedMatchPos>(forwardIntervals);
+	int reverseScore = ScoreIntervalSet<ChainedMatchPos>(reverseIntervals);
+
+	typename WeightedIntervalSet<ChainedMatchPos>::iterator intv;
+	for (intv = forwardIntervals.begin(); intv != forwardIntervals.end(); ++intv) {
+		topIntervals.insert((WeightedInterval<ChainedMatchPos> &)(*intv));
+	}
+
+	for (intv = reverseIntervals.begin(); intv != reverseIntervals.end(); ++intv) {
+		(*intv).readIndex = 1-(*intv).readIndex;
+		topIntervals.insert((WeightedInterval<ChainedMatchPos> &)(*intv));
+	}
+}
+
+
+void FilterOffDiagonalHits(vector<ChainedMatchPos> &matches, int window, int flank) {
+	
+
+
+}
+
+template<typename T_SequenceBoundaryDB,
+	typename T_PValueFunction,
+	typename T_WeightFunction,
+	typename T_ReferenceSequence,
+	typename T_ReadSequence>
+void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
+											vector<ChainedMatchPos> &reverseMatches,
+											// How many sets to keep track of
+											VectorIndex nBest, 
+											
+											// End search for intervals at boundary positions
+											// stored in seqBoundaries
+											T_SequenceBoundaryDB & seqBoundary,
+											
+											// First rand intervals by their p-value
+											T_PValueFunction &lisPValue,  
+											
+											// When ranking intervals, sum over weights determined by MatchWeightFunction
+											T_WeightFunction &lisWeightFn,  
+
+											//
+											// Output.
+											// The increasing interval coordinates, 
+											// in order by queue weight.
+											WeightedIntervalSet<ChainedMatchPos> &topIntervals,
+											T_ReferenceSequence &genome,
+											T_ReadSequence &read,
+											IntervalSearchParameters &intervalSearchParameters) {
+
+	bool strandSwap = false;
 
 	//
 	// Transform forward+ reverse matches into forward only, but keep track of the strand of each.
@@ -172,10 +252,13 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 	/*
 	ofstream orig("hits.orig.txt");
 	for (int m = 0; m < matches.size(); m++) {
-			orig << matches[m].q << "\t" << matches[m].t << "\t" << matches[m].s << endl;
+		if (matches[m].l > 40) {
+			orig << matches[m].q << "\t" << matches[m].t << "\t" << matches[m].s << "\t" << matches[m].l << endl;
 		}
-		orig.close();
+	}
+	orig.close();
 	*/
+
 	FindMaxIncreasingInterval(Forward,
 														matches,
 														// allow for indels to stretch out the mapping of the read.
@@ -202,20 +285,17 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 		//
 		// Start out removing small stretches of reverse anchors.
 		//
-/*		ofstream mout("hits.txt");
-		int m;
-		for (m = 0; m < intv->matches.size(); m++) {
-			mout << intv->matches[m].q << "\t" << intv->matches[m].t << "\t" << intv->matches[m].s << endl;
-		}
-			
-		exit(0);		*/
+
+		/*			
+		exit(0);		
+		*/
 		//
 		// Flip back any reverse hits.
 		//
-		vector<DirMatch> *intvMatches = &intv->matches;
-		for (int m = 0; m < intvMatches->size(); m++) {
-			if ((*intvMatches)[m].s == 1) {
-				(*intvMatches)[m].q = (*intvMatches)[m].qr;
+
+		for (int m = 0; m < intv->matches.size(); m++) {
+			if (intv->matches[m].s == 1) {
+				intv->matches[m].q = intv->matches[m].qr;
 			}
 		}
 		
@@ -226,14 +306,14 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 			while (syntEnd < intv->matches.size() and intv->matches[syntEnd].s == intv->matches[syntStart].s) {
 				syntEnd++;
 			}
-			int swapEnd = syntEnd;
-			while (swapEnd < intv->matches.size() and intv->matches[swapEnd].s == intv->matches[syntStart].s) {
+			int swapEnd = syntEnd+1;
+			while (swapEnd < intv->matches.size() and intv->matches[swapEnd].s == intv->matches[syntEnd].s) {
 				swapEnd++;
 			}
 			
-			if (swapEnd - syntEnd < 3) {
+			if (swapEnd - syntEnd < 5) {
 				int i;
-				for (i = syntEnd-1; i < swapEnd; i++) {
+				for (i = syntEnd; i < swapEnd; i++) {
 					remove[i]=true;
 				}
 				syntEnd = swapEnd;
@@ -250,6 +330,14 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 		}
 
 		intv->matches.resize(p);
+
+		ofstream mout("hits.txt");
+		int m;
+		for (m = 0; m < intv->matches.size(); m++) {
+			mout << intv->matches[m].q << "\t" << intv->matches[m].t << "\t" << intv->matches[m].s << endl;
+		}
+		mout.close();
+
 		int nNeg = 0;
 		for (i = 0; i< intv->matches.size(); i++) {
 			if (intv->matches[i].s == 1) {
@@ -267,13 +355,19 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 		exit(0);
 		*/
 
-		
+		int maxGap = 100000;
 			
 		while (syntEnd < intv->matches.size()) {
-			int score= 0;
-			while (syntEnd < intv->matches.size() and intv->matches[syntEnd].s == intv->matches[syntStart].s) {
-				syntEnd++;
+			int score = 0;
+			while (syntEnd < intv->matches.size()
+						 and intv->matches[syntEnd].s == intv->matches[syntStart].s) {
 				score+= intv->matches[syntEnd].GetLength();
+				syntEnd++;
+				if (syntEnd < intv->matches.size() and
+						((intv->matches[syntEnd].t - intv->matches[syntEnd-1].t >= maxGap) or
+						 (intv->matches[syntEnd].q - intv->matches[syntEnd-1].q >= maxGap))) {
+					break;
+				}
 			}
 			vector<ChainedMatchPos> matchList(syntEnd-syntStart);
 			int i;
@@ -281,10 +375,13 @@ void PiecewiseMatch(  vector<ChainedMatchPos> &forwardMatches,
 				matchList[i].t = intv->matches[syntStart+i].t;
 				matchList[i].q = intv->matches[syntStart+i].q;
 				matchList[i].l = intv->matches[syntStart+i].l;
-			}				
+			}
+
+			int strand = intv->matches[syntStart].s;
+				 
 			WeightedInterval<ChainedMatchPos> weightedInterval(score, score, score,
 																												 intv->matches[syntStart].t, intv->matches[syntEnd-1].t + intv->matches[syntEnd-1].len,
-																												 intv->matches[syntStart].s, intv->pValue,
+																												 strand, -score,
 																												 intv->matches[syntStart].q, intv->matches[syntEnd-1].q + intv->matches[syntEnd-1].len, read.length,
 																												 matchList
 																												 );

@@ -1363,7 +1363,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
         int m;
 
 				vector<ChainedMatchPos> *matches;
-        vector<ChainedMatchPos> rcMatches;
         Alignment anchorsOnly;
 				//
 				// The strand bookkeeping is a bit confusing, so hopefully
@@ -1385,47 +1384,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 				// The first step to refining between anchors only is to make
 				// the anchors relative to the tAlignedSeq.
 				//
-				/*
-				vector<Fragment> sdpMatches;
-				int i;
 
-				
-				DNASequence qAlignedSeq;
-				qAlignedSeq.Copy(alignment->qAlignedSeq);
-				int strand = (*intvIt).GetStrandIndex();
-				int qStart, qEnd;
-				if (strand == 0) {
-					qStart = (*intvIt).qStart;
-					qEnd   = (*intvIt).qEnd;
-				}
-				else {
-					qStart = alignment->qAlignedSeq.length - (*intvIt).qEnd;
-					qEnd   = alignment->qAlignedSeq.length - (*intvIt).qStart;
-				}
-
-				for (i = 0; i < qStart; i++) {
-					qAlignedSeq.seq[i] = 'N';
-				}
-				for (i = qEnd; i < alignment->qAlignedSeq.length; i++) {
-					qAlignedSeq.seq[i] = 'N';
-				}
-				
-				SDPAlignLite(qAlignedSeq, alignment->tAlignedSeq, params.sdpTupleSize, 4, sdpMatches);
-				qAlignedSeq.Free();
-				// Hack to avoid having to allocate
-
-				vector<ChainedMatchPos> matchesImpl;
-				matches=&matchesImpl;
-				matchesImpl.resize(sdpMatches.size());
-				for (m = 0; m < matchesImpl.size(); m++) {
-					matchesImpl[m].q = sdpMatches[m].x;// + alignment->qAlignedSeqPos;
-					matchesImpl[m].t = sdpMatches[m].y;// + alignment->tAlignedSeqPos;
-					matchesImpl[m].l = sdpMatches[m].length;
-				}
-
-				*/
-
-				matches=&intvIt->matches;
+				matches=(vector<ChainedMatchPos>*)&intvIt->matches;
 
 				//
 				// Flip the target.
