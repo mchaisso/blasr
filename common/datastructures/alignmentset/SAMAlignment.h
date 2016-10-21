@@ -7,7 +7,7 @@
 #include "SAMKeywordValuePair.h"
 #include "datastructures/alignment/CigarString.h"
 #include "datastructures/alignmentset/SAMSupplementalQVList.h"
-
+#include "utils/StringUtils.h"
 
 class SAMAlignment {
  public:
@@ -298,7 +298,17 @@ class SAMAlignment {
         cout << "ERROR.  Could not parse typed keyword value " << typedKVPair << endl;
       }
     }
-  }
+		if (zmw == -1) {
+			//
+			// Parse the zmw from the qname,since it was not specified on the command line
+			//
+			vector<string> qNameTokens;
+			Tokenize(qName, "/", qNameTokens);
+			if (qNameTokens.size() == 3) {
+				zmw = atoi(qNameTokens[1].c_str());
+			}
+		}
+	}
 };
 
 const char* SAMAlignment::SAMAlignmentRequiredFieldNames[] = { "QNAME", "FLAG", 
