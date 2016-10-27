@@ -452,7 +452,7 @@ class MappingParameters {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
 			
-			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 25);
+			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 15);
 			anchorParameters.advanceExactMatches = advanceExactMatches = 1;
 
 			anchorParameters.maxLCPLength = max(minMatchLength, max(50, anchorParameters.maxLCPLength+1));
@@ -463,7 +463,7 @@ class MappingParameters {
 			sdpMaxAnchorsPerPosition = 20;
 			anchorParameters.maxAnchorsPerPosition = 2;
 			indelRate = 0.1;
-			clipping = SAMOutput::soft;
+			clipping = SAMOutput::none;
 			removeContainedIntervals = true;
 			sdpTupleSize = 15;
 			// Good for human alignments

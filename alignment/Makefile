@@ -65,7 +65,7 @@ guidedalign: bin/guidedalign
 extendAlign: bin/extendAlign
 findLongestRepeat: bin/findLongestRepeat
 pbmask: bin/pbmask
-STATIC=-static
+STATIC=
 bin/findLongestRepeat: bin/FindLongestRepeat.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
