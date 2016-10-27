@@ -19,7 +19,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable malign removeAdapters samatcher saprinter sals findLongestRepeat dotPlot
+EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable samatcher saprinter sals findLongestRepeat dotPlot
 
 EXTENDED = guidedalign extendAlign
 
@@ -57,8 +57,6 @@ saquery:            bin/saquery
 samodify:           bin/samodify
 printTupleCountTable:bin/printTupleCountTable
 cmpPrintTupleCountTable:bin/cmpPrintTupleCountTable
-malign:	            bin/malign
-removeAdapters:     bin/removeAdapters
 tabulateAlignment:  bin/tabulateAlignment
 buildQualityValueProfile: bin/buildQualityValueProfile
 guidedalign: bin/guidedalign
@@ -129,13 +127,7 @@ bin/sals: bin/SALS.o
 bin/sdpMatcher: bin/SDPMatcher.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
-bin/malign: bin/MAlign.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
-
 bin/swMatcher: bin/SWMatcher.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
-
-bin/removeAdapters: bin/RemoveAdapters.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/kbandMatcher: bin/KBandMatcher.o

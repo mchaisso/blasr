@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
 	alignmentSet.GetRepresentativeChangelistId(changelistId);
 	alignmentSet.GetRepresentativeBindingKit(bindingKit);
 	alignmentSet.GetRepresentativeSequencingKit(sequencingKit);
-
+	
 	if (defaultToP6 and (bindingKit == "" or changelistId == "" or sequencingKit == "")) {
 		cerr << "WARNING, providing default run data for P6 chemistry." << endl;
 		//
@@ -101,10 +101,13 @@ int main(int argc, char* argv[]) {
   //
   SAMAlignment samAlignment;
 	int alignmentIndex = 0;
+
   while (samReader.GetNextAlignment(samAlignment)) {
     if (samAlignment.rName == "*") {
       continue;
     }
+		samAlignment.zmw = alignmentIndex;		
+
 		SMRTSequence read;
 		ConvertSAMToSMRTSequence(samAlignment, read);		
 
