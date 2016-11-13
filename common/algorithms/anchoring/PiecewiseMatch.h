@@ -225,7 +225,7 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 			runStart++;
 		}
 		runEnd = runStart;
-		while (runEnd < matches.size() and matches[runEnd].s == 1) {
+		while (runEnd < matches.size() and matches[runEnd].s == 1 and matches[runEnd].q >= matches[runStart].q) {
 			runEnd++;
 		}
 		// Rotate the run of negative strands.
@@ -239,6 +239,7 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 		for (int r = runStart; r < runEnd; r++) {
 			matches[r].qr = matches[r].q;
 			matches[r].q = boxStart + (matches[r].qr  - matches[runStart].qr);
+			assert(matches[r].q < 4094952662);
 		}
 		runStart = runEnd;
 	}
@@ -249,7 +250,6 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 	vector<BasicEndpoint<DirMatch> > chainEndpointBuffer;
   vector<Fragment> fragmentBuffer;
 
-	/*
 	ofstream orig("hits.orig.txt");
 	for (int m = 0; m < matches.size(); m++) {
 		if (matches[m].l > 40) {
@@ -257,7 +257,7 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 		}
 	}
 	orig.close();
-	*/
+
 
 	FindMaxIncreasingInterval(Forward,
 														matches,

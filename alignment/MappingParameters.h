@@ -455,7 +455,7 @@ class MappingParameters {
 			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 15);
 			anchorParameters.advanceExactMatches = advanceExactMatches = 1;
 
-			anchorParameters.maxLCPLength = max(minMatchLength, max(50, anchorParameters.maxLCPLength+1));
+			anchorParameters.maxLCPLength = max(minMatchLength, max(20, anchorParameters.maxLCPLength+1));
 			
 			affineAlign = true;
 			affineExtend = 0;

@@ -729,6 +729,8 @@ template<typename T_MatchList,
 		lisIndices.clear();
 		cur = start[posi];
 		endIndex = end[posi];
+		/*		cerr << "Range t: " << pos[start[posi]].t << " - " << pos[end[posi]].t << "  q: "
+					<< pos[start[posi]].q << " - " << pos[end[posi]].q << " " << end[posi] - start[posi] << endl;*/
 		if (endIndex - cur == 1) {
       //
       // Just one match in this interval, don't invoke call to global chain since it is given.
