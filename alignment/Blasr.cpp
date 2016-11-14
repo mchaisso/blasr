@@ -1423,6 +1423,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						}
 						m=n;
 					}
+
+					
 					m=0;
 					int n=0;
 					for(n=0;n<matches->size();n++) {
@@ -1432,9 +1434,42 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						}
 					}
 
+					matches->resize(m);
+				}
+
+
+
+
+					
+				if (matches->size() > 0) {
+					toRemove.resize(matches->size());					
+					m = 0;
+					for (m = 1; m < matches->size() - 1; m++) {
+						int qPrevGap, tPrevGap, qNextGap, tNextGap;
+						qPrevGap = (*matches)[m].q - (*matches)[m-1].q+(*matches)[m-1].l;
+						tPrevGap = (*matches)[m].t - (*matches)[m-1].t+(*matches)[m-1].l;
+						
+						qNextGap = (*matches)[m+1].q - (*matches)[m].q+(*matches)[m].l;
+						tNextGap = (*matches)[m+1].t - (*matches)[m].t+(*matches)[m].l;
+						int MG=30;
+						if (  (tPrevGap > MG and qPrevGap < MG and tNextGap < MG and qNextGap > MG) or
+									(qPrevGap < MG and qPrevGap > MG and tNextGap > MG and qNextGap < MG)) {
+							toRemove[m] = true;
+						}
+					}
+					
+					m=0;
+					int n=0;
+					for(n=0;n<matches->size();n++) {
+						if (toRemove[n] == false) {
+							(*matches)[m] = (*matches)[n];
+							m++;
+						}
+					}
 
 					matches->resize(m);
 				}
+				
 				DNASequence tSubSeq;
 				FASTQSequence qSubSeq, mSubSeq;
 				
