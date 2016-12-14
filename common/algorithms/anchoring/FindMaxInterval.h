@@ -411,6 +411,12 @@ template<typename T_MatchList,
 	if (pos.size() == 0) {
 		return;
 	}
+	if (pos.size() == 1) {
+		start.push_back(0);
+		end.push_back(0);
+		return;
+	}
+		
   //
   // Search for clusters of intervals within the pos array within
   // pos[cur...next).  The value of 'next' should be the first anchor
@@ -435,7 +441,12 @@ template<typename T_MatchList,
 	}
 	else { 
 		curBoundary = ContigStartPos(pos[cur].t);
-		endIndexBoundary = ContigStartPos(pos[endIndex].t);
+		if (endIndex < pos.size()) {
+			endIndexBoundary = ContigStartPos(pos[endIndex].t);
+		}
+		else {
+			endIndexBoundary = ContigStartPos(pos[cur].t);
+		}
 
 		//
 		// Advance endIndex until the anchor is outside the interval that

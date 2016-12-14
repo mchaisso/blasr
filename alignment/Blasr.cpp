@@ -4603,7 +4603,7 @@ int main(int argc, char* argv[]) {
 		//
 		// Configure the reader to use the correct read and region
 		// file names.
-		// 
+		//
 		reader->SetReadFileName(params.readsFileNames[params.readsFileIndex], params.fileType);
 		if (holeNumbers.size() > 0) {
 			reader->InitializeHoleNumbers(holeNumbers);

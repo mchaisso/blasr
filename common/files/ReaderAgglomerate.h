@@ -271,6 +271,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			numRecords = fastaReader.GetNext(seq);
 			break;
 		case Fastq:
+			cout <<" Getting fatstq " << endl;
 			numRecords = fastqReader.GetNext(seq);
 			break;
 		case HDFPulse:
@@ -419,6 +420,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		switch(fileType) {
 
 		case Fasta:
+		case Fastq:
 			fastaReader.Close();
 			break;
 		case HDFPulse:
