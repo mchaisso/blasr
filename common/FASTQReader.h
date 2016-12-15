@@ -36,7 +36,12 @@ class FASTQReader : public FASTAReader {
         CheckValidTitleStart('@');
         ReadTitle(seq.title, seq.titleLength);
         // Title ends on '\n', consume that;
-				FASTAReader::GetNext(seq, '@');
+				int res;
+				res=FASTAReader::GetNext(seq, '@');
+				if (res == 0) {
+					return false;
+				}
+				
 				string line;
 				// move past '+'
 				getline(file, line);

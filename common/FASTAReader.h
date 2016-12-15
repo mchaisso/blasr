@@ -76,6 +76,8 @@ FASTAReader(string &fileName) {
 	}
 
   int Init(string &seqInName, int passive=0) {
+		// close file handle just in case
+		file.close();
 		file.clear();
 		file.open(seqInName.c_str());
 
@@ -86,10 +88,16 @@ FASTAReader(string &fileName) {
 		return 1;
 	}
 	
-  void AdvanceToTitleStart(char delim='>') {
+  bool AdvanceToTitleStart(char delim='>') {
 		while (!file.eof() && file.peek() != delim) {
 			char c;
 			c = file.get();
+		}
+		if (file.eof()) {
+			return false;
+		}
+		else {
+			return true;
 		}
 	}
 
@@ -161,7 +169,10 @@ FASTAReader(string &fileName) {
 		}
 		
 
-		AdvanceToTitleStart(delim);
+		int foundStart = AdvanceToTitleStart(delim);
+		if (foundStart == false) {
+			return false;
+		}
   
 		// 
 		// Make sure there is a '>'
@@ -242,7 +253,7 @@ FASTAReader(string &fileName) {
 
 	void Close() {
 		file.close();
-		file.clear(ios::goodbit|ios::eofbit);
+		file.clear();
 	}
 	
 	void ReadAllSequences(vector<FASTASequence> &sequences) {
