@@ -80,8 +80,8 @@ class Fragment {
 		// Sort fragments by diagonal:
 		//
 		int diag, fDiag;
-		diag = (y - x);
-		fDiag = f.y - f.x;
+		diag = (int)(y - x);
+		fDiag = (int)f.y - (int)f.x;
 		if (diag < fDiag)
 			return 1;
 		else if (diag == fDiag)

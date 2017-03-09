@@ -246,35 +246,6 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
   FlatMatrix2D<int> graphBins;
 
   int nOnOpt = fragmentSet.size();
-	
-	//	ofstream before("before.tab");
-	//	int fi;
-	//	for (fi = 0; fi < fragmentSet.size(); fi++) {
-	//		before << fragmentSet[fi].x << "\t" << fragmentSet[fi].y << "\t" << fragmentSet[fi].length << endl;
-	//	}
-	//	before.close();
-	/*
-  if (fragmentSet.size() > 2000) {
-		//
-		// One column every 100bp
-		//
-		bool onDiagonal = true;
-		int binSize = 250;
-		int nCol = query.length / binSize;
-		int nRow = target.length / binSize;
-		vector<bool> onOptPath(fragmentSet.size(), false);
-		if (nRow > 5 and nCol > 5) {
-			nOnOpt = GraphPaper<Fragment>(fragmentSet, nRow, nCol,
-																		graphBins, graphScoreMat, graphPathMat,
-																		onOptPath, binSize*0.5, binSize);
-			int prev = fragmentSet.size();
-			RemoveOffOpt(fragmentSet, onOptPath);
-		}
-  }    
-  graphScoreMat.Clear();
-  graphPathMat.Clear();
-  graphBins.Clear();
-*/
 
   //
   // Because there are fragments from multiple overlapping regions, remove
@@ -296,7 +267,6 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 
   }
   fragmentSet.resize(fCur);
-    
 
   
 	if (fragmentSet.size() == 0) {
