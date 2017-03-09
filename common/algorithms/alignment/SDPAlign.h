@@ -285,7 +285,6 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 															tm.tupleSize, 
 															sdpIns, sdpDel, scoreFn.scoreMatrix[0][0],
 															maxFragmentChain, alignType);
-
 	//
 	// Now turn the max fragment chain into real a real alignment.
 	//
@@ -309,11 +308,10 @@ int SDPAlign(T_QuerySequence &query, T_TargetSequence &target,
 		
 		startF = f;
 		// Condense contiguous stretches.
-		while(f < maxFragmentChain.size()  - 1 and
-					fragmentSet[maxFragmentChain[f]].x == fragmentSet[maxFragmentChain[f+1]].x - 1 and
-					fragmentSet[maxFragmentChain[f]].y == fragmentSet[maxFragmentChain[f+1]].y - 1) {
+		while (f < maxFragmentChain.size()  - 1 and
+					 fragmentSet[maxFragmentChain[f]].x == fragmentSet[maxFragmentChain[f+1]].x - 1 and
+					 fragmentSet[maxFragmentChain[f]].y == fragmentSet[maxFragmentChain[f+1]].y - 1) {
 
-			//			after << fragmentSet[maxFragmentChain[f]].x << "\t" << fragmentSet[maxFragmentChain[f]].y << "\t" << endl;											
 			f++;
     }
 

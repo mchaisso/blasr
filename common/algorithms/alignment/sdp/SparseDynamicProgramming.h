@@ -91,12 +91,10 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 	int minFragmentCost, minFragmentIndex;
 	minFragmentCost = INF_INT;
 	minFragmentIndex = -1;
-	//cout << "ql: "<< queryLength << endl;
 	for (; sweepRow < queryLength + fragmentLength; sweepRow++) {
 		//
 		// Add all elements on the sweep row to the sweep set.  Note that when
 		// fSweep is past query.length.
-		//	cout << "sweep row: " << sweepRow << endl;
 		int startF = fSweep;
     int fragmentSetSize = fragmentSet.size();
 		while (fSweep < fragmentSetSize and 
@@ -122,7 +120,18 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				// 
 
 					// Baker and Giancarlo LCS cost
-
+				/*
+				cp = fragmentSet[fSweep].x + fragmentSet[fSweep].y +
+					fragmentSet[predCol.optFragment].cost - 
+					fragmentSet[predCol.optFragment].x - 
+					fragmentSet[predCol.optFragment].y - 2 * fragmentSet[predCol.optFragment].length;
+				*/
+				/*
+				driftPenalty = IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y,
+                                           fragmentSet[predCol.optFragment].x, fragmentSet[predCol.optFragment].y,
+																		insertion, deletion);
+				cp = fragmentSet[predCol.optFragment].cost + driftPenalty;
+				*/
 				cp = fragmentSet[predCol.optFragment].cost +
 					(int)sqrt(abs((int)(fragmentSet[fSweep].x + fragmentSet[fSweep].y) -
 												(int)(fragmentSet[predCol.optFragment].x + fragmentSet[predCol.optFragment].y)))-
@@ -138,9 +147,17 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				*/
 
 				cl = pred.cost + 
-					(int)sqrt(abs((int)(fragmentSet[fSweep].y - fragmentSet[fSweep].x) - 
-												(int)(pred.y - pred.x))) -
-					fragmentSet[fSweep].length;
+					(fragmentSet[fSweep].y - fragmentSet[fSweep].x) - 
+					(pred.y - pred.x);
+
+        /*
+         * Cost with insertion and deletion penalty.
+         */
+
+				cl = (pred.cost + 
+              MIN((int)(fragmentLength - (fragmentSet[fSweep].y - pred.y)) * match, 0) + 
+              IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y,
+                           pred.x, pred.y, insertion, deletion));
 
 				foundPrev = 1;
 			}
@@ -150,7 +167,6 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				/*
 					Baker and Giancarlo LCS cost 
         */
-				
 				ca = fragmentSet[aboveIndex].cost +
 					(int)sqrt(abs((int)(fragmentSet[aboveIndex].y - fragmentSet[aboveIndex].x) - 
 												(int)(fragmentSet[fSweep].y - fragmentSet[fSweep].x))) -
@@ -275,7 +291,9 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 
 					while (colSet.Successor(col, successorCol) and
 								 fragmentSet[successorCol.optFragment].cost > fragmentSet[fTrail].cost) {
-						colSet.Delete(successorCol);
+						int deleted;
+						deleted=colSet.Delete(successorCol);
+						assert(deleted);
 					}
 				}
 
@@ -283,6 +301,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				// Now remove this fragment, it is at the end of the sweep line.
 				//
 				int deleted;
+				assert(fTrail < fragmentSet.size());
 				deleted = sweepSet.Delete(fragmentSet[fTrail]);
 				assert(deleted);
 
@@ -293,6 +312,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 	if (alignType == Local) {
 		maxChainFragment = minFragmentIndex;
 	}
+	maxFragmentChain.clear();
 	while (maxChainFragment != -1) {
 		maxFragmentChain.push_back(maxChainFragment);
 		maxChainFragment = fragmentSet[maxChainFragment].chainPrev;
