@@ -205,7 +205,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			//
 			// Here one needs to test and see if the hdf file contains ccs.
 			// If this is the case, then the file type is HDFCCS.
-			if (hdfCcsReader.BasFileHasCCS(fileName) and !ignoreCCS) {
+			if ( !ignoreCCS  and hdfCcsReader.BasFileHasCCS(fileName)) {
 				
 				fileType = HDFCCS;
 				hdfCcsReader.InitializeDefaultIncludedFields();

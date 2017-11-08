@@ -21,9 +21,11 @@
 typedef DNASuffixArray T_SuffixArray;
 
 void PrintUsage() {
-	cout << "usage: dotplot query target min_k [--maxCount] [--useLcp]" << endl;
+	cout << "usage: dotplot query target min_k [--maxCount c] [--useLcp] [--out outfile] " << endl;
 	cout << "  --maxCount Limits the number of matches per position." << endl
-			 << "  --useLcp   Use the longest match at every position (will likely not show STR)." << endl;
+			 << "  --useLcp   Use the longest match at every position (will likely not show STR)." << endl
+			 << "  --out      Write to this file " <<endl;
+	
 }
 
 void QuickMatch(FASTASequence &target, DNASuffixArray &sa, FASTASequence &query, 
@@ -91,8 +93,9 @@ int main(int argc, char* argv[]) {
 	int argi = 4;
 	int maxPerPosition=0;
 	bool useLCP = false;
+
 	while (argi < argc){ 
-		if (strcmp(argv[argi], "-o") == 0) {
+		if (strcmp(argv[argi], "-o") == 0 or strcmp(argv[argi], "--out") == 0) {
 			++argi;
 			cerr << "opening " << argv[argi] << endl;
 			outFileName = argv[argi];

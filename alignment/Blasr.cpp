@@ -1410,6 +1410,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					std::reverse(matches->begin(), matches->end());
 				}
 
+				//
+				// Remove overlapping matches.
+				//
+					
 				vector<bool> toRemove(matches->size(), false);
 				if (matches->size() > 0) {
 					m = 0;
@@ -1437,26 +1441,37 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					matches->resize(m);
 				}
 
-
-
-
-					
 				if (matches->size() > 0) {
 					toRemove.resize(matches->size());					
 					m = 0;
 					int nRemoved =0;
-					for (m = 1; m < matches->size() - 1; m++) {
-						int qPrevGap, tPrevGap, qNextGap, tNextGap;
-						qPrevGap = (*matches)[m].q - (*matches)[m-1].q+(*matches)[m-1].l;
-						tPrevGap = (*matches)[m].t - (*matches)[m-1].t+(*matches)[m-1].l;
-						
-						qNextGap = (*matches)[m+1].q - (*matches)[m].q+(*matches)[m].l;
-						tNextGap = (*matches)[m+1].t - (*matches)[m].t+(*matches)[m].l;
-						int MG=20;
-						if (tNextGap - qNextGap > MG) {
-							toRemove[m] = true;
-							++nRemoved;
+					int blockSize = 0;
+					int MAX_GAP=25;
+					int MIN_BLOCK=500;
+					bool firstBlock = true;
+					for (; m < matches->size() - 1; m++) {
+
+						blockSize = 0;
+						int blockStart = m;
+						int qNextGap = 0;
+						int tNextGap = 0;
+						int qPrevGap = 0;
+						int tPrevGap = 0;
+						while (m < matches->size() - 1 and abs(tNextGap - qNextGap) < MAX_GAP) {
+							qNextGap = (*matches)[m+1].q - (*matches)[m].q+(*matches)[m].l;
+							tNextGap = (*matches)[m+1].t - (*matches)[m].t+(*matches)[m].l;
+							blockSize+= (*matches)[m].l;
+							m++;
 						}
+						if (firstBlock == false and blockSize < MIN_BLOCK) {
+							/*							cerr << "Removing block " << blockSize << " " << blockStart << " " << m << " "
+															<< (*matches)[m].l << " " << tNextGap << " " << qNextGap << " " << (*matches)[m].q << endl;*/
+							int mi;
+							for (mi = blockStart; mi < m; mi++) {
+								toRemove[mi] = true;
+							}
+						}
+						firstBlock = false;
 					}
 
 					m=0;
@@ -1517,11 +1532,15 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						float tRatio = ((float)tGap)/qGap;
 						float qRatio = 1/tRatio;
 						int maxGap = 100000;
+						int adaptSDPTupleSize = sdpTupleSize;
+						if (alignment->tAlignedSeq.length  < 1000 && alignment->qAlignedSeq.length < 1000) {
+							adaptSDPTupleSize = 7;
+						}
 						if (tRatio > 0.001 and qRatio > 0.001 and tGap < maxGap and qGap< maxGap) {
 							AlignSubstring(alignment->tAlignedSeq, tPos, tGap,
 														 alignment->qAlignedSeq, qPos, qGap,
 														 params,
-														 sdpTupleSize,
+														 adaptSDPTupleSize,
 														 distScoreFn,
 														 refinementBuffers,
 														 alignmentInGap);

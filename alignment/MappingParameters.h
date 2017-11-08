@@ -459,13 +459,13 @@ class MappingParameters {
 			
 			affineAlign = true;
 			affineExtend = 0;
-			affineOpen   = 20;
+			affineOpen   = 30;
 			sdpMaxAnchorsPerPosition = 20;
 			anchorParameters.maxAnchorsPerPosition = 2;
 			indelRate = 0.1;
 			clipping = SAMOutput::none;
 			removeContainedIntervals = true;
-			sdpTupleSize = 15;
+			sdpTupleSize = 11;
 			// Good for human alignments
 			//			maxAnchorGap = 40000;
 			insertion = 8;
