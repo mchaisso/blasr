@@ -30,7 +30,7 @@ class HDFFile {
   void Open(string fileName, unsigned int flags=H5F_ACC_RDWR, const FileAccPropList & fileAccPropList=FileAccPropList::DEFAULT) {
     assert (flags == H5F_ACC_RDWR || flags == H5F_ACC_TRUNC || flags == H5F_ACC_RDONLY);
     ifstream testIn(fileName.c_str());
-    bool fileExists = testIn;
+    bool fileExists = testIn.good();
     bool flagsIsNotTrunc = flags != H5F_ACC_TRUNC;
 
     if (fileExists and H5File::isHdf5(fileName.c_str()) and flagsIsNotTrunc) {

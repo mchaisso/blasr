@@ -86,6 +86,6 @@ bool ConvertSAMToSMRTSequence(SAMAlignment &samAlignment, SMRTSequence &read) {
 	read.qe = samAlignment.qEnd;
 	read.readQuality = samAlignment.readQuality;
 	read.CopyTitle(samAlignment.qName);
-
+	read.samLine = samAlignment.samLine;
 }
 #endif

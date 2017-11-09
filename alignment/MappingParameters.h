@@ -188,6 +188,7 @@ class MappingParameters {
 	int maxGap;
 	string fileType;
 	bool streaming;
+	bool passthrough;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -356,6 +357,7 @@ class MappingParameters {
 		maxGap=0;
 		fileType = "";
 		streaming = false;
+		passthrough=false;
 	}
 
 	MappingParameters() {

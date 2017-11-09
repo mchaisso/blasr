@@ -25,7 +25,7 @@ class SAMAlignment {
     S_QUAL};
 
   static const char* SAMAlignmentRequiredFieldNames[];
-
+	string samLine;
   string qName;
   unsigned int flag;
   string rName;
@@ -137,6 +137,8 @@ class SAMAlignment {
 	}
 	
   bool StoreValues(string &line,  int lineNumber=0, bool allowUnaligned=false) {
+		// Store full line for passthrough.
+		samLine = line;
     stringstream strm(line);
     vector<bool> usedFields;
     usedFields.resize(S_QUAL);
@@ -218,7 +220,7 @@ class SAMAlignment {
     while (strm) {
       string kvName, kvType, kvValue;
       string typedKVPair;
-      if ((strm >> typedKVPair) == 0) {
+      if ((strm >> typedKVPair).good() == 0) {
         break;
       }
       if (TypedKeywordValuePair::Separate(typedKVPair, kvName, kvType, kvValue)) {
