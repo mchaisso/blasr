@@ -26,7 +26,19 @@
 
 int IndelPenalty(int x1, int y1, int x2, int y2, int insertion, int deletion) {
   int drift, driftPenalty;
+	
   drift = (x1 - y1) - (x2 - y2);
+	/*
+		Try an "affine" drift penalty.
+
+	if (drift < 5) {
+		return 0;
+	}
+	else {
+		return insertion;
+	}
+	*/
+
   if (drift > 0) {
     driftPenalty = (1.0*drift) * insertion;
   }
@@ -37,6 +49,7 @@ int IndelPenalty(int x1, int y1, int x2, int y2, int insertion, int deletion) {
 		driftPenalty = 0;
 	}
   return driftPenalty;
+
 }
 
 template<typename T_Fragment>
@@ -60,7 +73,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 																DNALength fragmentLength,
 																int insertion, int deletion, int match,
 																vector<int> &maxFragmentChain, AlignmentType alignType=Global) {
-	maxFragmentChain.clear();
+
 
 	if (fragmentSet.size() < 1)
 		return 0;
@@ -126,10 +139,13 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 					fragmentSet[predCol.optFragment].x - 
 					fragmentSet[predCol.optFragment].y - 2 * fragmentSet[predCol.optFragment].length;
 				*/
+				assert(predCol.optFragment < fragmentSet.size());
+				assert(fSweep < fragmentSet.size());
 				driftPenalty = IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y,
-                                           fragmentSet[predCol.optFragment].x, fragmentSet[predCol.optFragment].y,
-                                           insertion, deletion);
-																				 cp = fragmentSet[predCol.optFragment].cost + driftPenalty;
+																		fragmentSet[predCol.optFragment].x, fragmentSet[predCol.optFragment].y,
+																		insertion, deletion);
+				cp = fragmentSet[predCol.optFragment].cost + driftPenalty;
+				
 				foundPrev = 1;
 			}
 
@@ -138,10 +154,11 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				/*
 					Baker and Giancarlo LCS cost
 				*/
-
+				/*
 				cl = pred.cost + 
 					(fragmentSet[fSweep].y - fragmentSet[fSweep].x) - 
 					(pred.y - pred.x);
+				*/
 
         /*
          * Cost with insertion and deletion penalty.
@@ -160,7 +177,7 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 				/*
 					Baker and Giancarlo LCS cost 
         */
-
+				assert(aboveIndex < fragmentSet.size());
 				ca = (fragmentSet[aboveIndex].cost + 
 							(fragmentLength - (int)(fragmentSet[fSweep].y - fragmentSet[aboveIndex].y)) * match + 
 							IndelPenalty(fragmentSet[fSweep].x, fragmentSet[fSweep].y, fragmentSet[aboveIndex].x, fragmentSet[aboveIndex].y, insertion, deletion));
@@ -302,8 +319,10 @@ int SDPLongestCommonSubsequence(DNALength queryLength,
 	if (alignType == Local) {
 		maxChainFragment = minFragmentIndex;
 	}
+	maxFragmentChain.clear();
 	while (maxChainFragment != -1) {
 		maxFragmentChain.push_back(maxChainFragment);
+		assert(maxChainFragment < fragmentSet.size());
 		maxChainFragment = fragmentSet[maxChainFragment].chainPrev;
 	}
 	std::reverse(maxFragmentChain.begin(), maxFragmentChain.end());

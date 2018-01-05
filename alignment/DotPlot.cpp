@@ -24,7 +24,8 @@ void PrintUsage() {
 	cout << "usage: dotplot query target min_k [--maxCount c] [--useLcp] [--out outfile] " << endl;
 	cout << "  --maxCount Limits the number of matches per position." << endl
 			 << "  --useLcp   Use the longest match at every position (will likely not show STR)." << endl
-			 << "  --out      Write to this file " <<endl;
+			 << "  --out      Write to this file. " <<endl 
+			 << "  --forward  Only find forward strand matches." << endl;
 	
 }
 
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) {
 	int argi = 4;
 	int maxPerPosition=0;
 	bool useLCP = false;
-
+	bool forwardOnly = false;
 	while (argi < argc){ 
 		if (strcmp(argv[argi], "-o") == 0 or strcmp(argv[argi], "--out") == 0) {
 			++argi;
@@ -107,6 +108,9 @@ int main(int argc, char* argv[]) {
 		if (strcmp(argv[argi], "--useLCP") == 0) {
 			++argi;
 			useLCP = true;
+		}
+		if (strcmp(argv[argi], "--forward") == 0) {
+			forwardOnly = true;
 		}
 		
 		
@@ -150,17 +154,17 @@ int main(int argc, char* argv[]) {
 	anchorParameters.stopMappingOnceUnique = true;
  
 	QuickMatch(target, sarray, query, anchorParameters,matchPosList, maxPerPosition);
-	QuickMatch(target, sarray, queryRC, anchorParameters, rcMatchPosList, maxPerPosition  );
-	
 	int i;
 	for (i = 0; i < matchPosList.size(); i++ ){
 		dotOut << matchPosList[i].q << "\t" << matchPosList[i].t << "\t" << matchPosList[i].l << "\t0\t0" << endl;
 	}
-
-	for (i = 0; i < rcMatchPosList.size(); i++) {
-		dotOut << query.length - rcMatchPosList[i].q << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t1\t1" << endl;
+	
+	if (forwardOnly == false) {
+		QuickMatch(target, sarray, queryRC, anchorParameters, rcMatchPosList, maxPerPosition  );
+		for (i = 0; i < rcMatchPosList.size(); i++) {
+			dotOut << query.length - rcMatchPosList[i].q << "\t" << rcMatchPosList[i].t << "\t" << rcMatchPosList[i].l << "\t1\t1" << endl;
+		}
 	}
-
 	
 	dotOut.close();
 }
