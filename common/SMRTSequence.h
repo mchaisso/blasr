@@ -156,6 +156,7 @@ public:
     subseq.ReferenceSubstring(rhs, rhsPos, rhsLength);
     subseq.title = rhs.title;
     subseq.titleLength = strlen(rhs.title);
+		
     if (rhs.length == 0) {
       if (preBaseFrames != NULL) { 
         delete[] preBaseFrames;
@@ -178,6 +179,7 @@ public:
       //
       // Make sure that no values of length 0 are allocated by returning here.
       //
+			
     }
     else {
       

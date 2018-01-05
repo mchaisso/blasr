@@ -2909,7 +2909,7 @@ void PrintAlignment(T_AlignmentCandidate &alignment, SMRTSequence &fullRead, Map
                           alignment.qAlignedSeqPos, alignment.tAlignedSeqPos);
     }
     else if (params.printFormat == SAM) {
-      SAMOutput::PrintAlignment(alignment, fullRead, outFile, alignmentContext, params.samQVList, params.clipping);
+      SAMOutput::PrintAlignment(alignment, fullRead, outFile, alignmentContext, params.samQVList, params.clipping, params.passthrough);
     }
     else if (params.printFormat == CompareXML) {
       CompareXMLPrintAlignment(alignment,
@@ -4070,6 +4070,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("maxGap", &params.maxGap, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterStringOption("fileType", &params.fileType, "");
 	clp.RegisterFlagOption("streaming", &params.streaming, "", false);
+	clp.RegisterFlagOption("passthrough", &params.passthrough, "", false);	
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
 	
@@ -4561,54 +4562,72 @@ int main(int argc, char* argv[]) {
 	
   if (params.printSAM) {
     string hdString, sqString, rgString, pgString;
-    MakeSAMHDString(hdString);
-    *outFilePtr << hdString << endl;
-    seqdb.MakeSAMSQString(sqString);
-    *outFilePtr << sqString; // this already outputs endl
+		if (params.passthrough == false) {
+			MakeSAMHDString(hdString);
+			*outFilePtr << hdString << endl;
+		}
 		set<string> readGroups;
     for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size() - 1; readsFileIndex++ ) {    
       reader->SetReadFileName(params.readsFileNames[readsFileIndex], params.fileType);
       reader->Initialize();
-      string movieNameMD5;
-			ScanData scanData;
-			reader->GetScanData(scanData);
-      MakeMD5(scanData.movieName, movieNameMD5, 10);
-      string chipId;
-      ParseChipIdFromMovieName(scanData.movieName, chipId);
-			//
-			// Each movie may only be represented once in the header.
-			//
-			string changelistId;
-			reader->GetChangelistId(changelistId);
-			string softwareVersion;
-			GetSoftwareVersion(changelistId, softwareVersion);
+			if (params.passthrough == false) {
+				string movieNameMD5;
+				ScanData scanData;
+				reader->GetScanData(scanData);
+				MakeMD5(scanData.movieName, movieNameMD5, 10);
+				string chipId;
+				ParseChipIdFromMovieName(scanData.movieName, chipId);
+				//
+				// Each movie may only be represented once in the header.
+				//
+				string changelistId;
+				reader->GetChangelistId(changelistId);
+				string softwareVersion;
+				GetSoftwareVersion(changelistId, softwareVersion);
+				
+				if (readGroups.find(scanData.movieName) == readGroups.end()) {
+					*outFilePtr << "@RG\t" 
+											<< "ID:" << movieNameMD5 << "\t" 
+											<< "PU:"<< scanData.movieName << "\t" 
+											<< "SM:"<< chipId << "\t" 
+											<< "PL:PACBIO" << "\t"
+											<< "DS:READTYPE=SUBREAD;" 
+											<< "CHANGELISTID="<<changelistId <<";"
+											<< "BINDINGKIT=" << scanData.bindingKit << ";" 
+											<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
+											<< "FRAMERATEHZ=100;" 
+											<< "BASECALLERVERSION=" << softwareVersion;
 
-			if (readGroups.find(scanData.movieName) == readGroups.end()) {
-				*outFilePtr << "@RG\t" 
-										<< "ID:" << movieNameMD5 << "\t" 
-										<< "PU:"<< scanData.movieName << "\t" 
-										<< "SM:"<< chipId << "\t" 
-										<< "PL:PACBIO" << "\t"
-										<< "DS:READTYPE=SUBREAD;" 
-					          << "CHANGELISTID="<<changelistId <<";"
-										<< "BINDINGKIT=" << scanData.bindingKit << ";" 
-										<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
-					          << "FRAMERATEHZ=100;" 
-										<< "BASECALLERVERSION=" << softwareVersion;
-
-				int q;
-				for (q = 0; q < params.samQVList.nTags; q++){ 
-					if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
-						*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+					int q;
+					for (q = 0; q < params.samQVList.nTags; q++){ 
+						if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
+							*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+						}
 					}
+					*outFilePtr << endl;
+					readGroups.insert(scanData.movieName);					
 				}
-				*outFilePtr << endl;
 			}
-			readGroups.insert(scanData.movieName);
+			else {
+				//
+					// When passing through sam values, do not try and guess the
+					// read groups etd., just emit whatever header lines were
+					// present.
+					//
+				int i;
+				for (i = 0; i < reader->samReader.allHeaders.size(); i++ ) {
+					*outFilePtr << reader->samReader.allHeaders[i] << endl;
+				}
+			}
+			
+
 			if (params.streaming == false) {
 				reader->Close();
 			}
     }
+    seqdb.MakeSAMSQString(sqString);
+    *outFilePtr << sqString; // this already outputs endl
+		
     string commandLineString;
     clp.CommandLineToString(argc, argv, commandLineString);
     MakeSAMPGString(commandLineString, pgString);

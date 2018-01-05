@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
 		SAMAlignmentsToCandidates(samAlignment, 
 															references, refToIndex,
 															convertedAlignments, false);
-			
+
 		int i=0;
 		for (i = 0; i < convertedAlignments.size(); i++) {
 			//
@@ -261,8 +261,8 @@ int main(int argc, char* argv[]) {
 					if (querySuffixSeq.length < maxRealignLength and targetSuffixSeq.length < maxRealignLength) {
 						suffixScore = SWAlign(querySuffixSeq, targetSuffixSeq, scoreMat, pathMat, suffixAlignment, scoreFn, Global);
 					}
-					//					StickPrintAlignment(prefixAlignment, queryPrefixSeq, targetPrefixSeq, cout);
-					//					StickPrintAlignment(suffixAlignment, querySuffixSeq, targetSuffixSeq, cout);
+					StickPrintAlignment(prefixAlignment, queryPrefixSeq, targetPrefixSeq, cerr);
+					StickPrintAlignment(suffixAlignment, querySuffixSeq, targetSuffixSeq, cerr);
 					prefixAlignment.tAlignedSeq.seq = targetPrefixSeq.seq;
 					prefixAlignment.qAlignedSeq.seq = queryPrefixSeq.seq;
 					suffixAlignment.tAlignedSeq.seq = targetSuffixSeq.seq;
@@ -399,8 +399,10 @@ int main(int argc, char* argv[]) {
 			seq.CopyTitle(convertedAlignments[i].qName);
 			AlignmentContext defaultAlignmentContext;
 			defaultAlignmentContext.readGroupId = samAlignment.rg;
+			if (defaultAlignmentContext.readGroupId == "") {
+				defaultAlignmentContext.readGroupId = "temp";
+			}
 			SupplementalQVList emptyQVList;			
-
 			SAMOutput::PrintAlignment(convertedAlignments[i],
 																seq,
 																outFile,

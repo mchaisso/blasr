@@ -358,7 +358,6 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			if (samReader.GetNextAlignment(samAlignment, true) == false) {
 				return 0;
 			}
-			
 			ConvertSAMToSMRTSequence(samAlignment, seq);
 			numRecords = 1;
 			break;
