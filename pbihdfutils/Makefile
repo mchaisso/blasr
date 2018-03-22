@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls pls2 testAdvance computeRefCoverage toAfg cmpView cmpInformation printmsa printvariants cmpH5Diff samtoh5 samtom4 samFilter samtobas writeTrimmedRegionTable
+all: bin make.dep loadPulses writeHDFSubset pls2fasta extractReadsByTitle filterHDFPls samtoh5  samFilter samtobas writeTrimmedRegionTable
 
 include ../make.rules
 

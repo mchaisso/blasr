@@ -32,8 +32,6 @@ class FASTQSequence : public FASTASequence {
   QVScale GetQVScale() {
     return qvScale;
   }
-	string samdata;
-	string samLine;
   void SetQVScale(QVScale qvScaleP) {
     qvScale                   = qvScaleP;
     qual.qvScale              = qvScale;
