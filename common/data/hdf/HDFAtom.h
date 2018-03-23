@@ -108,10 +108,14 @@ class HDFAtom : public HDFData {
   void Create(H5Object &object, string name, vector<string> &vect) {
     hsize_t length = vect.size();
     StrType strType(0,H5T_VARIABLE);
-    ArrayType arrayDataType(strType, 1, &length);
-    hsize_t one = 1;
+    cerr << vect[0] << endl;
+    vector<const char*> attrs(vect.size());
+    int i;
+    for (i=0;i< vect.size(); i++) {
+      attrs[i] = vect[i].c_str();
+    }
     attribute = object.createAttribute(name.c_str(), strType, DataSpace(1, &length));
-    attribute.write(strType, &((vect)[0]));    
+    attribute.write(strType, &attrs[0]);
   }
 
 	void TypedCreate(H5Object &object, string &atomName, DataSpace &dataSpace) {
