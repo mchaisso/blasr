@@ -2,8 +2,8 @@
 # Definitions common to all make files.
 #
 
-HDF5INCLUDEDIR=/home/mchaisso/software/include
-HDF5LIBDIR=/home/mchaisso/software/lib
+HDF5INCLUDEDIR?=/home/mchaisso/software/include
+HDF5LIBDIR?=/home/mchaisso/software/lib
 
 INCLUDEDIRS = -I $(PBCPP_DIR)/common -I $(HDF5INCLUDEDIR) 
 
@@ -15,4 +15,4 @@ GCCOPTS = -g -Wno-div-by-zero $(INCLUDEDIRS) -fpermissive -mtune=native
 HDF_REQ_LIBS= -lz -lpthread -ldl 
 CPPOPTS = $(GCCOPTS) $(INCLUDEDIRS) 
 CCOPTS  = $(GCCOPTS) $(INCLUDEDIRS)  
-CPP = g++ --std=c++98 
+CPP = g++ --std=c++98 -static
