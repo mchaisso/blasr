@@ -15,4 +15,4 @@ GCCOPTS = -g -Wno-div-by-zero $(INCLUDEDIRS) -fpermissive -mtune=native
 HDF_REQ_LIBS= -lz -lpthread -ldl 
 CPPOPTS = $(GCCOPTS) $(INCLUDEDIRS) 
 CCOPTS  = $(GCCOPTS) $(INCLUDEDIRS)  
-CPP = g++ --std=c++98 -static
+CPP = g++ -std=c++11 -static
