@@ -56,22 +56,22 @@ samtom: bin/samtom
 svrealigner: bin/svrealigner
 
 bin/printCoverage: bin/PrintCoverage.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printMaxAlignedRead: bin/PrintMaxAlignedRead.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGappyRegions: bin/PrintGappyRegions.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printConsensus: bin/PrintConsensus.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGaps: bin/PrintGaps.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/samtom: bin/SamToM0.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/svrealigner: bin/SVRealigner.o
 	$(CPP) $(CPPOPTS) $< -o $@ 
