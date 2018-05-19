@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep printGaps printConsensus printGappyRegions printMaxAlignedRead samtom svrealigner
+all: bin make.dep printGaps printGappyRegions printMaxAlignedRead samtom svrealigner
 
 include ../make.rules
 
@@ -48,7 +48,7 @@ build-secondary: init $(DISTRIB_EXECS)
 install-secondary: $(INSTALL_EXECS)
 
 printGaps: bin/printGaps
-printConsensus: bin/printConsensus
+
 printGappyRegions: bin/printGappyRegions
 printMaxAlignedRead: bin/printMaxAlignedRead
 printCoverage: bin/printCoverage
@@ -62,9 +62,6 @@ bin/printMaxAlignedRead: bin/PrintMaxAlignedRead.o
 	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGappyRegions: bin/PrintGappyRegions.o
-	$(CPP) $(CPPOPTS) $< -o $@
-
-bin/printConsensus: bin/PrintConsensus.o
 	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGaps: bin/PrintGaps.o
