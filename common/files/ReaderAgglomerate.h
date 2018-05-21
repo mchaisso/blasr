@@ -205,7 +205,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			//
 			// Here one needs to test and see if the hdf file contains ccs.
 			// If this is the case, then the file type is HDFCCS.
-			if (hdfCcsReader.BasFileHasCCS(fileName) and !ignoreCCS) {
+			if ( !ignoreCCS  and hdfCcsReader.BasFileHasCCS(fileName)) {
 				
 				fileType = HDFCCS;
 				hdfCcsReader.InitializeDefaultIncludedFields();
@@ -271,6 +271,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			numRecords = fastaReader.GetNext(seq);
 			break;
 		case Fastq:
+			cout <<" Getting fatstq " << endl;
 			numRecords = fastqReader.GetNext(seq);
 			break;
 		case HDFPulse:
@@ -357,7 +358,6 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			if (samReader.GetNextAlignment(samAlignment, true) == false) {
 				return 0;
 			}
-			
 			ConvertSAMToSMRTSequence(samAlignment, seq);
 			numRecords = 1;
 			break;
@@ -419,6 +419,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 		switch(fileType) {
 
 		case Fasta:
+		case Fastq:
 			fastaReader.Close();
 			break;
 		case HDFPulse:

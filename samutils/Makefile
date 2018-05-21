@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep printGaps printConsensus printGappyRegions printMaxAlignedRead samtom svrealigner
+all: bin make.dep printGaps printGappyRegions printMaxAlignedRead samtom svrealigner
 
 include ../make.rules
 
@@ -48,7 +48,7 @@ build-secondary: init $(DISTRIB_EXECS)
 install-secondary: $(INSTALL_EXECS)
 
 printGaps: bin/printGaps
-printConsensus: bin/printConsensus
+
 printGappyRegions: bin/printGappyRegions
 printMaxAlignedRead: bin/printMaxAlignedRead
 printCoverage: bin/printCoverage
@@ -56,22 +56,19 @@ samtom: bin/samtom
 svrealigner: bin/svrealigner
 
 bin/printCoverage: bin/PrintCoverage.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printMaxAlignedRead: bin/PrintMaxAlignedRead.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGappyRegions: bin/PrintGappyRegions.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
-
-bin/printConsensus: bin/PrintConsensus.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/printGaps: bin/PrintGaps.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/samtom: bin/SamToM0.o
-	$(CPP) $(CPPOPTS) $< -o $@   $(HDF_REQ_LIBS)
+	$(CPP) $(CPPOPTS) $< -o $@ -lpthread
 
 bin/svrealigner: bin/SVRealigner.o
 	$(CPP) $(CPPOPTS) $< -o $@ 

@@ -246,7 +246,7 @@ template<typename T,
 		 endPosTable[curPrefix.tuple] = indexPos;
 	 }
 	 while (indexPos < targetLength - lookupPrefixLength + 1 and 
-		((int) (curPrefix.tuple)) < (int) (tableLength-1));
+					(unsigned int) curPrefix.tuple + 1 < (unsigned int) (this->lookupTableLength));
  }
  
  void AllocateSuffixArray(SAIndexLength stringLength) {

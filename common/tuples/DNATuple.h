@@ -34,13 +34,20 @@ class DNATuple : public BaseTuple {
 		tuple = 0;
 		Nucleotide *p;
 		Nucleotide *endPtr = &strPtr[tm.tupleSize - 1];
+		int middle=tm.tupleSize/2;
 		for (p = strPtr; p != endPtr; p++) {
 			// If it is not possible to convert this string, return null.
 			if (ThreeBit[*p] > 3) {
 				return 0;
 			}
-			tuple += TwoBit[*p];
-			tuple <<=2;
+			/*
+			 * This was experimental gapped word approach.
+			 *
+			if (p-strPtr < middle-1 || p-strPtr > middle+1) {
+				tuple += TwoBit[*p];
+				tuple <<=2;
+			}
+			*/
 		}
 		//
 		// The tuple size is guaranteed to be at least 

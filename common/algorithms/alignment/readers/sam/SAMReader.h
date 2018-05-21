@@ -16,6 +16,7 @@ class SAMReader {
   public:
   int lineNumber;
   ifstream samFile;
+	vector<string> allHeaders;
   bool Initialize(string samFileName) {
     CrucialOpen(samFileName, samFile, std::ios::in);
 		return true;
@@ -28,7 +29,7 @@ class SAMReader {
   enum LineType {Blank, HSHeader, HSSequence, HSReadGroup, HSProgram, HSComment, Alignment, Error};
 
   int GetLine(istream &in, string &line) {
-    return (getline(in, line));
+    return (getline(in, line).good());
   }
 
   bool LineTypeIsHeader(LineType lineType) {
@@ -116,7 +117,7 @@ class SAMReader {
   }
 
   vector<string> ReadHeader(AlignmentSet<T_ReferenceSequence, T_ReadGroup, T_SAMAlignment> &alignments) {
-    vector<string> allHeaders;
+
     string line;
     LineType lineType;
     lineNumber = 0;

@@ -411,6 +411,12 @@ template<typename T_MatchList,
 	if (pos.size() == 0) {
 		return;
 	}
+	if (pos.size() == 1) {
+		start.push_back(0);
+		end.push_back(0);
+		return;
+	}
+		
   //
   // Search for clusters of intervals within the pos array within
   // pos[cur...next).  The value of 'next' should be the first anchor
@@ -435,7 +441,12 @@ template<typename T_MatchList,
 	}
 	else { 
 		curBoundary = ContigStartPos(pos[cur].t);
-		endIndexBoundary = ContigStartPos(pos[endIndex].t);
+		if (endIndex < pos.size()) {
+			endIndexBoundary = ContigStartPos(pos[endIndex].t);
+		}
+		else {
+			endIndexBoundary = ContigStartPos(pos[cur].t);
+		}
 
 		//
 		// Advance endIndex until the anchor is outside the interval that
@@ -723,6 +734,7 @@ template<typename T_MatchList,
 	VectorIndex i;
 	VectorIndex posi;
 	int maxLISSize = 0;
+	//	cerr << "Stored " << start.size() << " largest intervals." << endl;
 	for (posi = 0; posi < start.size(); posi++) {
 		
 		lis.clear();
@@ -772,12 +784,11 @@ template<typename T_MatchList,
 																	100,
 																	contiguousMatches);
 
-			
-
 		}
 		else {
 			contiguousMatches.resize(1);
 			contiguousMatches[0] = lis;
+			//			cerr << "checking lis of size: " << lis.size() <<endl;
 		}
 
 		int cm;
@@ -807,13 +818,19 @@ template<typename T_MatchList,
 			// Insert the interval into the interval queue maintaining only the 
 			// top 'nBest' intervals. 
 			//
-	
+			noOvpLisSize = (*lisPtr).size();
+			int lisIndex = 0;
+			for (lisIndex = 0; lisIndex < (*lisPtr).size(); lisIndex++) {
+				noOvpLisNBases+=(*lisPtr)[lisIndex].l;
+			}
+
 			typename WeightedIntervalSet<T_Chained_Anchor>::iterator lastIt = intervalQueue.begin();
 			MatchWeight lisWeight = MatchWeightFunction(*lisPtr);
 			VectorIndex lisEnd    = lisPtr->size() - 1;
-
+			//			cerr << "nbases: " << noOvpLisNBases << " pvalue: " << lisPValue << " max: " << params.maxPValue << endl;
+			
 			if (lisPValue < params.maxPValue and lisSize > 0 and noOvpLisNBases > params.minInterval  ) {
-
+				
 				WeightedInterval<T_Chained_Anchor> weightedInterval(lisWeight, noOvpLisSize, noOvpLisNBases, 
 																					(*lisPtr)[0].t, (*lisPtr)[lisEnd].t + (*lisPtr)[lisEnd].GetLength(), 
 																					readDir, lisPValue, 

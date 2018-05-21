@@ -1410,6 +1410,10 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					std::reverse(matches->begin(), matches->end());
 				}
 
+				//
+				// Remove overlapping matches.
+				//
+					
 				vector<bool> toRemove(matches->size(), false);
 				if (matches->size() > 0) {
 					m = 0;
@@ -1423,6 +1427,8 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						}
 						m=n;
 					}
+
+					
 					m=0;
 					int n=0;
 					for(n=0;n<matches->size();n++) {
@@ -1432,9 +1438,54 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						}
 					}
 
+					matches->resize(m);
+				}
+
+				if (matches->size() > 0) {
+					toRemove.resize(matches->size());					
+					m = 0;
+					int nRemoved =0;
+					int blockSize = 0;
+					int MAX_GAP=25;
+					int MIN_BLOCK=500;
+					bool firstBlock = true;
+					for (; m < matches->size() - 1; m++) {
+
+						blockSize = 0;
+						int blockStart = m;
+						int qNextGap = 0;
+						int tNextGap = 0;
+						int qPrevGap = 0;
+						int tPrevGap = 0;
+						while (m < matches->size() - 1 and abs(tNextGap - qNextGap) < MAX_GAP) {
+							qNextGap = (*matches)[m+1].q - (*matches)[m].q+(*matches)[m].l;
+							tNextGap = (*matches)[m+1].t - (*matches)[m].t+(*matches)[m].l;
+							blockSize+= (*matches)[m].l;
+							m++;
+						}
+						if (firstBlock == false and blockSize < MIN_BLOCK) {
+							/*							cerr << "Removing block " << blockSize << " " << blockStart << " " << m << " "
+															<< (*matches)[m].l << " " << tNextGap << " " << qNextGap << " " << (*matches)[m].q << endl;*/
+							int mi;
+							for (mi = blockStart; mi < m; mi++) {
+								toRemove[mi] = true;
+							}
+						}
+						firstBlock = false;
+					}
+
+					m=0;
+					int n=0;
+					for(n=0;n<matches->size();n++) {
+						if (toRemove[n] == false) {
+							(*matches)[m] = (*matches)[n];
+							m++;
+						}
+					}
 
 					matches->resize(m);
 				}
+				
 				DNASequence tSubSeq;
 				FASTQSequence qSubSeq, mSubSeq;
 				
@@ -1481,11 +1532,15 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 						float tRatio = ((float)tGap)/qGap;
 						float qRatio = 1/tRatio;
 						int maxGap = 100000;
+						int adaptSDPTupleSize = sdpTupleSize;
+						if (alignment->tAlignedSeq.length  < 1000 && alignment->qAlignedSeq.length < 1000) {
+							adaptSDPTupleSize = 7;
+						}
 						if (tRatio > 0.001 and qRatio > 0.001 and tGap < maxGap and qGap< maxGap) {
 							AlignSubstring(alignment->tAlignedSeq, tPos, tGap,
 														 alignment->qAlignedSeq, qPos, qGap,
 														 params,
-														 sdpTupleSize,
+														 adaptSDPTupleSize,
 														 distScoreFn,
 														 refinementBuffers,
 														 alignmentInGap);
@@ -2854,7 +2909,7 @@ void PrintAlignment(T_AlignmentCandidate &alignment, SMRTSequence &fullRead, Map
                           alignment.qAlignedSeqPos, alignment.tAlignedSeqPos);
     }
     else if (params.printFormat == SAM) {
-      SAMOutput::PrintAlignment(alignment, fullRead, outFile, alignmentContext, params.samQVList, params.clipping);
+      SAMOutput::PrintAlignment(alignment, fullRead, outFile, alignmentContext, params.samQVList, params.clipping, params.passthrough);
     }
     else if (params.printFormat == CompareXML) {
       CompareXMLPrintAlignment(alignment,
@@ -4015,6 +4070,7 @@ int main(int argc, char* argv[]) {
 	clp.RegisterIntOption("maxGap", &params.maxGap, "", CommandLineParser::NonNegativeInteger);
 	clp.RegisterStringOption("fileType", &params.fileType, "");
 	clp.RegisterFlagOption("streaming", &params.streaming, "", false);
+	clp.RegisterFlagOption("passthrough", &params.passthrough, "", false);	
 	clp.ParseCommandLine(argc, argv, params.readsFileNames);
   clp.CommandLineToString(argc, argv, commandLine);
 	
@@ -4506,54 +4562,72 @@ int main(int argc, char* argv[]) {
 	
   if (params.printSAM) {
     string hdString, sqString, rgString, pgString;
-    MakeSAMHDString(hdString);
-    *outFilePtr << hdString << endl;
-    seqdb.MakeSAMSQString(sqString);
-    *outFilePtr << sqString; // this already outputs endl
+		if (params.passthrough == false) {
+			MakeSAMHDString(hdString);
+			*outFilePtr << hdString << endl;
+		}
 		set<string> readGroups;
     for (readsFileIndex = 0; readsFileIndex < params.readsFileNames.size() - 1; readsFileIndex++ ) {    
       reader->SetReadFileName(params.readsFileNames[readsFileIndex], params.fileType);
       reader->Initialize();
-      string movieNameMD5;
-			ScanData scanData;
-			reader->GetScanData(scanData);
-      MakeMD5(scanData.movieName, movieNameMD5, 10);
-      string chipId;
-      ParseChipIdFromMovieName(scanData.movieName, chipId);
-			//
-			// Each movie may only be represented once in the header.
-			//
-			string changelistId;
-			reader->GetChangelistId(changelistId);
-			string softwareVersion;
-			GetSoftwareVersion(changelistId, softwareVersion);
+			if (params.passthrough == false) {
+				string movieNameMD5;
+				ScanData scanData;
+				reader->GetScanData(scanData);
+				MakeMD5(scanData.movieName, movieNameMD5, 10);
+				string chipId;
+				ParseChipIdFromMovieName(scanData.movieName, chipId);
+				//
+				// Each movie may only be represented once in the header.
+				//
+				string changelistId;
+				reader->GetChangelistId(changelistId);
+				string softwareVersion;
+				GetSoftwareVersion(changelistId, softwareVersion);
+				
+				if (readGroups.find(scanData.movieName) == readGroups.end()) {
+					*outFilePtr << "@RG\t" 
+											<< "ID:" << movieNameMD5 << "\t" 
+											<< "PU:"<< scanData.movieName << "\t" 
+											<< "SM:"<< chipId << "\t" 
+											<< "PL:PACBIO" << "\t"
+											<< "DS:READTYPE=SUBREAD;" 
+											<< "CHANGELISTID="<<changelistId <<";"
+											<< "BINDINGKIT=" << scanData.bindingKit << ";" 
+											<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
+											<< "FRAMERATEHZ=100;" 
+											<< "BASECALLERVERSION=" << softwareVersion;
 
-			if (readGroups.find(scanData.movieName) == readGroups.end()) {
-				*outFilePtr << "@RG\t" 
-										<< "ID:" << movieNameMD5 << "\t" 
-										<< "PU:"<< scanData.movieName << "\t" 
-										<< "SM:"<< chipId << "\t" 
-										<< "PL:PACBIO" << "\t"
-										<< "DS:READTYPE=SUBREAD;" 
-					          << "CHANGELISTID="<<changelistId <<";"
-										<< "BINDINGKIT=" << scanData.bindingKit << ";" 
-										<< "SEQUENCINGKIT=" << scanData.sequencingKit << ";"
-					          << "FRAMERATEHZ=100;" 
-										<< "BASECALLERVERSION=" << softwareVersion;
-
-				int q;
-				for (q = 0; q < params.samQVList.nTags; q++){ 
-					if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
-						*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+					int q;
+					for (q = 0; q < params.samQVList.nTags; q++){ 
+						if (params.samQVList.useqv & params.samQVList.qvFlagIndex[q]) {
+							*outFilePtr << ";" << params.samQVList.qvNames[q] << "=" << params.samQVList.qvTags[q];
+						}
 					}
+					*outFilePtr << endl;
+					readGroups.insert(scanData.movieName);					
 				}
-				*outFilePtr << endl;
 			}
-			readGroups.insert(scanData.movieName);
+			else {
+				//
+					// When passing through sam values, do not try and guess the
+					// read groups etd., just emit whatever header lines were
+					// present.
+					//
+				int i;
+				for (i = 0; i < reader->samReader.allHeaders.size(); i++ ) {
+					*outFilePtr << reader->samReader.allHeaders[i] << endl;
+				}
+			}
+			
+
 			if (params.streaming == false) {
 				reader->Close();
 			}
     }
+    seqdb.MakeSAMSQString(sqString);
+    *outFilePtr << sqString; // this already outputs endl
+		
     string commandLineString;
     clp.CommandLineToString(argc, argv, commandLineString);
     MakeSAMPGString(commandLineString, pgString);
@@ -4567,7 +4641,7 @@ int main(int argc, char* argv[]) {
 		//
 		// Configure the reader to use the correct read and region
 		// file names.
-		// 
+		//
 		reader->SetReadFileName(params.readsFileNames[params.readsFileIndex], params.fileType);
 		if (holeNumbers.size() > 0) {
 			reader->InitializeHoleNumbers(holeNumbers);

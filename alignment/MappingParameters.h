@@ -188,6 +188,7 @@ class MappingParameters {
 	int maxGap;
 	string fileType;
 	bool streaming;
+	bool passthrough;
 	void Init() {
     readIndex = -1;
     maxReadIndex = -1;
@@ -356,6 +357,7 @@ class MappingParameters {
 		maxGap=0;
 		fileType = "";
 		streaming = false;
+		passthrough=false;
 	}
 
 	MappingParameters() {
@@ -452,20 +454,20 @@ class MappingParameters {
 			refineAlignments = false;
 			refineBetweenAnchorsOnly = true;
 			
-			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 15);
+			minMatchLength = anchorParameters.minMatchLength = max(minMatchLength, 13);
 			anchorParameters.advanceExactMatches = advanceExactMatches = 1;
 
-			anchorParameters.maxLCPLength = max(minMatchLength, max(20, anchorParameters.maxLCPLength+1));
+			anchorParameters.maxLCPLength = max(minMatchLength, max(15, anchorParameters.maxLCPLength+1));
 			
 			affineAlign = true;
 			affineExtend = 0;
-			affineOpen   = 20;
+			affineOpen   = 30;
 			sdpMaxAnchorsPerPosition = 20;
 			anchorParameters.maxAnchorsPerPosition = 2;
 			indelRate = 0.1;
 			clipping = SAMOutput::none;
 			removeContainedIntervals = true;
-			sdpTupleSize = 15;
+			sdpTupleSize = 11;
 			// Good for human alignments
 			//			maxAnchorGap = 40000;
 			insertion = 8;

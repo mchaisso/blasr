@@ -423,8 +423,7 @@ namespace SAMOutput {
                       AlignmentContext &context,
 											SupplementalQVList &qvlist,
                       Clipping clipping = none,
-                      int subreadIndex = 0,
-                      int nSubreads = 0) {
+											bool passthrough = false) {
     
     string cigarString;
     uint16_t flag;
@@ -476,81 +475,104 @@ namespace SAMOutput {
     else {
       samFile <<"*";
     }
-    samFile << "\t";
-    //
-    // Add optional fields
-    //
-    samFile << "RG:Z:" << context.readGroupId << "\t";
-    samFile << "AS:i:" << alignment.score << "\t";
+		if (passthrough == false) {
+			samFile << "\t";
+			//
+			// Add optional fields
+			//
+			samFile << "RG:Z:" << context.readGroupId << "\t";
+			samFile << "AS:i:" << alignment.score << "\t";
 
-		// must recompute the 
+			// must recompute the 
 
-    //
-    // "RG" read group Id
-    // "AS" alignment score
-    // "XS" read alignment start position without counting previous soft clips (1 based) 
-    // "XE" read alignment end position without counting previous soft clips (1 based) 
-    // "XL" aligned read length 
-    // "XQ" query sequence length
-    // "XT" # of continues reads, always 1 for blasr 
-    // "NM" edit distance 
-    // "FI" read alignment start position (1 based) 
-    //
+			//
+			// "RG" read group Id
+			// "AS" alignment score
+			// "XS" read alignment start position without counting previous soft clips (1 based) 
+			// "XE" read alignment end position without counting previous soft clips (1 based) 
+			// "XL" aligned read length 
+			// "XQ" query sequence length
+			// "XT" # of continues reads, always 1 for blasr 
+			// "NM" edit distance 
+			// "FI" read alignment start position (1 based) 
+			//
 
-		DNALength qAlignStart = alignment.QAlignStart();
-		DNALength qAlignEnd   = alignment.QAlignEnd();
+			DNALength qAlignStart = alignment.QAlignStart();
+			DNALength qAlignEnd   = alignment.QAlignEnd();
 
-	  if (clipping == none) {
-			samFile << "XS:i:" << qAlignStart + 1 << "\t";
-			samFile << "XE:i:" << qAlignEnd + 1 << "\t";
-    }
-		else if (clipping == hard or clipping == soft or clipping == subread) {
-			DNALength xs = prefixHardClip;
-			DNALength xe = read.length - suffixHardClip;
-			if (alignment.tStrand == 1) {
-				xs = suffixHardClip;
-				xe = read.length - prefixHardClip;
+			if (clipping == none) {
+				samFile << "XS:i:" << qAlignStart + 1 << "\t";
+				samFile << "XE:i:" << qAlignEnd + 1 << "\t";
 			}
+			else if (clipping == hard or clipping == soft or clipping == subread) {
+				DNALength xs = prefixHardClip;
+				DNALength xe = read.length - suffixHardClip;
+				if (alignment.tStrand == 1) {
+					xs = suffixHardClip;
+					xe = read.length - prefixHardClip;
+				}
 			
-			samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
-			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
-			samFile << "XE:i:" << xe + 1 << "\t";
-			samFile << "qs:i:" << read.qs << "\t"; // add 1 for 1-based indexing in sam
-			assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
-			samFile << "qe:i:" << read.qe << "\t";
+				samFile << "XS:i:" << xs + 1 << "\t"; // add 1 for 1-based indexing in sam
+				assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
+				samFile << "XE:i:" << xe + 1 << "\t";
+				samFile << "qs:i:" << read.qs << "\t"; // add 1 for 1-based indexing in sam
+				assert(read.length - suffixHardClip == prefixHardClip + alignedSequence.length);
+				samFile << "qe:i:" << read.qe << "\t";
+
+			}
+			samFile << "zm:i:" << read.holeNumber << "\t";
+			samFile << "XL:i:" << alignment.qAlignedSeq.length << "\t";
+			samFile << "XT:i:1\t"; // reads are allways continuous reads, not
+			// referenced based circular consensus when
+			// output by blasr.
+			samFile << "NM:i:" << context.editDist << "\t";
+			samFile << "FI:i:" << alignment.qAlignedSeqPos + 1;
+			// Add query sequence length
+			samFile << "\t" << "XQ:i:" << alignment.qLength << "\t";
+
+			//
+			// Write out optional quality values.  If qvlist does not 
+			// have any qv's signaled to print, this is a no-op.
+			//
+			// First transform characters that are too large to printable ones.
+			samFile.precision(4);
+			samFile << "rq:f:" << read.readQuality << "\t";
+			samFile << "np:i:" << read.numPasses << "\t";
+			samFile << "cx:i:" << read.subreadContext << "\t";
+			samFile << "sn:B:f,"
+							<< read.snr[0] << ","
+							<< read.snr[1] << ","
+							<< read.snr[2] << ","
+							<< read.snr[3];
+		
+			qvlist.FormatQVOptionalFields(alignedSequence);
+			qvlist.PrintQVOptionalFields(alignedSequence, samFile);
+
+			samFile << endl;
+
+			alignedSequence.FreeIfControlled();
+		}
+		else {
+			//
+			// Find the start of the optional fields
+			//
+			int nFields = 0;
+			int pos = 0;
+			while (pos < alignment.qAlignedSeq.samLine.size() and nFields <  11) {
+				if (alignment.qAlignedSeq.samLine[pos] == '\t') {
+					nFields+=1;
+				}
+				pos+=1;
+			}
+			if (nFields != 11) {
+				cerr << "ERROR with passthrough line: " << endl;
+				cerr << alignment.qAlignedSeq.samLine << endl;
+				assert(0);
+			}
+			string optionalFields=alignment.qAlignedSeq.samLine.substr(pos);
+			samFile << "\t" << optionalFields << endl;
 
 		}
-		samFile << "zm:i:" << read.holeNumber << "\t";
-    samFile << "XL:i:" << alignment.qAlignedSeq.length << "\t";
-    samFile << "XT:i:1\t"; // reads are allways continuous reads, not
-                        // referenced based circular consensus when
-                        // output by blasr.
-    samFile << "NM:i:" << context.editDist << "\t";
-    samFile << "FI:i:" << alignment.qAlignedSeqPos + 1;
-    // Add query sequence length
-    samFile << "\t" << "XQ:i:" << alignment.qLength << "\t";
-
-		//
-		// Write out optional quality values.  If qvlist does not 
-		// have any qv's signaled to print, this is a no-op.
-		//
-		// First transform characters that are too large to printable ones.
-		samFile.precision(4);
-		samFile << "rq:f:" << read.readQuality << "\t";
-		samFile << "np:i:" << read.numPasses << "\t";
-		samFile << "cx:i:" << read.subreadContext << "\t";
-		samFile << "sn:B:f,"
-						<< read.snr[0] << ","
-						<< read.snr[1] << ","
-						<< read.snr[2] << ","
-						<< read.snr[3];
-		
-		qvlist.FormatQVOptionalFields(alignedSequence);
-		qvlist.PrintQVOptionalFields(alignedSequence, samFile);
-
-    samFile << endl;
-
-    alignedSequence.FreeIfControlled();
   }
   template<typename T_Sequence>
   void PrintUnalignedRead(T_Sequence &read,

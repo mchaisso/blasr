@@ -24,6 +24,7 @@ class BaseSequenceIO {
 
 	static int DetermineFileTypeByExtension(string fileName, FileType &type, bool exitOnFailure=true) {
 		string::size_type dotPos = fileName.rfind(".");
+
 		if (dotPos != string::npos) {
 			string extension;
 			extension.assign(fileName, dotPos+1, fileName.size() - (dotPos+1));

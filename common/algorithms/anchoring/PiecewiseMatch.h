@@ -249,15 +249,16 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 
 	vector<BasicEndpoint<DirMatch> > chainEndpointBuffer;
   vector<Fragment> fragmentBuffer;
-
+/*
 	ofstream orig("hits.orig.txt");
+
 	for (int m = 0; m < matches.size(); m++) {
 		if (matches[m].l > 40) {
 			orig << matches[m].q << "\t" << matches[m].t << "\t" << matches[m].s << "\t" << matches[m].l << endl;
 		}
 	}
 	orig.close();
-
+*/
 
 	FindMaxIncreasingInterval(Forward,
 														matches,
@@ -330,14 +331,14 @@ void PiecewiseMatchDir(  vector<ChainedMatchPos> &forwardMatches,
 		}
 
 		intv->matches.resize(p);
-
+/*
 		ofstream mout("hits.txt");
 		int m;
 		for (m = 0; m < intv->matches.size(); m++) {
 			mout << intv->matches[m].q << "\t" << intv->matches[m].t << "\t" << intv->matches[m].s << endl;
 		}
 		mout.close();
-
+*/
 		int nNeg = 0;
 		for (i = 0; i< intv->matches.size(); i++) {
 			if (intv->matches[i].s == 1) {

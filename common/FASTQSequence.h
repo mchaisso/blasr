@@ -32,7 +32,6 @@ class FASTQSequence : public FASTASequence {
   QVScale GetQVScale() {
     return qvScale;
   }
-
   void SetQVScale(QVScale qvScaleP) {
     qvScale                   = qvScaleP;
     qual.qvScale              = qvScale;
@@ -214,6 +213,7 @@ class FASTQSequence : public FASTASequence {
 		insertionQVPrior = rhs.insertionQVPrior;
 		substitutionQVPrior = rhs.substitutionQVPrior;
 		preBaseDeletionQVPrior = rhs.preBaseDeletionQVPrior;
+		samLine = rhs.samLine;
 	}
 
 	void ClearAndNull(QualityValue *value) {
@@ -223,6 +223,7 @@ class FASTQSequence : public FASTASequence {
 		value = NULL;
 	}
 	void CopyQualityValues(const FASTQSequence &rhs) {
+
     SetQVScale(rhs.qvScale);
     qual.Copy(rhs.qual, rhs.length);
     deletionQV.Copy(rhs.deletionQV, rhs.length);
@@ -295,6 +296,7 @@ class FASTQSequence : public FASTASequence {
 		
 	void Copy(const FASTQSequence &rhs) {
 		FASTASequence::Copy(rhs);
+		samLine = rhs.samLine;		
 		CopyQualityValues(rhs);
 	}
 
@@ -473,6 +475,7 @@ class FASTQSequence : public FASTASequence {
 		insertionQVPrior = rc.insertionQVPrior;
 		substitutionQVPrior = rc.substitutionQVPrior;
 		preBaseDeletionQVPrior = rc.preBaseDeletionQVPrior;
+		rc.samLine = samLine;
 	}
 
 	void Free() {
