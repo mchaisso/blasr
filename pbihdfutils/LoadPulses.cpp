@@ -2264,8 +2264,8 @@ int main(int argc, char* argv[]) {
                 if (alignedSequence.size() != readSequence.size() or alignedSequence != readSequence) {
                     cout << "ERROR, the query sequence does not match the aligned query sequence." << endl;
                     cout << "HoleNumber: "<< holeNumber << ", MovieName: " << cmpFileMovieName;
-                    cout << ", ReadIndex: " << (int) readIndex << 
-                    cout << ", qStart: "<< queryStart << ", qEnd: " << queryEnd << endl;
+                    cout << ", ReadIndex: " << (int) readIndex <<
+											", qStart: "<< queryStart << ", qEnd: " << queryEnd << endl;
                     cout << "Aligned sequence: "<< endl;
                     cout << alignedSequence << endl;
                     cout << "Original sequence: " << endl;

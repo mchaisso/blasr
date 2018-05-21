@@ -68,7 +68,7 @@ bin/printGaps: bin/PrintGaps.o
 	$(CPP) $(CPPOPTS) $< -o $@
 
 bin/samtom: bin/SamToM0.o
-	$(CPP) $(CPPOPTS) $< -o $@
+	$(CPP) $(CPPOPTS) $< -o $@ -lpthread
 
 bin/svrealigner: bin/SVRealigner.o
 	$(CPP) $(CPPOPTS) $< -o $@ 
