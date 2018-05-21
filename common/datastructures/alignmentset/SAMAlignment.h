@@ -218,7 +218,7 @@ class SAMAlignment {
     while (strm) {
       string kvName, kvType, kvValue;
       string typedKVPair;
-      if ((strm >> typedKVPair) == 0) {
+      if ((strm >> typedKVPair).good()==false) {
         break;
       }
       if (TypedKeywordValuePair::Separate(typedKVPair, kvName, kvType, kvValue)) {

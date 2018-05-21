@@ -213,6 +213,7 @@ template<typename T,
 	 VectorIndex tablePos;
 	 SAIndex     indexPos;
 	 indexPos = 0;
+	 int tableLength = this->lookupTableLength;
 	 do {
 		 // Advance to the first position that may be translated into a tuple.
 		 if (targetLength < lookupPrefixLength)
@@ -245,7 +246,7 @@ template<typename T,
 		 endPosTable[curPrefix.tuple] = indexPos;
 	 }
 	 while (indexPos < targetLength - lookupPrefixLength + 1 and 
-					curPrefix.tuple < lookupTableLength-1);
+		((int) (curPrefix.tuple)) < (int) (tableLength-1));
  }
  
  void AllocateSuffixArray(SAIndexLength stringLength) {
