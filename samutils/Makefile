@@ -25,7 +25,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-all: bin make.dep printGaps printGappyRegions printMaxAlignedRead samtom svrealigner
+all: bin make.dep printGaps samtom svrealigner
 
 include ../make.rules
 
@@ -49,29 +49,22 @@ install-secondary: $(INSTALL_EXECS)
 
 printGaps: bin/printGaps
 
-printGappyRegions: bin/printGappyRegions
 printMaxAlignedRead: bin/printMaxAlignedRead
 printCoverage: bin/printCoverage
 samtom: bin/samtom
 svrealigner: bin/svrealigner
-
+LIBS= -lpthread
 bin/printCoverage: bin/PrintCoverage.o
 	$(CPP) $(CPPOPTS) $< -o $@
 
-bin/printMaxAlignedRead: bin/PrintMaxAlignedRead.o
-	$(CPP) $(CPPOPTS) $< -o $@
-
-bin/printGappyRegions: bin/PrintGappyRegions.o
-	$(CPP) $(CPPOPTS) $< -o $@
-
 bin/printGaps: bin/PrintGaps.o
-	$(CPP) $(CPPOPTS) $< -o $@
+	$(CPP) $(CPPOPTS) $< -o $@ $(LIBS)
 
 bin/samtom: bin/SamToM0.o
-	$(CPP) $(CPPOPTS) $< -o $@
+	$(CPP) $(CPPOPTS) $< -o $@ $(LIBS)
 
 bin/svrealigner: bin/SVRealigner.o
-	$(CPP) $(CPPOPTS) $< -o $@ 
+	$(CPP) $(CPPOPTS) $< -o $@ $(LIBS) 
 
 INSTALL_DIR ?= $(ANALYSIS_HOME)/bin
 install:
