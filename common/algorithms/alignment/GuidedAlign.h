@@ -617,7 +617,6 @@ template<typename QSequence, typename TSequence, typename T_ScoreFn>
             if (probMat[curIndex] > 0) {
               probMat[curIndex] = 0;
             }
-            assert(!isnan(probMat[curIndex]));
 					}
 				}
 			}
