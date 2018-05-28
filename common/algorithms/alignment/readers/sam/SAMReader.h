@@ -29,7 +29,8 @@ class SAMReader {
   enum LineType {Blank, HSHeader, HSSequence, HSReadGroup, HSProgram, HSComment, Alignment, Error};
 
   int GetLine(istream &in, string &line) {
-    return (getline(in, line).good());
+    getline(in,line);
+    return in.good();
   }
 
   bool LineTypeIsHeader(LineType lineType) {
