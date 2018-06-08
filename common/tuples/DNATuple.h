@@ -40,14 +40,8 @@ class DNATuple : public BaseTuple {
 			if (ThreeBit[*p] > 3) {
 				return 0;
 			}
-			/*
-			 * This was experimental gapped word approach.
-			 *
-			if (p-strPtr < middle-1 || p-strPtr > middle+1) {
-				tuple += TwoBit[*p];
-				tuple <<=2;
-			}
-			*/
+			tuple += TwoBit[*p];
+			tuple <<=2;
 		}
 		//
 		// The tuple size is guaranteed to be at least 
