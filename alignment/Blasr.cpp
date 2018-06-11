@@ -1305,12 +1305,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     alignment->tAlignedSeqPos     = matchIntervalStart;
     alignment->tAlignedSeqLength  = matchIntervalEnd - matchIntervalStart;
 
-		//
-		// Below is a hack to get around a bug where a match interval extends past the end of a 
-		// target interval because of an N in the query sequence.  If the match interval is truncated,
-		// it is possible that the matches index past the interval length.  This trims it back.
-		//
-
     if ((*intvIt).GetStrandIndex() == Forward) {
       alignment->tAlignedSeq.Copy(genome, alignment->tAlignedSeqPos, alignment->tAlignedSeqLength);
       alignment->tStrand = Forward;
@@ -1470,18 +1464,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							blockSize+= (*matches)[m].l;
 							m++;
 						}
-						/*						cerr << "m " << blockStart << "-" << m << " " << blockSize << " " 
-								 << (*matches)[blockStart].q << " " << (*matches)[blockStart].t << " "
-								 << (*matches)[m].q << " " << (*matches)[m].t  << endl;*/
-						/*
-						if (blockSize < MIN_BLOCK) {
-							int mi;
-							cerr << "removing " << blockStart << "-" << m << endl;
-							for (mi = blockStart; mi < m; mi++) {
-								toRemove[mi] = true;
-							}
-						}
-						*/
 						bStart.push_back(blockStart);
 						bEnd.push_back(m-1);
 						bSize.push_back(blockSize);
@@ -1495,7 +1477,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					bPrev.push_back(0);
 
 					int mi, mj;
-					float GAP=-0.5;
+					float GAP=-0.1;
 					int MATCH=1;
 					for (mi = 0; mi < bStart.size(); mi++) {
 						for (mj = 0; mj < mi; mj++) {
@@ -1505,13 +1487,16 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							int tGap = (*matches)[c].t - (*matches)[p].t;
 							int qGap = (*matches)[c].q - (*matches)[p].q;
 							int gap = abs(tGap - qGap);
+							/*
+							if (mj == mi - 1) {
+								cerr << mi <<"\tprev\t" << gap << endl;
+								}*/
 							int score = bScore[mj] + gap*GAP + bSize[mj];
 							if (bScore[mi] < score) {
 								bScore[mi] = score;
 								bPrev[mi] = mj;
 							}
 						}
-						//						cerr << bStart[mi] << "\t" << bEnd[mi] << "\t" << bSize[mi] << "\t" << bScore[mi] << "\t" << bPrev[mi] << endl;
 					}
 					int maxScore = 0;
 					int maxIndex = 0;
@@ -1522,27 +1507,18 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							maxIndex = mi;
 						}
 					}
+					/*
+					for (mi = 0; mi < bScore.size(); mi++) {
+						cerr << mi << "\t" << bStart[mi] << "\t" << bEnd[mi] << "\t" << bSize[mi] << "\t" << bScore[mi] << "\t" << bPrev[mi] << endl;
+					}
+					cerr << endl;
+					*/
 					mi = maxIndex;
 					while (mi > 0) {
 						bScore[mi] = -1;
 						mi= bPrev[mi];
 					}
-
-					/*
-				if (seen == false){ 
-
-
-					ofstream mergedOut("merged.txt");
-
-					for (mi = 0; mi < bScore.size(); mi++) {
-						mergedOut << (*matches)[bStart[mi]].q << "\t" << (*matches)[bEnd[mi]].q << "\t" 
-											<< (*matches)[bStart[mi]].t << "\t" << (*matches)[bEnd[mi]].t << endl;
-
-					}
-					mergedOut.close();
-					seen = true;
-				}
-					*/
+					
 					for (mi = 1; mi < bScore.size(); mi++) {
 						if (bScore[mi] != -1) {
 							for (mj=bStart[mi]; mj <= bEnd[mi]; mj++) {
@@ -1550,7 +1526,28 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							}
 						}
 					}
-						
+					
+					/*
+				if (seen == false){ 
+
+
+					ofstream mergedOut("merged.txt");
+
+					for (mi = 0; mi < (*matches).size(); mi++) {
+						mergedOut << (*matches)[mi].q << "\t" << (*matches)[mi].t << "\t";
+						if (toRemove[mi]) {
+							mergedOut << "1";
+						}
+						else {
+							mergedOut << "0";
+						}
+						mergedOut << endl;
+					}
+					mergedOut.close();
+					seen = true;
+				}
+					*/
+
 					m=0;
 					int n=0;
 					for(n=0;n<matches->size();n++) {
