@@ -74,6 +74,7 @@ class FASTQReader : public FASTAReader {
 					getline(file,line);
 				}
 			}
+			return nSteps;
     }
 };
 

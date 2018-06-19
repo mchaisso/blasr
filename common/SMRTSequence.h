@@ -296,7 +296,7 @@ public:
 		}
 	}
 
-  bool StorePlatformType(PlatformId pid ){
+  void StorePlatformType(PlatformId pid ){
     if (pid == AstroPlatform) {
       platform = Astro;
     }

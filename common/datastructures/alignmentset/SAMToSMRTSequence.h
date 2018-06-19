@@ -49,7 +49,7 @@ int AssignQualityData( unsigned char* &field, string src) {
 	return res;
 }
 
-bool ConvertSAMToSMRTSequence(SAMAlignment &samAlignment, SMRTSequence &read) {
+void ConvertSAMToSMRTSequence(SAMAlignment &samAlignment, SMRTSequence &read) {
 	//
 	// Populate sequence / quality information.  Any empty qualities
 	// are skipped.

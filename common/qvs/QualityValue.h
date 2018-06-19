@@ -21,7 +21,7 @@ QualityValue ProbabilityToQualityValue(QualityProbability pErr, QVScale qvScale=
     pe = MIN(pErr, maxReportedErrorProb);
     return MIN(255, -100*log10(pe/(1-pe)));
   }
-  else if (qvScale == PHRED) {
+  else {
     return -10*log10(pErr);
   }
 }
@@ -50,7 +50,7 @@ QualityProbability QualityValueToProbability(QualityValue qv, QVScale qvScale=PO
     pp = pow(10, qv/-100.0);
     return pp/(1+pp);
   }
-  else if (qvScale == PHRED) {
+  else {
     return pow(10, qv/-10.0);
   }
 }
