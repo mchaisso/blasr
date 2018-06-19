@@ -657,13 +657,13 @@ class T_HDFBasReader : public DatasetCollection, public HDFPulseDataFile {
 		pulseIndexArray.Read(0, pulseIndexArray.arrayLength, &pulseIndex[0]);
 	}
 
-	int GetAllPreBaseFrames(vector<uint16_t> &preBaseFrames) {
+	void GetAllPreBaseFrames(vector<uint16_t> &preBaseFrames) {
 		CheckMemoryAllocation(preBaseFramesArray.arrayLength, maxAllocNElements, "PreBaseFrames");
 		preBaseFrames.resize(nBases);
 		preBaseFramesArray.Read(0, nBases, &preBaseFrames[0]);
 	}
 
-	int GetAllWidthInFrames(vector<uint16_t> &widthInFrames) { 
+	void GetAllWidthInFrames(vector<uint16_t> &widthInFrames) { 
 		CheckMemoryAllocation(basWidthInFramesArray.arrayLength, maxAllocNElements, "WidthInFrames");
 		widthInFrames.resize(nBases);
 		basWidthInFramesArray.Read(0, nBases, &widthInFrames[0]);

@@ -34,6 +34,7 @@ class DirMatch {
 	}
 	DirMatch&operator=(const DirMatch &rhs) {
 		t = rhs.t; q = rhs.q; s = rhs.s; v= rhs.v;l=rhs.l; len=rhs.len;
+		return *this;
 	}
 	DNALength GetLength() const {
 		return this->len;

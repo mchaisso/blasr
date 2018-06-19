@@ -60,6 +60,7 @@ class Occ {
 		if (hasDebugInformation) {
 			InitializeTestBins(bwtSeq);
 		}
+		return 1;
 	}
 
 	void InitializeMajorBins(T_BWTSequence &bwtSeq) {

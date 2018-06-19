@@ -10,9 +10,9 @@ INCLUDEDIRS = -I $(PBCPP_DIR)/common -I $(HDF5INCLUDEDIR)
 HDF5LIB    = hdf5
 HDF5LIBCPP = hdf5_cpp
 LINK_PROFILER = 
-GCCOPTS = -w -O3 -Wno-div-by-zero $(INCLUDEDIRS) -fpermissive -mtune=native
+GCCOPTS ?= -O3 
 
 HDF_REQ_LIBS= -lz -lpthread -ldl 
 CPPOPTS = $(GCCOPTS) $(INCLUDEDIRS) 
 CCOPTS  = $(GCCOPTS) $(INCLUDEDIRS)  
-CPP = g++ -std=c++11 
+CPP = g++ 
