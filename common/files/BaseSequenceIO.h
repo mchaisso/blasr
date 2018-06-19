@@ -5,6 +5,7 @@
 #include <iostream>
 #include <assert.h>
 #include "Enumerations.h"
+#include <stdlib.h>
 
 using namespace std;
 class BaseSequenceIO {
