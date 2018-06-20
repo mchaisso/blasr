@@ -41,7 +41,7 @@ class HDFRegionTableWriter {
 
   }
 
-  int Create(string fileName) {
+  void Create(string fileName) {
     H5File newFile(fileName.c_str(), H5F_ACC_TRUNC, FileCreatPropList::DEFAULT, FileAccPropList::DEFAULT);  
     regionTableFile.hdfFile.openFile(fileName.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);    
     regionTableFile.rootGroup.Initialize(regionTableFile.hdfFile, "/");

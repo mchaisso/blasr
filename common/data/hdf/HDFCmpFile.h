@@ -118,7 +118,7 @@ public:
 
     }
 
-    int Initialize(string &hdfCmpFileName, set<string> includedFieldsP, unsigned int flags=H5F_ACC_RDONLY, const H5::FileAccPropList & fileAccPropList = H5::FileAccPropList::DEFAULT) {
+    void Initialize(string &hdfCmpFileName, set<string> includedFieldsP, unsigned int flags=H5F_ACC_RDONLY, const H5::FileAccPropList & fileAccPropList = H5::FileAccPropList::DEFAULT) {
         Initialize(hdfCmpFileName, flags, fileAccPropList);
         includedFields = includedFieldsP;
 				curAlignmentIndex = 0;
@@ -192,7 +192,7 @@ public:
         return id;
     }
 
-    int StoreAlnArray(vector<unsigned char> &alnArray, string refName, string &experimentName,
+    void StoreAlnArray(vector<unsigned char> &alnArray, string refName, string &experimentName,
             unsigned int &offsetBegin,
             unsigned int &offsetEnd) {
         //
@@ -204,6 +204,7 @@ public:
         HDFCmpExperimentGroup *expGroup;
         expGroup = refAlignGroups[refIndex]->GetExperimentGroup(experimentName);
         expGroup->AddAlignment(alnArray, offsetBegin, offsetEnd);
+
     }
 
     int Initialize(string &hdfCmpFileName, 

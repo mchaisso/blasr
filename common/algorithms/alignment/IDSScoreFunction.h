@@ -188,26 +188,9 @@ float IDSScoreFunction<DNASequence, FASTQSequence>::NormalizedMatch(DNASequence 
 template<>
 float IDSScoreFunction<DNASequence, FASTQSequence>::NormalizedInsertion(DNASequence &ref, DNALength refPos, 
                                                                         FASTQSequence &query, DNALength queryPos) {
-  
-  float insScore = Insertion(ref, refPos, query, queryPos);
-
-  float delScore = -1;
-  float matchScore = -1;  
-  if (refPos < ref.length - 1) {
-    matchScore = Match(ref, refPos + 1, query, queryPos);
-    if (queryPos > 0) {
-      delScore = Deletion(ref, refPos + 1, query, queryPos - 1);
-    }
-  }
-
-  float sum = SumAsValidPhred(insScore, delScore, matchScore);
-  if (sum / 0) {
-    float numerator = pow(10,insScore/-10.0);
-    return -10*log10( numerator / sum);
-  }
-  else {
-    return 0;
-  }
+	cout << "IDSScoreFunction is deprecated." << endl;
+	assert(0);
+	return 0;
 }
 
 

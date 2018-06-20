@@ -28,7 +28,7 @@ class HDFCmpRefAlignmentGroup {
     // /ref00001/rg8953-0
     // /ref00001/rg2453-1
 
-	int Initialize(CommonFG &group, string _refGroupName) {
+	void Initialize(CommonFG &group, string _refGroupName) {
 		refGroupName = _refGroupName;
 		refGroup.Initialize(group, _refGroupName);
 		//		annotationStringAtom.Initialize(refGroup.group, "annotationString");

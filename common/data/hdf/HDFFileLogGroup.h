@@ -21,6 +21,7 @@ class HDFFileLogGroup {
     idArray.Initialize(group, "ID");
     logArray.Initialize(group, "Log");
     programArray.Initialize(group, "Program");
+		return 1;
   }
 
   
@@ -46,6 +47,7 @@ class HDFFileLogGroup {
     programArray.Create(group, "Program");
     logArray.Create(group, "Log");
     idArray.Create(group, "ID");
+		return true;
   }    
 
 };
