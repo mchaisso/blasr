@@ -19,7 +19,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasr sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable samatcher saprinter sals findLongestRepeat dotPlot
+EXECS = wordCounter printReadWordCount blasrmc sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable samatcher saprinter sals findLongestRepeat dotPlot
 
 EXTENDED = guidedalign extendAlign
 
@@ -30,7 +30,7 @@ EXTENDED = guidedalign extendAlign
 all: bin make.dep $(EXECS)
 
 BUILTEXECS = $(addprefix bin/, $(EXECS))
-DISTRIB_SET = blasr swMatcher kbandMatcher sawriter samodify printTupleCountTable cmpPrintTupleCountTable removeAdapters sdpMatcher pbmask
+DISTRIB_SET = blasrmc swMatcher kbandMatcher sawriter samodify printTupleCountTable cmpPrintTupleCountTable removeAdapters sdpMatcher pbmask
 DISTRIB_EXECS = $(addprefix bin/, $(DISTRIB_SET))
 INSTALL_EXECS = $(addprefix install-, $(DISTRIB_SET))
 
@@ -44,7 +44,7 @@ endif
 
 wordCounter:        bin/wordCounter
 printReadWordCount: bin/printReadWordCount
-blasr:        bin/blasr
+blasrmc:        bin/blasrmc
 dotPlot:        bin/dotPlot
 sdpMatcher:         bin/sdpMatcher
 samatcher:          bin/samatcher
@@ -112,7 +112,7 @@ ifneq ($(shell uname -s),Darwin)
     LRT = -lrt
 endif
 
-bin/blasr: bin/Blasr.o
+bin/blasrmc: bin/Blasr.o
 	$(CPP) $(STATIC) 	$(CPPOPTS) $< -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(LINK_PROFILER) $(HDF_REQ_LIBS) -lrt -o $@
 
 bin/samatcher: bin/SAMatcher.o
