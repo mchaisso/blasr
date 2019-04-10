@@ -44,7 +44,7 @@ endif
 
 blasrmc:        bin/blasrmc
 blDotPlot:        bin/blDotPlot
-sawritermc:           bin/sawriter
+sawritermc:           bin/sawritermc
 STATIC=
 bin/sawritermc: bin/SAWriter.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@

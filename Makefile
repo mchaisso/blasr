@@ -11,7 +11,6 @@ INSTALL_BIN_DIR = $(PREFIX)/bin
 
 EXE_LIST =  \
   alignment \
-	bwtutils \
   samutils
 
 BUILT_EXES := $(foreach subdir, $(EXE_LIST), $(subdir)/build/$(subdir))
