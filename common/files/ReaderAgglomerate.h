@@ -186,7 +186,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
     return false;
 	}
 
-	int InitializeHoleNumbers(vector<int> &hn) {
+	void InitializeHoleNumbers(vector<int> &hn) {
 		holeNumbers = hn;
 		holeNumberI = 0;
 	}

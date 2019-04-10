@@ -222,7 +222,7 @@ class HDFScanDataReader {
 		if (useWhenStarted) {
 			whenStartedAtom.Read(scanData.whenStarted);
 		}
-
+		return 1;
 	}
 
 	void ReadWhenStarted(string &whenStarted) {

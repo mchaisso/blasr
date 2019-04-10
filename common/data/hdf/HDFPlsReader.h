@@ -426,7 +426,7 @@ class HDFPlsReader : public DatasetCollection, public HDFPulseDataFile  {
     }
 
 
-  int GetReadAt(int holeNumber, int* &basToPlsIndex, SMRTSequence &read) {
+  void GetReadAt(int holeNumber, int* &basToPlsIndex, SMRTSequence &read) {
     if (preparedForRandomAccess == false) {
       PrepareForRandomAccess();
     }
@@ -529,10 +529,13 @@ class HDFPlsReader : public DatasetCollection, public HDFPulseDataFile  {
     
     curRead++;
     curPos += seqLength;
+		return curPos;
     } catch (DataSetIException e) {
         cout << "ERROR, could not read pulse metrics for SMRTSequence "
              << read.GetName() << endl;
         exit(1);
+				// satisfy some compilers
+				return 0;
     }
 	}
 	

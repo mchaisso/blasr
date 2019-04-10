@@ -136,7 +136,7 @@ class SAMAlignment {
 		return true;
 	}
 	
-  bool StoreValues(string &line,  int lineNumber=0, bool allowUnaligned=false) {
+  int StoreValues(string &line,  int lineNumber=0, bool allowUnaligned=false) {
 		// Store full line for passthrough.
 		samLine = line;
     stringstream strm(line);
@@ -310,7 +310,9 @@ class SAMAlignment {
 				zmw = atoi(qNameTokens[1].c_str());
 			}
 		}
+		return 1;		
 	}
+
 };
 
 const char* SAMAlignment::SAMAlignmentRequiredFieldNames[] = { "QNAME", "FLAG", 

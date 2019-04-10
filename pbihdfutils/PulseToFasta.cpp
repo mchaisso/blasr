@@ -27,7 +27,7 @@ bool IsFIndex(string fileName) {
 }
 
 
-bool ParseFIndex(string fileName, map <string, vector<int> > & holeNumbers) {
+void ParseFIndex(string fileName, map <string, vector<int> > & holeNumbers) {
 	ifstream fIndex;
 	CrucialOpen(fileName, fIndex, std::ios::in);
 	string line;

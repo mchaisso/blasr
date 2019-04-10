@@ -3,11 +3,6 @@
 #-----------------------------------------------------------------------------
 SHELL = /bin/bash
 
-ifeq ($(origin ASSEMBLY_HOME), undefined)
-PREFIX = $(SEYMOUR_HOME)/analysis
-else
-PREFIX = $(ASSEMBLY_HOME)
-endif
 
 INSTALL_LIB_DIR = $(PREFIX)/lib
 INSTALL_BIN_DIR = $(PREFIX)/bin
@@ -16,18 +11,10 @@ INSTALL_BIN_DIR = $(PREFIX)/bin
 
 EXE_LIST =  \
   alignment \
-  sequtils \
 	pbihdfutils \
 	bwtutils \
   simulator \
   samutils
-
-# Not currently used - AAK
-# 	pelusa \
-#	jabon \
-# All common files should be headers- AAK
-#  common \
-
 
 BUILT_EXES := $(foreach subdir, $(EXE_LIST), $(subdir)/build/$(subdir))
 

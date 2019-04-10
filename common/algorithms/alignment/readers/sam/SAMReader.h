@@ -29,7 +29,7 @@ class SAMReader {
   enum LineType {Blank, HSHeader, HSSequence, HSReadGroup, HSProgram, HSComment, Alignment, Error};
 
   int GetLine(istream &in, string &line) {
-    return (getline(in, line));
+    return (getline(in, line).good());
   }
 
   bool LineTypeIsHeader(LineType lineType) {
@@ -78,7 +78,7 @@ class SAMReader {
     KeywordValueStringsToPairs(kvPairStrings, kvPairs);
   }
  
-  int StoreHeader(vector<SAMKeywordValuePair> &kvPairs, AlignmentSet<T_ReferenceSequence, T_ReadGroup, T_SAMAlignment> &alignments) {
+  void StoreHeader(vector<SAMKeywordValuePair> &kvPairs, AlignmentSet<T_ReferenceSequence, T_ReadGroup, T_SAMAlignment> &alignments) {
     alignments.header.StoreValues(kvPairs, lineNumber);
   }
 

@@ -84,11 +84,14 @@ void StickPrintAlignment(T_Alignment &alignment,
 		textLine.assign(textStr, pos, lineLength);
 		alignLine.assign(alignStr, pos, lineLength);
 		queryLine.assign(queryStr, pos, lineLength);
+    out << "q: ";
 		out.width(coordsPrintWidth);
 		out << qPrintStart + qPos;
 		out.width(0);
 		out << coordPadding << queryLine << endl;
+    out << "   ";
 		out << alignStrPadding <<  alignLine << endl;
+    out << "t: ";
 		out.width(coordsPrintWidth);
 		out << tPrintStart + tPos ;
 		out.width(0);

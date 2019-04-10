@@ -211,8 +211,8 @@ class BufferedHDF2DArray : public HDFData, public HDFWriteBuffer<T> {
 			this->bufferSize = rowLength;
 		}
 
-		hsize_t dataSize[2]    = {0, rowLength};
-		hsize_t maxDataSize[2] = {H5S_UNLIMITED, rowLength};
+		hsize_t dataSize[2]    = {0, (hsize_t)rowLength};
+		hsize_t maxDataSize[2] = {H5S_UNLIMITED, (hsize_t)rowLength};
 		DataSpace fileSpace(2, dataSize, maxDataSize);
 		DSetCreatPropList cparms;
 
@@ -223,7 +223,7 @@ class BufferedHDF2DArray : public HDFData, public HDFWriteBuffer<T> {
 		 * docuemntation was written for people who enjoy learning how to
 		 * use an API by reading comments in source code.
 		 */
-		hsize_t chunkDims[2] = {16384, rowLength};
+		hsize_t chunkDims[2] = {16384, (hsize_t)rowLength};
 		cparms.setChunk( 2, chunkDims );
 		TypedCreate(fileSpace, cparms);
     fileSpace.close();

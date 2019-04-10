@@ -150,7 +150,7 @@ class CompressedSequence : public FASTASequence {
 		}
 	}
 
-	int BuildFourBitReverseIndex(int binSize) {
+	void BuildFourBitReverseIndex(int binSize) {
 		BuildReverseIndex(15, binSize);
 	}
 

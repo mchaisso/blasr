@@ -7,7 +7,7 @@
 using namespace std;
 class CigarString : public string {
  public:
-  int Vectorize(vector<int> &lengths, vector<char> &operations) {
+  void Vectorize(vector<int> &lengths, vector<char> &operations) {
     stringstream strm;
     strm.str(*this);
     while (strm) {

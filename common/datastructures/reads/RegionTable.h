@@ -28,7 +28,7 @@ class RegionAnnotation {
     return row[HoleNumber];
   }
 
-  int SetHoleNumber(int holeNumber) {
+  void SetHoleNumber(int holeNumber) {
     row[HoleNumber] = holeNumber;
   }
 
@@ -36,7 +36,7 @@ class RegionAnnotation {
     return row[RegionType];
   }
   
-  int SetType(int regionType) {
+  void SetType(int regionType) {
     row[RegionType] = regionType;
   }
 
@@ -129,10 +129,10 @@ class RegionTable {
     return table[regionIndex].GetHoleNumber();
   }
 
-  int SetHoleNumber(int regionIndex, int holeNumber) {
+  void SetHoleNumber(int regionIndex, int holeNumber) {
     assert(regionIndex < table.size());
     assert(regionIndex >= 0);
-    return table[regionIndex].SetHoleNumber(holeNumber);
+    table[regionIndex].SetHoleNumber(holeNumber);
   }
 
   int GetScore(int regionIndex) {

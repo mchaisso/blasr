@@ -15,6 +15,8 @@ class FASTASequence : public DNASequence {
   public:
   char *title;
   int titleLength;
+	string samdata;
+	string samLine;
 	void PrintSeq(ostream &out, int lineLength = 50, char delim='>') {
 		if (title != 0) {
 			out << delim << title <<endl;

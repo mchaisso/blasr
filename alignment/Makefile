@@ -19,7 +19,7 @@ include ../common.mk
 # Define the targets before including the rules since the rules contains a target itself.
 #
 
-EXECS = wordCounter printReadWordCount blasrmc sdpMatcher swMatcher kbandMatcher sawriter saquery samodify printTupleCountTable cmpPrintTupleCountTable samatcher saprinter sals findLongestRepeat dotPlot
+EXECS =   blasrmc sdpMatcher sawriter saquery printTupleCountTable sals findLongestRepeat dotPlot
 
 EXTENDED = guidedalign extendAlign
 
@@ -140,7 +140,7 @@ bin/tabulateAlignment: bin/TabulateAlignment.o
 	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@
 
 bin/buildQualityValueProfile: bin/BuildQualityValueProfile.o
-	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) -lz -lpthread -ldl
+	$(CPP) $(CPPOPTS) $< $(STATIC) -o $@ -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB)  -lz -lpthread -ldl
 
 #
 # Set up a default value for the install dir if one does

@@ -91,7 +91,7 @@ MappingSemaphores semaphores;
 
 ostream *outFilePtr;
 
-
+static bool seen;
 HDFRegionTableReader *regionTableReader;
 
 typedef SMRTSequence T_Sequence;
@@ -1305,12 +1305,6 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
     alignment->tAlignedSeqPos     = matchIntervalStart;
     alignment->tAlignedSeqLength  = matchIntervalEnd - matchIntervalStart;
 
-		//
-		// Below is a hack to get around a bug where a match interval extends past the end of a 
-		// target interval because of an N in the query sequence.  If the match interval is truncated,
-		// it is possible that the matches index past the interval length.  This trims it back.
-		//
-
     if ((*intvIt).GetStrandIndex() == Forward) {
       alignment->tAlignedSeq.Copy(genome, alignment->tAlignedSeqPos, alignment->tAlignedSeqLength);
       alignment->tStrand = Forward;
@@ -1441,16 +1435,23 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					matches->resize(m);
 				}
 
+				  
+
 				if (matches->size() > 0) {
-					toRemove.resize(matches->size());					
+					toRemove.resize(matches->size());
+					std::fill(toRemove.begin(), toRemove.end(), false);					
 					m = 0;
 					int nRemoved =0;
 					int blockSize = 0;
 					int MAX_GAP=25;
-					int MIN_BLOCK=500;
-					bool firstBlock = true;
-					for (; m < matches->size() - 1; m++) {
-
+					int MIN_BLOCK=50;
+					vector<int> bStart, bEnd, bSize, bScore, bPrev;
+					bStart.push_back(0);
+					bEnd.push_back(0);
+					bSize.push_back(0);
+					bScore.push_back(0);
+					bPrev.push_back(0);
+		      while ( m < matches->size() - 1 ) { 			
 						blockSize = 0;
 						int blockStart = m;
 						int qNextGap = 0;
@@ -1463,16 +1464,89 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 							blockSize+= (*matches)[m].l;
 							m++;
 						}
-						if (firstBlock == false and blockSize < MIN_BLOCK) {
-							/*							cerr << "Removing block " << blockSize << " " << blockStart << " " << m << " "
-															<< (*matches)[m].l << " " << tNextGap << " " << qNextGap << " " << (*matches)[m].q << endl;*/
-							int mi;
-							for (mi = blockStart; mi < m; mi++) {
-								toRemove[mi] = true;
+						bStart.push_back(blockStart);
+						bEnd.push_back(m-1);
+						bSize.push_back(blockSize);
+						bScore.push_back(0);
+						bPrev.push_back(0);
+					}
+					bStart.push_back(matches->size()-1);
+					bEnd.push_back(matches->size()-1);
+					bSize.push_back((*matches)[matches->size()-1].l);
+					bScore.push_back(0);
+					bPrev.push_back(0);
+
+					int mi, mj;
+					float GAP=-0.1;
+					int MATCH=1;
+					for (mi = 0; mi < bStart.size(); mi++) {
+						for (mj = 0; mj < mi; mj++) {
+							int p = bEnd[mj];
+							int c = bStart[mi];
+
+							int tGap = (*matches)[c].t - (*matches)[p].t;
+							int qGap = (*matches)[c].q - (*matches)[p].q;
+							int gap = abs(tGap - qGap);
+							/*
+							if (mj == mi - 1) {
+								cerr << mi <<"\tprev\t" << gap << endl;
+								}*/
+							int score = bScore[mj] + gap*GAP + bSize[mj];
+							if (bScore[mi] < score) {
+								bScore[mi] = score;
+								bPrev[mi] = mj;
 							}
 						}
-						firstBlock = false;
 					}
+					int maxScore = 0;
+					int maxIndex = 0;
+					
+					for (mi = 0; mi < bScore.size(); mi++) {
+						if (bScore[mi] > maxScore) {
+							maxScore = bScore[mi];
+							maxIndex = mi;
+						}
+					}
+					/*
+					for (mi = 0; mi < bScore.size(); mi++) {
+						cerr << mi << "\t" << bStart[mi] << "\t" << bEnd[mi] << "\t" << bSize[mi] << "\t" << bScore[mi] << "\t" << bPrev[mi] << endl;
+					}
+					cerr << endl;
+					*/
+					mi = maxIndex;
+					while (mi > 0) {
+						bScore[mi] = -1;
+						mi= bPrev[mi];
+					}
+					
+					for (mi = 1; mi < bScore.size(); mi++) {
+						if (bScore[mi] != -1) {
+							for (mj=bStart[mi]; mj <= bEnd[mi]; mj++) {
+								toRemove[mj] = true;
+							}
+						}
+					}
+					
+					/*
+				if (seen == false){ 
+
+
+					ofstream mergedOut("merged.txt");
+
+					for (mi = 0; mi < (*matches).size(); mi++) {
+						mergedOut << (*matches)[mi].q << "\t" << (*matches)[mi].t << "\t";
+						if (toRemove[mi]) {
+							mergedOut << "1";
+						}
+						else {
+							mergedOut << "0";
+						}
+						mergedOut << endl;
+					}
+					mergedOut.close();
+					seen = true;
+				}
+					*/
 
 					m=0;
 					int n=0;
@@ -1485,7 +1559,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 
 					matches->resize(m);
 				}
-				
+
 				DNASequence tSubSeq;
 				FASTQSequence qSubSeq, mSubSeq;
 				
@@ -1520,6 +1594,7 @@ void AlignIntervals(T_TargetSequence &genome, T_QuerySequence &read, T_QuerySequ
 					anchorsOnly.blocks.push_back(block);
 						
           if (tGap > 0 and qGap > 0) {
+						//						cerr << "refining between " << (*matches)[m].q << "-" << (*matches)[m+1].q << "(" << qGap << ") , " << (*matches)[m].t << "-" << (*matches)[m+1].t << "(" << tGap << ")" << endl;
 						T_AlignmentCandidate alignmentInGap;
 
             DNALength tPos, qPos;
@@ -3880,7 +3955,7 @@ int ComputeExpectedWaitingBases(float mean, float variance, float certainty) {
 
 
 int main(int argc, char* argv[]) {
-
+  seen=false;
 	//
 	// Configure parameters for refining alignments.
 	//

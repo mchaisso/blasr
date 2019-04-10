@@ -343,8 +343,10 @@ class HDFBasWriter : public DatasetCollection {
 		holeStatusArray.Initialize(zmwGroup, "HoleStatus");
 	}
 
-	int WriteHoleXY(int x=0, int y=0) {
-		int16_t xy[2] = {(uint16_t) x, (uint16_t) y};
+	void WriteHoleXY(int x=0, int y=0) {
+		int16_t xn = static_cast<uint16_t>(x);
+		int16_t yn = static_cast<uint16_t>(y);		
+		int16_t xy[2] = {xn,yn};
 		holeXY2D.WriteRow(xy, 2);
 	}		
 
@@ -388,11 +390,12 @@ class HDFBasWriter : public DatasetCollection {
 		if (includedFields["MergeQV"] and seq.mergeQV.Empty() == false) {
 			mergeQVArray.Write(seq.mergeQV.data, seq.length);
 		}
-
+		return 1;
 	}
 
 	int WriteBases(FASTASequence &seq ) {
-		int lenArray[1] = {seq.length};
+		int len = (int) seq.length;
+		int lenArray[1] = {len};
 		nElemArray.Write(lenArray, 1);
 		baseArray.Write((const unsigned char*) seq.seq, seq.length);
 		return 1;
