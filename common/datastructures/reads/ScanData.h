@@ -1,8 +1,10 @@
 #ifndef DATASTRUCTURES_READS_SCAN_DATA_H_
 #define DATASTRUCTURES_READS_SCAN_DATA_H_
 
-#include "../../Enumerations.h"
-#include "../../data/hdf/PlatformId.h"
+#include "Enumerations.h"
+#include "data/hdf/PlatformId.h"
+
+
 class ScanData {
  public:
 	PlatformId platformId;
@@ -19,16 +21,15 @@ class ScanData {
 		return movieName;
 	}
 	void Clear() {
-		frameRate = 0;
-		numFrames = 0;
-		movieName = 
-			runCode = 
-			bindingKit = 
-			sequencingChemistry =
-			sequencingKit =
-			basecallerVersion = 
-			whenStarted = "";
-
+	  frameRate = 0;
+	  numFrames = 0;
+	  movieName = 
+	    runCode = 
+	    bindingKit = 
+	    sequencingChemistry =
+	    sequencingKit =
+	    basecallerVersion = 
+	    whenStarted = "";
 	}
 
 };

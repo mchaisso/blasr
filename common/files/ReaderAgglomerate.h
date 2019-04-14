@@ -10,11 +10,13 @@
 #include "CCSSequence.h"
 #include "SMRTSequence.h"
 #include "Enumerations.h"
-#include "data/hdf/HDFBasReader.h"
-#include "data/hdf/HDFCCSReader.h"
+//#include "data/hdf/HDFBasReader.h"
+//#include "data/hdf/HDFCCSReader.h"
 #include "utils/StringUtils.h"
 #include "algorithms/alignment/readers/sam/SAMReader.h"
 #include "datastructures/alignmentset/SAMToSMRTSequence.h"
+#include "datastructures/reads/ScanData.h"
+
 
 class ReaderAgglomerate : public BaseSequenceIO {
 	FASTAReader fastaReader;
@@ -42,8 +44,10 @@ class ReaderAgglomerate : public BaseSequenceIO {
 	//
 	// Create containers for reading hdf
 	//
+	/*
 	T_HDFBasReader<SMRTSequence>  hdfBasReader;
 	HDFCCSReader<CCSSequence>     hdfCcsReader;
+	*/
 	vector<SMRTSequence>          readBuffer;
 	vector<CCSSequence>           ccsBuffer;
 
@@ -92,11 +96,12 @@ class ReaderAgglomerate : public BaseSequenceIO {
 
 	void GetScanData(ScanData &scanData) {
 		if (fileType == Fasta || fileType == Fastq) {
-			scanData.Clear();
-			scanData.movieName = fileName;
+		  scanData.Clear();
+		  scanData.movieName = fileName;
 		}
 		else if (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS) {
-			hdfBasReader.scanDataReader.Read(scanData);
+		  cerr << "HDF input is no longer supported" << endl;
+		  exit(1);
 		}
 	}
 
@@ -105,7 +110,9 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			softwareVersion = "";
 		}
 		else if (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS) {
-			hdfBasReader.GetChangelistId(softwareVersion);
+		  cerr << "HDF input is no longer supported" << endl;
+		  exit(1);
+		  //			hdfBasReader.GetChangelistId(softwareVersion);
 		}
 	}
 
@@ -114,12 +121,15 @@ class ReaderAgglomerate : public BaseSequenceIO {
       movieName = fileName;
     }
     else if (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS) {
-      movieName = hdfBasReader.GetMovieName();
+      cerr << "HDF input is no longer supported" << endl;
+      exit(1);
+      //            movieName = hdfBasReader.GetMovieName();
     }
   }
 
 	bool FileHasZMWInformation() {
-		return (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS);
+	  return false;
+	  //		return (fileType == HDFPulse || fileType == HDFBase || fileType == HDFCCS);
 	}
 
 	void SkipReadQuality() {
@@ -132,7 +142,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 	
 	void UseCCS() {
 		ignoreCCS = false;
-    hdfBasReader.SetReadBasesFromCCS();
+		//hdfBasReader.SetReadBasesFromCCS();
 	}
 
 	int Initialize(string &pFileName, string fileTypeSuffix="") {
@@ -165,25 +175,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 	}
 
 	bool HasRegionTable() {
-		switch(fileType) {
-		case Fasta:
-			return false;
-			break;
-		case Fastq:
-			return false;
-			break;
-		case HDFPulse:
-		case HDFBase:
-			return hdfBasReader.HasRegionTable();
-			break;
-		case HDFCCS:
-			return hdfCcsReader.HasRegionTable();
-			break;
-		case SAM_READ:
-			return false;
-			break;
-		}
-    return false;
+	  return false;
 	}
 
 	void InitializeHoleNumbers(vector<int> &hn) {
@@ -202,35 +194,7 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			break;
 		case HDFPulse:
 		case HDFBase:
-			//
-			// Here one needs to test and see if the hdf file contains ccs.
-			// If this is the case, then the file type is HDFCCS.
-			if ( !ignoreCCS  and hdfCcsReader.BasFileHasCCS(fileName)) {
-				
-				fileType = HDFCCS;
-				hdfCcsReader.InitializeDefaultIncludedFields();
-				init = hdfCcsReader.Initialize(fileName);
-				if (init == 0) return 0;
-			}
-			else {
-				//
-				// By default this reads all quality values and tags.
-				//
-				hdfBasReader.InitializeDefaultIncludedFields();
-				init = hdfBasReader.Initialize(fileName);
-
-				if (UseHoleNumbers()) {
-						hdfBasReader.PrepareForRandomAccess();
-				}
-				//
-				// This code is added so that meaningful names are printed 
-				// when running on simulated data that contains the coordinate
-				// information.
-
-				if (init == 0) return 0;
-			}
-			break;
-
+		  break;
 		case SAM_READ:
 			init = samReader.Initialize(fileName);
 			AlignmentSet<SAMFullReferenceSequence, SAMFullReadGroup, SAMPosAlignment> alignmentSet;
@@ -275,12 +239,8 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			numRecords = fastqReader.GetNext(seq);
 			break;
 		case HDFPulse:
-    case HDFBase:
-			numRecords = hdfBasReader.GetNext(seq);
-			break;
-    case HDFCCS:
-			cout << "ERROR! Reading CCS into a structure that cannot handle it." << endl;
-			assert(0);
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
 			break;
 		}
     seq.CleanupOnFree();
@@ -300,12 +260,15 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			numRecords = fastqReader.GetNext(seq);
 			break;
 		case HDFPulse:
-    case HDFBase:
-			numRecords = hdfBasReader.GetNext(seq);
+                case HDFBase:
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+
 			break;
-    case HDFCCS:
-			cout << "ERROR! Reading CCS into a structure that cannot handle it." << endl;
-			assert(0);
+		case HDFCCS:
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+
 			break;
 		}
 		if (stride > 1)
@@ -333,20 +296,13 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			numRecords = fastqReader.GetNext(seq);
 			break;
 		case HDFPulse:
-    case HDFBase:
-			if (UseHoleNumbers()) {
-				numRecords = hdfBasReader.GetReadAt(holeNumbers[holeNumberI], seq);
-				holeNumberI++;
-			}
-			else {
-				numRecords = hdfBasReader.GetNext(seq);
-			}
-			seq.StoreIPD();
-			break;
+		case HDFBase:
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+		  break;
     case HDFCCS:
-      assert(ignoreCCS == false);
-      assert(hdfBasReader.readBasesFromCCS == true);
-      numRecords = hdfBasReader.GetNext(seq);
+      		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
 			break;
 
 		case SAM_READ:
@@ -387,10 +343,15 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			break;
 		case HDFPulse:
     case HDFBase:
-			numRecords = hdfBasReader.GetNext(seq);
+      		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+
+
 			break;
     case HDFCCS:
-			numRecords = hdfCcsReader.GetNext(seq);
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+
 			break;
 		}
 
@@ -406,9 +367,10 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			return fastaReader.Advance(nSteps);
 		case HDFPulse:
 		case HDFBase:
-			return hdfBasReader.Advance(nSteps);
 		case HDFCCS:
-			return hdfCcsReader.Advance(nSteps);
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
+		  break;
 		case Fastq:
 			return fastqReader.Advance(nSteps);
 		}
@@ -424,11 +386,9 @@ class ReaderAgglomerate : public BaseSequenceIO {
 			break;
 		case HDFPulse:
 		case HDFBase:
-			hdfBasReader.Close();
-			//			zmwReader.Close();
-			break;
 		case HDFCCS:
-			hdfCcsReader.Close();
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);		  
 			break;
 		case SAM_READ:
 			samReader.Close();

@@ -64,7 +64,7 @@
 #include "files/ReaderAgglomerate.h"
 #include "files/CCSIterator.h"
 #include "files/FragmentCCSIterator.h"
-#include "data/hdf/HDFRegionTableReader.h"
+//#include "data/hdf/HDFRegionTableReader.h"
 #include "datastructures/bwt/BWT.h"
 #include "datastructures/sequence/PackedDNASequence.h"
 #include "CommandLineParser.h" 
@@ -94,7 +94,7 @@ MappingSemaphores semaphores;
 ostream *outFilePtr;
 
 static bool seen;
-HDFRegionTableReader *regionTableReader;
+//HDFRegionTableReader *regionTableReader;
 
 typedef SMRTSequence T_Sequence;
 typedef FASTASequence T_GenomeSequence;
@@ -253,7 +253,7 @@ public:
 };
 
 string GetMajorVersion() {
-  return "1.MC.rc47";
+  return "1.MC.rc48";
 }
 
 void GetVersion(string &version) {
@@ -565,7 +565,8 @@ void SetConciseHelp(string &conciseHelp) {
   strm << "blasr - a program to map reads to a genome" << endl
        << " usage: blasr reads genome " << endl
        << " Run with -h for a list of commands " << endl
-       << "          -help for verbose discussion of how to run blasr." << endl;
+       << "          -help for verbose discussion of how to run blasr." << endl
+       << " NOTE THIS VERSION NO LONGER SUPPORTS HDF5." << endl;
   conciseHelp = strm.str();
 }
 
@@ -3245,21 +3246,8 @@ void MapReads(MappingData<T_SuffixArray, T_GenomeSequence, T_Tuple> *mapData) {
 
     AlignmentContext alignmentContext;
     if (mapData->reader->GetFileType() == HDFCCS) {
-      if (GetNextReadThroughSemaphore(*mapData->reader, params, ccsRead, alignmentContext) == false) {
-        break;
-      }
-      else {
-        if (params.unrollCcs == false) {
-          readIsCCS = true;
-          smrtRead.Copy(ccsRead);
-          ccsRead.zmwData = smrtRead.zmwData = ccsRead.unrolledRead.zmwData;
-          ccsRead.SetQVScale(params.qvScaleType);
-        }
-        else {
-          smrtRead.Copy(ccsRead.unrolledRead);
-        }
-        ++readIndex;
-      }
+      cerr << "HDF no longer supported" << endl;
+      exit(1);
     }
     else {
       if (GetNextReadThroughSemaphore(*mapData->reader, params, smrtRead, alignmentContext) == false) {
@@ -4617,7 +4605,7 @@ int main(int argc, char* argv[]) {
   reader->SetToUpper();
 
 
-	regionTableReader = new HDFRegionTableReader;
+  //	regionTableReader = new HDFRegionTableReader;
 	RegionTable regionTable;
   //
   // Store lists of how long it took to map each read.
@@ -4742,47 +4730,56 @@ int main(int argc, char* argv[]) {
 			initReturnValue = reader->IsInitialized();
 		}
     string changeListIdString;
-    reader->hdfBasReader.GetChangeListID(changeListIdString);
+    //    reader->hdfBasReader.GetChangeListID(changeListIdString);
     ChangeListID changeListId(changeListIdString);
     params.qvScaleType = DetermineQVScaleFromChangeListID(changeListId);
-		if (reader->FileHasZMWInformation() and params.useRegionTable) {
-			if (params.readSeparateRegionTable) {
-				if (regionTableReader->Initialize(params.regionTableFileNames[params.readsFileIndex]) == 0) {
-					cout << "ERROR! Could not read the region table " << params.regionTableFileNames[params.readsFileIndex] <<endl;
-					exit(1);
-				}
-				params.useRegionTable = true;
-			}
-			else {
-				if (reader->HasRegionTable()) {
-					if (regionTableReader->Initialize(params.readsFileNames[params.readsFileIndex]) == 0) {
-						cout << "ERROR! Could not read the region table " << params.regionTableFileNames[params.readsFileIndex] <<endl;
-						exit(1);
-					}
-					params.useRegionTable = true;
-				}
-				else {
-					params.useRegionTable = false;
-				}
-			}
-		}
-		else {
-			params.useRegionTable = false;
-		}
+    params.useRegionTable = false;
+          /*
+    if (reader->FileHasZMWInformation() and params.useRegionTable) {
 
+
+      if (params.readSeparateRegionTable) {
+	if (regionTableReader->Initialize(params.regionTableFileNames[params.readsFileIndex]) == 0) {
+	  cout << "ERROR! Could not read the region table " << params.regionTableFileNames[params.readsFileIndex] <<endl;
+	  exit(1);
+	}
+	params.useRegionTable = true;
+      }
+      else {
+
+	
+      if (reader->HasRegionTable()) {
+      
+      if (regionTableReader->Initialize(params.readsFileNames[params.readsFileIndex]) == 0) {
+      cout << "ERROR! Could not read the region table " << params.regionTableFileNames[params.readsFileIndex] <<endl;
+      exit(1);
+      }
+			    params.useRegionTable = true;
+			    }
+			    else {
+			    
+			    }
+			    }
+
+	}
+	else {
+	params.useRegionTable = false;
+	}
+      }
+	  */	
 		/*
 		 * Check to see if there is a region table. If there is a separate
 		 * region table, use that (over the region table in the bas
 		 * file).  If there is a region table in the bas file, use that,
 		 * without having to specify a region table on the command line. 
 		 */
-		if (params.useRegionTable) {
-			regionTable.Reset();
-			regionTableReader->ReadTable(regionTable);
-			regionTableReader->Close();
-			regionTable.SortTableByHoleNumber();
-		}
-
+    if (params.useRegionTable) {
+      //regionTable.Reset();
+      //regionTableReader->ReadTable(regionTable);
+      //regionTableReader->Close();
+      //regionTable.SortTableByHoleNumber();
+    }
+    
 #ifdef USE_GOOGLE_PROFILER
     char *profileFileName = getenv("CPUPROFILE");
     if (profileFileName != NULL) {
@@ -4793,8 +4790,8 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
-		if (initReturnValue > 0) {
-			if (params.nProc == 1) {
+    if (initReturnValue > 0) {
+      if (params.nProc == 1) {
 				mapdb[0].Initialize(&sarray, &genome, &seqdb, &ct, &index, params, reader, &regionTable, 
                             outFilePtr, unalignedFilePtr, &anchorFileStrm, clusterOutPtr);
 				mapdb[0].bwtPtr = &bwt;
@@ -4868,7 +4865,7 @@ int main(int argc, char* argv[]) {
 		delete[] threadAttr;
 	}
 	seqdb.FreeDatabase();
-	delete regionTableReader;
+	//	delete regionTableReader;
 	if (params.metricsFileName != "") {
 		metrics.PrintSummary(metricsOut);
 	}

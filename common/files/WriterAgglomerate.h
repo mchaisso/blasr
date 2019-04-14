@@ -3,20 +3,20 @@
 
 #include <iostream>
 #include <fstream>
-#include "../utils.h"
+#include "utils.h"
 
 #include "BaseSequenceIO.h"
 
-#include "../FASTAReader.h"
-#include "../FASTQReader.h"
-#include "../data/hdf/HDFBasWriter.h"
-#include "../Enumerations.h"
+#include "FASTAReader.h"
+#include "FASTQReader.h"
+//#include "data/hdf/HDFBasWriter.h"
+#include "Enumerations.h"
 
 template <typename T_Sequence>
 class WriterAgglomerate :public BaseSequenceIO {
 	ofstream     faOut;
  public:
-	HDFBasWriter hdfWriter;
+	//	HDFBasWriter hdfWriter;
 	int Initialize(string &pFileName) {
 		if (DetermineFileTypeByExtension(pFileName, fileType)) {
 			fileName = pFileName;
@@ -37,7 +37,8 @@ class WriterAgglomerate :public BaseSequenceIO {
 			break;
 		case HDFBase:
 		case HDFPulse:
-			hdfWriter.Initialize(fileName, movieName, runCode);
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);		  
 			break;
 		}
 		return 1;
@@ -53,7 +54,8 @@ class WriterAgglomerate :public BaseSequenceIO {
 			break;
 		case HDFBase:
 		case HDFPulse:
-				return hdfWriter.Write(seq);
+		  cerr << "HDF no longer supported" << endl;
+		  exit(1);
 			break;
 		}
 	}

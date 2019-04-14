@@ -54,7 +54,7 @@ bin/blDotPlot: bin/DotPlot.o
 	$(CPP) $(CPPOPTS) $^ $(STATIC) -o $@ 
 
 bin/blasrmc: bin/Blasr.o
-	$(CPP) $(STATIC) 	$(CPPOPTS) $< -L$(HDF5LIBDIR) -l$(HDF5LIBCPP) -l$(HDF5LIB) $(LINK_PROFILER) $(HDF_REQ_LIBS) -lrt -o $@
+	$(CPP) $(STATIC) $(CPPOPTS) $< $(LINK_PROFILER) -lrt -lpthread -o $@
 
 
 #
